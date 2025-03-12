@@ -23,18 +23,22 @@ class Builder(BNodeContainer):
         super().__init__(nodes)
         self.asset = asset
         self.points = []
-        self.nodes = nodes
         
     def build(self):
         def flatten(node: BNode) -> Iterable[BNode]:
+            yield node
             for n in node.children:
                 yield from flatten(n)
         
         nodes = [i for n in self.nodes
                                for i in flatten(n)]
+        for i,n in enumerate(nodes):
+            n.index = i
+        
         points = [
             p for n in nodes
-              for p in set(n.points)
+              for prim in n.primitives
+              for p in set(prim.points)              
         ]
         points_idx = {
             id(p):p for p in points
@@ -42,12 +46,37 @@ class Builder(BNodeContainer):
         indices = [
             points_idx[id(p)]
             for n in nodes
-            for p in n.points
+            for prim in n.primitives
+            for p in prim.points
         ]
         points_blob = np.array(points, np.float32).flatten().tobytes()
-        indices_blob = np.array(indices, np.unsignedinteger).flatten().tobytes()
+        indices_blob = np.array(indices, np.uint32).flatten().tobytes()
+        points_view = gltf.BufferView(
+                buffer=0,
+                byteOffset=0,
+                byteLength=len(points_blob)
+            )
+        indices_view = gltf.BufferView(
+            buffer=0,
+            byteOffset=len(points_blob),
+            byteLength=len(indices_blob),
+        )
         
-        g = gltf.GLTF2()
+        buffer = gltf.Buffer(
+            byteLength=len(points_blob) + len(indices_blob)
+        )
+        
+        g = gltf.GLTF2(
+            buffers=[buffer],
+            bufferViews=[
+                points_view,
+                indices_view,
+            ],
+            nodes = [
+                gltf.Node()
+                for n in nodes
+            ]
+        )
         g.set_binary_blob(points_blob + indices_blob)
         return g
     

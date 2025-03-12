@@ -10,7 +10,7 @@ from gltf_builder.primitives import Primitive, PrimitiveType, Point
 
 
 class BNodeContainer:
-    children: Sequence['BNode']
+    children: list['BNode']
     @property
     def nodes(self):
         return self.children
@@ -18,7 +18,7 @@ class BNodeContainer:
     def __init__(self,
                  children: Sequence['BNode']=()
                  ):
-        super().__init(children)
+        self.children = list(children)
     
     def add_node(self,
                 children: Sequence['BNode']=(),
@@ -37,9 +37,9 @@ class BNode(BNodeContainer):
                  primitives: Sequence[Primitive] = (),
                  children: Sequence['BNode']=(),
                  ):
+        super().__init__(children)
         self.name = name
         self.primitives = list(primitives)
-        self.children = children
         
     def add_primitive(self, type: PrimitiveType, *points: Point) -> Primitive:
         prim = Primitive(type, points)
