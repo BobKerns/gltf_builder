@@ -36,9 +36,18 @@ class Builder(BNodeContainer):
             p for n in nodes
               for p in set(n.points)
         ]
+        points_idx = {
+            id(p):p for p in points
+        }
+        indices = [
+            points_idx[id(p)]
+            for n in nodes
+            for p in n.points
+        ]
         points_blob = np.array(points, np.float32).flatten().tobytes()
+        indices_blob = np.array(indices, np.unsignedinteger).flatten().tobytes()
         
         g = gltf.GLTF2()
-        g.set_binary_blob(points_blob)
+        g.set_binary_blob(points_blob + indices_blob)
         return g
     
