@@ -1,7 +1,19 @@
 [project]
 name = "gltf-builder"
 version = "0.1.0"
-description = "Library for building gltf files"
+description = "Library for building gltf files, handling buffers, views, and accessors."
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: File Formats",
+    "Environment :: GPU",
+    "Environment :: Web Environment",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
 readme = "README.md"
 authors = [
     { name = "Bob Kerns", email = "1154903+BobKerns@users.noreply.github.com" }
