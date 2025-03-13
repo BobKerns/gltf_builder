@@ -3,26 +3,83 @@ The initial objedt that collects the geometry info and compiles it into
 a glTF object.
 '''
 
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Mapping
+from typing import Optional, Any
 
 import pygltflib as gltf
-import numpy as np
 
-from gltf_builder.primitives import Point
+from gltf_builder.holder import Holder, MasterHolder
+from gltf_builder.primitives import Point, BPrimitive
+from gltf_builder.buffer import BBuffer
+from gltf_builder.view import BBufferView
+from gltf_builder.accessor import BAccessor
+from gltf_builder.mesh import BMesh
 from gltf_builder.node import BNode, BNodeContainer
+from gltf_builder.element import (
+    EMPTY_SET, BufferViewTarget,
+)
 
 
 class Builder(BNodeContainer):
     asset: gltf.Asset
     points: list[Point]
-    nodes: Sequence[BNode]
+    meshes: Holder[BMesh]
+    buffers: Holder[BBuffer]
+    views: Holder[BBufferView]
+    accessors: Holder[BAccessor]
+    extras: dict[str, Any]
+    extensions: dict[str, Any]
     def __init__(self,
                 asset: gltf.Asset= gltf.Asset(),
-                nodes: Sequence[BNode] = (),
+                meshes: Iterable[BMesh]=(),
+                nodes: Iterable[BNode] = (),
+                buffers: Iterable[BBuffer]=(),
+                views: Iterable[BBufferView]=(),
+                accessors: Iterable[BAccessor]=(),
+                extras: Mapping[str, Any]=EMPTY_SET,
+                extensions: Mapping[str, Any]=EMPTY_SET,
         ):
         super().__init__(nodes)
         self.asset = asset
         self.points = []
+        self.meshes = MasterHolder(*meshes)
+        self.nodes = MasterHolder(*nodes)
+        if not buffers:
+            buffers = [BBuffer('main')]
+        self.buffers = MasterHolder(*buffers)
+        self.views = MasterHolder(*views)
+        self.accessors = MasterHolder(*accessors)
+        self.extras = dict(extras)
+        self.extensions = dict(extensions)
+        main = buffers[0]
+        self.add_view(name='points', buffer=main, target=BufferViewTarget.ARRAY_BUFFER)
+        self.add_view(name='normals', buffer=main, target=BufferViewTarget.ARRAY_BUFFER)
+        self.add_view(name='indices', buffer=main, target=BufferViewTarget.ELEMENT_ARRAY_BUFFER)
+        
+    def add_mesh(self,
+                 name: str='',
+                 primitives: Iterable[BPrimitive]=()
+                ):
+        mesh = BMesh(name=name, primitives=primitives)
+        self.meshes.add(mesh)
+        return mesh
+    
+    def add_buffer(self,
+                   name: str=''):
+        buffer = BBuffer(name=name, index=len(self.buffers))
+        self.buffers.add(buffer)
+        return buffer
+        
+    def add_view(self,
+                 name: str='',
+                 buffer: Optional[BBuffer]=None,
+                 data: Optional[bytes]=None,
+                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+            ) -> BBufferView:
+        buffer = buffer or self.buffers[0]
+        view = BBufferView(name=name, buffer=buffer, data=data, target=target)
+        self.views.add(view)
+        return view
         
     def build(self):
         def flatten(node: BNode) -> Iterable[BNode]:
@@ -30,53 +87,53 @@ class Builder(BNodeContainer):
             for n in node.children:
                 yield from flatten(n)
         
-        nodes = [i for n in self.nodes
-                               for i in flatten(n)]
-        for i,n in enumerate(nodes):
-            n.index = i
-        
-        points = [
-            p for n in nodes
-              for prim in n.primitives
-              for p in set(prim.points)              
+        nodes = [
+            i
+            for n in self.nodes
+            for i in flatten(n)
         ]
-        points_idx = {
-            id(p):p for p in points
-        }
-        indices = [
-            points_idx[id(p)]
-            for n in nodes
-            for prim in n.primitives
-            for p in prim.points
-        ]
-        points_blob = np.array(points, np.float32).flatten().tobytes()
-        indices_blob = np.array(indices, np.uint32).flatten().tobytes()
-        points_view = gltf.BufferView(
-                buffer=0,
-                byteOffset=0,
-                byteLength=len(points_blob)
-            )
-        indices_view = gltf.BufferView(
-            buffer=0,
-            byteOffset=len(points_blob),
-            byteLength=len(indices_blob),
-        )
-        
-        buffer = gltf.Buffer(
-            byteLength=len(points_blob) + len(indices_blob)
-        )
+        # Add all the child nodes.
+        self.nodes.add(*(n for n in nodes if not n.root))
         
         g = gltf.GLTF2(
-            buffers=[buffer],
-            bufferViews=[
-                points_view,
-                indices_view,
+            nodes=[
+                v
+                for v in (
+                    n.compile(self)
+                    for n in nodes
+                )
+                if v is not None
             ],
-            nodes = [
-                gltf.Node()
-                for n in nodes
+            meshes=[
+                m.compile(self)
+                for m in self.meshes
+            ],
+            accessors=[
+                a.compile(self)
+                for a in self.accessors
+                if a.count > 0
+            ],
+            buffers=[
+                b.compile(self)
+                for b in self.buffers
+            ],
+            bufferViews=[
+                v.compile(self)
+                for v in self.views
+            ],
+            scene=0,
+            scenes=[
+                {'name': 'main',
+                 'nodes': [
+                     n.index
+                     for n in self.nodes
+                     if n.root
+                 ]}
             ]
         )
-        g.set_binary_blob(points_blob + indices_blob)
+        data = bytes(())
+        for buf in self.buffers:
+            data = data + buf.data
+        g.set_binary_blob(data)
         return g
     

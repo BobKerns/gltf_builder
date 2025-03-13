@@ -2,37 +2,39 @@
 Definitions for GLTF primitives
 '''
 
-from typing import TypeAlias
-from enum import IntEnum
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 import pygltflib as gltf
 
+from gltf_builder.element import (
+    BPrimitiveProtocol, BuilderProtocol, PrimitiveMode, Point, EMPTY_SET,
+)
 
-class PrimitiveType(IntEnum):
-    POINTS = gltf.POINTS
-    LINES = gltf.LINES
-    LINE_LOOP = gltf.LINE_LOOP
-    LINE_STRIP = gltf.LINE_STRIP
-    TRIANGLES = gltf.TRIANGLES
-    TRIANGLE_STRIP = gltf.TRIANGLE_STRIP
-    TRIANGLE_FAN = gltf.TRIANGLE_FAN
-    
-
-Point: TypeAlias = tuple[float, float, float]
-
-
-class Primitive:
+class BPrimitive(BPrimitiveProtocol):
     '''
-    Base class for primitives
+    Base implementation class for primitives
     '''
-    type: PrimitiveType
-    points: list[Point]
-    indicies: list[int]
     
-    def __init__(self, type: PrimitiveType,
-                 points: Sequence[Point] = ()):
-        self.type = type
+    def __init__(self,
+                 mode: PrimitiveMode,
+                 points: Iterable[Point] = (),
+                 extras: Mapping[str, Any]=EMPTY_SET,
+                 extensions: Mapping[str, Any]=EMPTY_SET,
+            ):
+        super().__init__(extras, extensions)
+        self.mode = mode
         self.points = list(points)
 
-        
+    def do_compile(self, builder: BuilderProtocol):
+        points_view = builder.views['points']
+        points_accessor = points_view.add_accessor(gltf.VEC3, gltf.FLOAT, self.points)
+        points_accessor.compile(builder)
+        indices_view = builder.views['indices']
+        indices_accessor = indices_view.add_accessor(gltf.SCALAR, gltf.UNSIGNED_INT, list(range(len(self.points))))
+        indices_accessor.compile(builder)
+        return gltf.Primitive(
+            mode=self.mode,
+            indices=indices_accessor.index,
+            attributes=gltf.Attributes(POSITION=points_accessor.index)
+        )
