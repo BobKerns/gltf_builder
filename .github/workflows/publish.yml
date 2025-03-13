@@ -8,6 +8,10 @@ jobs:
   publish:
     name: publish
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
 
     steps:
         - uses: actions/checkout@v4
