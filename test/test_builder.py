@@ -39,6 +39,6 @@ def test_cube():
     assert len(g.bufferViews) == 3
     assert len(g.nodes) == 1
     assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
-    g.save_json('cube.gltf')
-    g.save_binary('cube.glb')
+    #g.save_json('cube.gltf')
+    #g.save_binary('cube.glb')
     
