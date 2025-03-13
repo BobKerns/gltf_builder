@@ -1,6 +1,6 @@
 [project]
 name = "gltf-builder"
-version = "0.1.0"
+version = "0.1.1"
 description = "Library for building gltf files, handling buffers, views, and accessors."
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    name: python
+    name: publish
     runs-on: ubuntu-latest
 
     steps:
@@ -29,3 +29,6 @@ jobs:
         
         - name: Run tests
           run: uv run pytest test
+
+        - name: Publish
+          run: uv publish
