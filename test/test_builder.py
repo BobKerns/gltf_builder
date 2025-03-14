@@ -1,3 +1,9 @@
+'''
+Test cases
+'''
+
+from typing import Iterable
+
 from gltf_builder import Builder, PrimitiveMode
 
 def test_empty_builder():
@@ -41,4 +47,51 @@ def test_cube():
     assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
     #g.save_json('cube.gltf')
     #g.save_binary('cube.glb')
+
+
+def test_faces():
+    b = Builder()
+    def face(name, indices: Iterable[int]):
+        m = b.add_mesh(name)
+        m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in indices])
+        return b.add_node(name=name, mesh=m, root=False)
+    b.add_node(name='CUBE',
+                children=[
+                    face('FACE1', CUBE_FACE1),
+                    face('FACE2', CUBE_FACE2),
+                    face('FACE3', CUBE_FACE3),
+                    face('FACE4', CUBE_FACE4),
+                    face('FACE5', CUBE_FACE5),
+                    face('FACE6', CUBE_FACE6),
+               ])
+    g = b.build()
+    assert len(g.buffers) == 1
+    assert len(g.bufferViews) == 2
+    assert len(g.nodes) == 7
+    assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
+    #g.save_json('cube.gltf')
+    g.save_binary('faces.glb')
+    
+
+
+def test_faces2():
+    b = Builder()
+    cube = b.add_node(name='CUBE')
+    def face(name, indices: Iterable[int]):
+        m = b.add_mesh(name)
+        m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in indices])
+        return cube.add_node(name=name, mesh=m, root=False)
+    face('FACE1', CUBE_FACE1)
+    face('FACE2', CUBE_FACE2)
+    face('FACE3', CUBE_FACE3)
+    face('FACE4', CUBE_FACE4)
+    face('FACE5', CUBE_FACE5)
+    face('FACE6', CUBE_FACE6)
+    g = b.build()
+    assert len(g.buffers) == 1
+    assert len(g.bufferViews) == 2
+    assert len(g.nodes) == 7
+    assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
+    #g.save_json('cube.gltf')
+    g.save_binary('faces2.glb')
     
