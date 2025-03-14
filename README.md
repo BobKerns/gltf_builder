@@ -2,6 +2,12 @@
 
 This library wraps the `pygltflib` library to handle the low-level details of managing buffers, buffer views, and accessors.
 
+In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` orefix.
+
+You start by creating a `Builder` instance. There are classes corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classe are compiled to the corresponding `gltf` clases with the `compile(Builder)` method.
+
+Compilation and collection of the pieces is performed by the `Builder.build()` method.
+
 ## Usage
 
 Install via your usual tool (I recommend `uv` as the modern upgrade from `pip` and others).
@@ -38,7 +44,7 @@ gltf.save_binary('cube.glb')
 
 The `builder.build()` method produces a regular `pygltflib.GLTF2` instance.
 
-To create hierarchy, use the `add_node() method on a parent node.
+To create hierarchy, use the `add_node()` method on a parent node.
 
 Note that referencing the same tuple for a point treats it as the same vertex, while a copy will create a separate vertex.
 

@@ -1,6 +1,7 @@
 from gltf_builder.accessor import BAccessor
+from gltf_builder.asset import BAsset, __version__
 from gltf_builder.element import (
-    Point, Tangent, Normal, Scale, PrimitiveMode, ComponentType,
+    Point, Tangent, Normal, Quaternion, PrimitiveMode, ComponentType,
     Scalar, Vector2, Vector3, Vector4, Matrix2, Matrix3, Matrix4,
 )
 
@@ -13,6 +14,7 @@ from gltf_builder.builder import Builder
 
 __all__ = [
     'BAccessor',
+    'BAsset',
     'BBuffer',
     'BBufferView',
     'BMesh',
@@ -26,10 +28,12 @@ __all__ = [
     'Normal',
     'Point',
     'PrimitiveMode',
+    'Quaternion',
     'Scalar',
     'Scale',
     'Tangent',
     'Vector2',
     'Vector3',
     'Vector4',
+    '__version__',
 ]

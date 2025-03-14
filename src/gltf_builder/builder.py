@@ -8,6 +8,7 @@ from typing import Optional, Any
 
 import pygltflib as gltf
 
+from gltf_builder.asset import BAsset
 from gltf_builder.holder import Holder, MasterHolder
 from gltf_builder.primitives import Point, BPrimitive
 from gltf_builder.buffer import BBuffer
@@ -21,6 +22,9 @@ from gltf_builder.element import (
 
 
 class Builder(BNodeContainer):
+    '''
+    The main object that collects all the geometry info and compiles it into a glTF object.
+    '''
     asset: gltf.Asset
     points: list[Point]
     meshes: Holder[BMesh]
@@ -30,7 +34,7 @@ class Builder(BNodeContainer):
     extras: dict[str, Any]
     extensions: dict[str, Any]
     def __init__(self,
-                asset: gltf.Asset= gltf.Asset(),
+                asset: gltf.Asset= BAsset(),
                 meshes: Iterable[BMesh]=(),
                 nodes: Iterable[BNode] = (),
                 buffers: Iterable[BBuffer]=(),
@@ -51,10 +55,8 @@ class Builder(BNodeContainer):
         self.accessors = MasterHolder(*accessors)
         self.extras = dict(extras)
         self.extensions = dict(extensions)
-        main = buffers[0]
-        self.add_view(name='points', buffer=main, target=BufferViewTarget.ARRAY_BUFFER)
-        self.add_view(name='normals', buffer=main, target=BufferViewTarget.ARRAY_BUFFER)
-        self.add_view(name='indices', buffer=main, target=BufferViewTarget.ELEMENT_ARRAY_BUFFER)
+        self.get_view(name='POSITION', target=BufferViewTarget.ARRAY_BUFFER)
+        self.add_view(name='indices', target=BufferViewTarget.ELEMENT_ARRAY_BUFFER)
         
     def add_mesh(self,
                  name: str='',
@@ -80,18 +82,25 @@ class Builder(BNodeContainer):
         view = BBufferView(name=name, buffer=buffer, data=data, target=target)
         self.views.add(view)
         return view
-        
+    
+    def get_view(self, name: str,
+                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+       ) -> BBufferView:
+        if name in self.views:
+            return self.views[name]
+        return self.add_view(name=name, target=target)
+    
     def build(self):
         def flatten(node: BNode) -> Iterable[BNode]:
             yield node
             for n in node.children:
                 yield from flatten(n)
         
-        nodes = [
+        nodes = list({
             i
             for n in self.nodes
             for i in flatten(n)
-        ]
+        })
         # Add all the child nodes.
         self.nodes.add(*(n for n in nodes if not n.root))
         

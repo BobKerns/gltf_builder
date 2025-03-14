@@ -6,7 +6,7 @@ def test_empty_builder():
     blob = g.binary_blob()
     assert len(blob) == 0
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 3
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 0
     
 
@@ -36,7 +36,7 @@ def test_cube():
     assert len(n.children) == 0
     g = b.build()
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 3
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 1
     assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
     #g.save_json('cube.gltf')

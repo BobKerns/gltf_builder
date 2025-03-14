@@ -70,7 +70,7 @@ Scalar: TypeAlias = float
 Point: TypeAlias = Vector3
 Tangent: TypeAlias = Vector4
 Normal: TypeAlias = Vector3
-Scale: TypeAlias = Vector3
+Quaternion: TypeAlias = Vector4
 
 @runtime_checkable
 class BuilderProtocol(Protocol):
@@ -186,3 +186,7 @@ class BMeshProtocol(Element[gltf.Mesh], Protocol):
 class BNodeProtocol(Element[gltf.Node]):
     mesh: BMeshProtocol
     root: bool
+    translation: Optional[Vector3]
+    rotation: Optional[Quaternion]
+    scale: Optional[Vector3]
+    matrix: Optional[Matrix4]

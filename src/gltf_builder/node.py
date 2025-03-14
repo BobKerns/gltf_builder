@@ -10,7 +10,7 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    Element, BNodeProtocol, BuilderProtocol, EMPTY_SET,
+    Element, BNodeProtocol, BuilderProtocol, EMPTY_SET, Matrix4, Quaternion, Vector3,
 )
 from gltf_builder.mesh import BMesh 
 from gltf_builder.holder import Holder
@@ -36,14 +36,23 @@ class BNodeContainer:
                 name: str='',
                 children: Iterable['BNode']=(),
                 mesh: Optional[BMesh]=None,
+                root: Optional[bool]=None,
+                translation: Optional[Vector3]=None,
+                rotation: Optional[Quaternion]=None,
+                scale: Optional[Vector3]=None,
+                matrix: Optional[Matrix4]=None,
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
                 ) -> 'BNode':
-        root = isinstance(self, BuilderProtocol)
+        root = isinstance(self, BuilderProtocol) if root is None else root
         node = BNode(name=name,
                     root=root,
                     children=children,
                     mesh=mesh,
+                    translation=translation,
+                    rotation=rotation,
+                    scale=scale,
+                    matrix=matrix,
                     extras=extras,
                     extensions=extensions,
                 )
@@ -57,7 +66,11 @@ class BNode(BNodeContainer, BNodeProtocol):
                  name: str ='',
                  children: Iterable['BNode']=(),
                  mesh: Optional[BMesh]=None,
-                 root: bool=False,
+                 root: Optional[bool]=None,
+                 translation: Optional[Vector3]=None,
+                 rotation: Optional[Quaternion]=None,
+                 scale: Optional[Vector3]=None,
+                 matrix: Optional[Matrix4]=None,
                  extras: Mapping[str, Any]=EMPTY_SET,
                  extensions: Mapping[str, Any]=EMPTY_SET,
                  ):
@@ -65,6 +78,10 @@ class BNode(BNodeContainer, BNodeProtocol):
         BNodeContainer.__init__(self, children=children)
         self.root = root
         self.mesh = mesh
+        self.translation = translation
+        self.rotation = rotation
+        self.scale = scale
+        self.matrix = matrix
         
     def do_compile(self, builder: BuilderProtocol):
         if self.mesh:
@@ -76,5 +93,9 @@ class BNode(BNodeContainer, BNodeProtocol):
             name=self.name,
             mesh=self.mesh.index if self.mesh else None,
             children=[child.index for child in self.children],
+            translation=self.translation,
+            rotation=self.rotation,
+            scale=self.scale,
+            matrix=self.matrix,
         )
     
