@@ -6,14 +6,15 @@ from typing import Iterable
 
 from gltf_builder import Builder, PrimitiveMode
 
-def test_empty_builder():
+def test_empty_builder(tmp_path):
     b = Builder()
     g = b.build()
     blob = g.binary_blob()
     assert len(blob) == 0
-    assert len(g.buffers) == 1
+    assert len(g.buffers) == 0
     assert len(g.bufferViews) == 0
     assert len(g.nodes) == 0
+    g.save_json('empty.gltf')
     
 
 CUBE = (

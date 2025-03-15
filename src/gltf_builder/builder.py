@@ -120,6 +120,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             buffers=[
                 b.compile(self)
                 for b in self.buffers
+                if len(b.blob) > 0
             ],
             bufferViews=[
                 v.compile(self)
@@ -137,7 +138,7 @@ class Builder(BNodeContainer, BuilderProtocol):
         )
         data = bytes(())
         for buf in self.buffers:
-            data = data + buf.data
+            data = data + buf.blob
         g.set_binary_blob(data)
         return g
     

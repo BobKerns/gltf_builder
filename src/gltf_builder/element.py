@@ -257,7 +257,10 @@ class Element(Compileable[T], Protocol):
 
 
 class BBuffer(Element[gltf.Buffer], Protocol):
-    data: bytes
+    @property
+    @abstractmethod
+    def blob(self) -> bytes:
+        ...
     views: Holder['BBufferView']
 
 

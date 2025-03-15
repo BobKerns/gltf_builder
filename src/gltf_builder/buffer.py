@@ -14,12 +14,12 @@ from gltf_builder.holder import Holder
 
 
 class _Buffer(BBuffer):
-    __data: bytes
-    views: Holder[BBufferView]
-    
+    __blob: bytes
     @property
-    def data(self):
-        return self.__data
+    def blob(self):
+        return self.__blob
+    
+    views: Holder[BBufferView]
     
     def __init__(self,
                  name: str='',
@@ -28,16 +28,16 @@ class _Buffer(BBuffer):
                  extensions: Mapping[str, Any]=EMPTY_SET,
                  ):
         super().__init__(name, extras, extensions)
-        self.__data = bytes(())
+        self.__blob = bytes(())
         self.views = Holder(*views)
     
     def do_compile(self, builder: BuilderProtocol):
         for view in self.views:
-            view.offset = len(self.__data)
+            view.offset = len(self.__blob)
             view.compile(builder)
-            self.__data = self.__data + view.data
+            self.__blob = self.__blob + view.data
         return gltf.Buffer(
-            byteLength=len(self.__data),
+            byteLength=len(self.__blob),
             extras=self.extras,
             extensions=self.extensions,
             )
