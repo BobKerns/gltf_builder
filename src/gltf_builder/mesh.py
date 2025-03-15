@@ -26,7 +26,7 @@ class BMesh(BMeshProtocol):
         self.primitives = list(primitives)
         self.weights = list(weights)
         
-    def add_primitive(self, type: PrimitiveMode,
+    def add_primitive(self, mode: PrimitiveMode,
                       *points: Point,
                       NORMAL: Optional[Iterable[Vector3]]=None,
                       TANGENT: Optional[Iterable[Vector4]]=None,
@@ -36,9 +36,10 @@ class BMesh(BMeshProtocol):
                       JOINTS_0: Optional[Iterable[Vector4]]=None,
                       WEIGHTS_0: Optional[Iterable[Vector4]]=None,
                       extras: Mapping[str, Any]=EMPTY_SET,
-                      extensions: Mapping[str, Any]=EMPTY_SET
+                      extensions: Mapping[str, Any]=EMPTY_SET,
+                      **attribs: Iterable[tuple[int|float,...]]
                     ) -> BPrimitive:
-        prim = BPrimitive(type, points,
+        prim = BPrimitive(mode, points,
                           NORMAL=NORMAL,
                           TANGENT=TANGENT,
                           TEXCOORD_0=TEXCOORD_0,
@@ -47,7 +48,8 @@ class BMesh(BMeshProtocol):
                           JOINTS_0=JOINTS_0,
                           WEIGHTS_0=WEIGHTS_0,
                           extras=extras,
-                          extensions=extensions)
+                          extensions=extensions,
+                          **attribs)
         self.primitives.append(prim)
         return prim
     

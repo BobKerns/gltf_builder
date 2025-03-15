@@ -10,14 +10,14 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    Element, BNodeProtocol, BuilderProtocol, EMPTY_SET, Matrix4, Quaternion, Vector3,
+    Element, EMPTY_SET, Matrix4, Quaternion, Vector3,
+    BNodeContainerProtocol, BNodeProtocol, BuilderProtocol, BMeshProtocol
 )
 from gltf_builder.mesh import BMesh 
 from gltf_builder.holder import Holder
 
 
-class BNodeContainer:
-    mesh: Optional[BMesh]
+class BNodeContainer(BNodeContainerProtocol):
     children: Holder['BNode']
     @property
     def nodes(self):
@@ -34,8 +34,8 @@ class BNodeContainer:
     
     def add_node(self,
                 name: str='',
-                children: Iterable['BNode']=(),
-                mesh: Optional[BMesh]=None,
+                children: Iterable[BNodeProtocol]=(),
+                mesh: Optional[BMeshProtocol]=None,
                 root: Optional[bool]=None,
                 translation: Optional[Vector3]=None,
                 rotation: Optional[Quaternion]=None,
@@ -43,6 +43,7 @@ class BNodeContainer:
                 matrix: Optional[Matrix4]=None,
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
+                **attrs: tuple[float|int,...]
                 ) -> 'BNode':
         root = isinstance(self, BuilderProtocol) if root is None else root
         node = BNode(name=name,
@@ -55,13 +56,13 @@ class BNodeContainer:
                     matrix=matrix,
                     extras=extras,
                     extensions=extensions,
+                    **attrs,
                 )
         self.children.add(node)
         return node
 
 
 class BNode(BNodeContainer, BNodeProtocol):
-    
     def __init__(self,
                  name: str ='',
                  children: Iterable['BNode']=(),

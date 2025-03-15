@@ -9,30 +9,22 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.asset import BAsset
-from gltf_builder.holder import Holder, MasterHolder
-from gltf_builder.primitives import Point
+from gltf_builder.holder import MasterHolder
 from gltf_builder.buffer import BBuffer
 from gltf_builder.view import BBufferView
 from gltf_builder.accessor import BAccessor
 from gltf_builder.mesh import BMesh
-from gltf_builder.node import BNode, BNodeContainer
+from gltf_builder.node import BNode
 from gltf_builder.element import (
-    EMPTY_SET, BBufferProtocol, BufferViewTarget, BPrimitiveProtocol
+    EMPTY_SET, BBufferProtocol, BufferViewTarget, BPrimitiveProtocol,
+    BuilderProtocol,
 )
 
 
-class Builder(BNodeContainer):
+class Builder(BuilderProtocol):
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
-    asset: gltf.Asset
-    points: list[Point]
-    meshes: Holder[BMesh]
-    buffers: Holder[BBuffer]
-    views: Holder[BBufferView]
-    accessors: Holder[BAccessor]
-    extras: dict[str, Any]
-    extensions: dict[str, Any]
     def __init__(self,
                 asset: gltf.Asset= BAsset(),
                 meshes: Iterable[BMesh]=(),

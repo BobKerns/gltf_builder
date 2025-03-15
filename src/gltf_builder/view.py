@@ -57,7 +57,7 @@ class BBufferView(BBufferViewProtocol):
                     max: Optional[list[float]]=None,
                     extras: Mapping[str, Any]=EMPTY_SET,
                     extensions: Mapping[str, Any]=EMPTY_SET,
-            ):
+            ) -> gltf.Accessor:
         offset = len(self.data)
         count = len(data)
         componentSize: int = 0

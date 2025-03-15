@@ -6,16 +6,13 @@ in the glTF. This also holds the name, defaulting it by the index.
 from typing import TypeAlias, Protocol, TypeVar, Generic, Optional, Any, runtime_checkable
 from abc import abstractmethod
 from enum import IntEnum, StrEnum
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterable
 
 import numpy as np
 import pygltflib as gltf
 
 from gltf_builder.holder import Holder
     
-
-T = TypeVar('T')
-
 
 class PrimitiveMode(IntEnum):
     POINTS = gltf.POINTS
@@ -72,16 +69,78 @@ Tangent: TypeAlias = Vector4
 Normal: TypeAlias = Vector3
 Quaternion: TypeAlias = Vector4
 
+
+EMPTY_SET: Mapping[str, Any] = frozenset()
+
+
+class BNodeContainerProtocol(Protocol):
+    children: Holder['BNodeProtocol']
+    @property
+    def nodes(self):
+        return self.children
+    @nodes.setter
+    def nodes(self, nodes: Holder['BNodeProtocol']):
+        self.children = nodes
+    
+    @abstractmethod
+    def add_node(self,
+                name: str='',
+                children: Iterable['BNodeProtocol']=(),
+                mesh: Optional['BMeshProtocol']=None,
+                root: Optional[bool]=None,
+                translation: Optional[Vector3]=None,
+                rotation: Optional[Quaternion]=None,
+                scale: Optional[Vector3]=None,
+                matrix: Optional[Matrix4]=None,
+                extras: Mapping[str, Any]=EMPTY_SET,
+                extensions: Mapping[str, Any]=EMPTY_SET,
+                **attrs: tuple[float|int,...]
+                ) -> 'BNodeProtocol':
+        ...
+
 @runtime_checkable
-class BuilderProtocol(Protocol):
+class BuilderProtocol(BNodeContainerProtocol, Protocol):
     asset: gltf.Asset
     points: list[Point]
     meshes: Holder['BMeshProtocol']
     buffers: Holder['BBufferProtocol']
     views: Holder['BBufferViewProtocol']
+    accessors: Holder['BAccessorProtocol']
+    extras: dict[str, Any]
+    extensions: dict[str, Any]
+    
+    @abstractmethod
+    def add_mesh(self,
+                 name: str='',
+                 primitives: Iterable['BPrimitiveProtocol']=(),
+            ) -> 'BMeshProtocol':
+        ...
+    
+    @abstractmethod
+    def add_buffer(self,
+                   name: str='') -> 'BBufferProtocol':
+        ...
+    
+    @abstractmethod
+    def add_view(self,
+                 name: str='',
+                 buffer: Optional['BBufferProtocol']=None,
+                 data: Optional[bytes]=None,
+                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+            ) -> 'BBufferViewProtocol':
+        ...
+        
+    @abstractmethod
+    def get_view(self, name: str,
+                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+       ) -> 'BBufferViewProtocol':
+        ...
+        
+    def build(self) -> gltf.GLTF2:
+        ...
 
-EMPTY_SET: Mapping[str, Any] = frozenset()
 
+T = TypeVar('T')
 class Compileable(Generic[T], Protocol):
     __compiled: T|None = None
     extensions: dict[str, Any]
@@ -157,6 +216,28 @@ class BBufferViewProtocol(Element[gltf.BufferView], Protocol):
     accessors: Holder['BAccessorProtocol']
     data: bytes
 
+    @abstractmethod
+    @property
+    def offset(self):
+        ...
+    
+    @abstractmethod
+    @offset.setter
+    def offset(self, offset: int):
+        ...
+
+    @abstractmethod
+    def add_accessor(self,
+                    type: ElementType,
+                    componentType: ComponentType,
+                    data: np.ndarray[tuple[int, ...], Any]|Iterable[Any],
+                    normalized: bool=False,
+                    min: Optional[list[float]]=None,
+                    max: Optional[list[float]]=None,
+                    extras: Mapping[str, Any]=EMPTY_SET,
+                    extensions: Mapping[str, Any]=EMPTY_SET,
+            ) -> gltf.Accessor:
+        ...
 
 class BAccessorProtocol(Element[gltf.Accessor], Protocol):
     view: BBufferViewProtocol
@@ -177,12 +258,30 @@ class BPrimitiveProtocol(Compileable[gltf.Primitive], Protocol):
     mode: PrimitiveMode
     points: list[Point]
     indicies: list[int]
+    attribs: dict[str, list[tuple[int|float,...]]]
     
     
 class BMeshProtocol(Element[gltf.Mesh], Protocol):
     primitives: list[BPrimitiveProtocol]
     weights: list[float]
+
+    @abstractmethod
+    def add_primitive(self, mode: PrimitiveMode,
+                      *points: Point,
+                      NORMAL: Optional[Iterable[Vector3]]=None,
+                      TANGENT: Optional[Iterable[Vector4]]=None,
+                      TEXCOORD_0: Optional[Iterable[Vector3]]=None,
+                      TEXCOORD_1: Optional[Iterable[Vector3]]=None,
+                      COLOR_0: Optional[Iterable[Vector4]]=None,
+                      JOINTS_0: Optional[Iterable[Vector4]]=None,
+                      WEIGHTS_0: Optional[Iterable[Vector4]]=None,
+                      extras: Mapping[str, Any]=EMPTY_SET,
+                      extensions: Mapping[str, Any]=EMPTY_SET,
+                      **attribs: Iterable[tuple[int|float,...]]
+                    ) -> BPrimitiveProtocol:
+        ...
     
+
 class BNodeProtocol(Element[gltf.Node]):
     mesh: BMeshProtocol
     root: bool
