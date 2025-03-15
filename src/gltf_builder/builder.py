@@ -10,14 +10,14 @@ import pygltflib as gltf
 
 from gltf_builder.asset import BAsset
 from gltf_builder.holder import Holder, MasterHolder
-from gltf_builder.primitives import Point, BPrimitive
+from gltf_builder.primitives import Point
 from gltf_builder.buffer import BBuffer
 from gltf_builder.view import BBufferView
 from gltf_builder.accessor import BAccessor
 from gltf_builder.mesh import BMesh
 from gltf_builder.node import BNode, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_SET, BufferViewTarget,
+    EMPTY_SET, BBufferProtocol, BufferViewTarget, BPrimitiveProtocol
 )
 
 
@@ -57,24 +57,24 @@ class Builder(BNodeContainer):
         self.extensions = dict(extensions)
         self.get_view(name='POSITION', target=BufferViewTarget.ARRAY_BUFFER)
         self.add_view(name='indices', target=BufferViewTarget.ELEMENT_ARRAY_BUFFER)
-        
+    
     def add_mesh(self,
                  name: str='',
-                 primitives: Iterable[BPrimitive]=()
+                 primitives: Iterable[BPrimitiveProtocol]=()
                 ):
         mesh = BMesh(name=name, primitives=primitives)
         self.meshes.add(mesh)
         return mesh
     
     def add_buffer(self,
-                   name: str=''):
+                   name: str='') -> BBuffer:
         buffer = BBuffer(name=name, index=len(self.buffers))
         self.buffers.add(buffer)
         return buffer
         
     def add_view(self,
                  name: str='',
-                 buffer: Optional[BBuffer]=None,
+                 buffer: Optional[BBufferProtocol]=None,
                  data: Optional[bytes]=None,
                  target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
             ) -> BBufferView:
@@ -90,7 +90,7 @@ class Builder(BNodeContainer):
             return self.views[name]
         return self.add_view(name=name, target=target)
     
-    def build(self):
+    def build(self) -> gltf.GLTF2:
         def flatten(node: BNode) -> Iterable[BNode]:
             yield node
             for n in node.children:

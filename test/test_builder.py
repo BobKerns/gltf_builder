@@ -44,9 +44,10 @@ def test_cube():
     assert len(g.buffers) == 1
     assert len(g.bufferViews) == 2
     assert len(g.nodes) == 1
-    assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
+    size = 6 * 3 * 4 * 4 + 4 * 4 * 6
+    assert len(g.binary_blob()) ==  size
     #g.save_json('cube.gltf')
-    #g.save_binary('cube.glb')
+    g.save_binary('cube.glb')
 
 
 def test_faces():
@@ -68,7 +69,8 @@ def test_faces():
     assert len(g.buffers) == 1
     assert len(g.bufferViews) == 2
     assert len(g.nodes) == 7
-    assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
+    size = 6 * 3 * 4 * 4 + 4 * 4 * 6
+    assert len(g.binary_blob()) == size
     #g.save_json('cube.gltf')
     g.save_binary('faces.glb')
     
@@ -91,7 +93,8 @@ def test_faces2():
     assert len(g.buffers) == 1
     assert len(g.bufferViews) == 2
     assert len(g.nodes) == 7
-    assert len(g.binary_blob()) == 6 * 3 * 4 * 4 + 4 * 4 * 6
+    size = 6 * 3 * 4 * 4 + 4 * 4 * 6
+    assert len(g.binary_blob()) == size
     #g.save_json('cube.gltf')
     g.save_binary('faces2.glb')
     
