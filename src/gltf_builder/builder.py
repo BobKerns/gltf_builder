@@ -10,14 +10,14 @@ import pygltflib as gltf
 
 from gltf_builder.asset import BAsset
 from gltf_builder.holder import MasterHolder
-from gltf_builder.buffer import BBuffer
-from gltf_builder.view import BBufferView
-from gltf_builder.accessor import BAccessor
-from gltf_builder.mesh import BMesh
-from gltf_builder.node import BNode, BNodeContainer
+from gltf_builder.buffer import _Buffer
+from gltf_builder.view import _BufferView
+from gltf_builder.accessor import _Accessor
+from gltf_builder.mesh import _Mesh
+from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_SET, BBufferProtocol, BufferViewTarget, BPrimitiveProtocol,
-    BuilderProtocol,
+    EMPTY_SET, BBuffer, BufferViewTarget, BPrimitive,
+    BuilderProtocol, ElementType, ComponentType,
 )
 
 
@@ -25,63 +25,68 @@ class Builder(BNodeContainer, BuilderProtocol):
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
-    def __init__(self,
+    def __init__(self, /,
                 asset: gltf.Asset= BAsset(),
-                meshes: Iterable[BMesh]=(),
-                nodes: Iterable[BNode] = (),
-                buffers: Iterable[BBuffer]=(),
-                views: Iterable[BBufferView]=(),
-                accessors: Iterable[BAccessor]=(),
+                meshes: Iterable[_Mesh]=(),
+                nodes: Iterable[_Node] = (),
+                buffers: Iterable[_Buffer]=(),
+                views: Iterable[_BufferView]=(),
+                accessors: Iterable[_Accessor]=(),
+                index_size: int=32,
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
         ):
         super().__init__(nodes)
         self.asset = asset
-        self.points = []
         self.meshes = MasterHolder(*meshes)
         self.nodes = MasterHolder(*nodes)
         if not buffers:
-            buffers = [BBuffer('main')]
+            buffers = [_Buffer('main')]
         self.buffers = MasterHolder(*buffers)
         self.views = MasterHolder(*views)
         self.accessors = MasterHolder(*accessors)
+        self.index_size = index_size
         self.extras = dict(extras)
         self.extensions = dict(extensions)
+        self.attr_type_map ={
+            'TANGENT': (gltf.VEC4, gltf.FLOAT),
+            '__DEFAULT__': (gltf.VEC3, gltf.FLOAT),
+        }
     
     def add_mesh(self,
                  name: str='',
-                 primitives: Iterable[BPrimitiveProtocol]=()
+                 primitives: Iterable[BPrimitive]=()
                 ):
-        mesh = BMesh(name=name, primitives=primitives)
+        mesh = _Mesh(name=name, primitives=primitives)
         self.meshes.add(mesh)
         return mesh
     
     def add_buffer(self,
-                   name: str='') -> BBuffer:
-        buffer = BBuffer(name=name, index=len(self.buffers))
+                   name: str='') -> _Buffer:
+        buffer = _Buffer(name=name, index=len(self.buffers))
         self.buffers.add(buffer)
         return buffer
         
     def add_view(self,
                  name: str='',
-                 buffer: Optional[BBufferProtocol]=None,
+                 buffer: Optional[BBuffer]=None,
                  data: Optional[bytes]=None,
                  target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-            ) -> BBufferView:
+            ) -> _BufferView:
         buffer = buffer or self.buffers[0]
-        view = BBufferView(name=name, buffer=buffer, data=data, target=target)
+        view = _BufferView(name=name, buffer=buffer, data=data, target=target)
         self.views.add(view)
         return view
     
     def get_view(self, name: str,
                  target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-       ) -> BBufferView:
+       ) -> _BufferView:
         if name in self.views:
             return self.views[name]
         return self.add_view(name=name, target=target)
     
     def build(self) -> gltf.GLTF2:
-        def flatten(node: BNode) -> Iterable[BNode]:
+        def flatten(node: _Node) -> Iterable[_Node]:
             yield node
             for n in node.children:
                 yield from flatten(n)
@@ -136,3 +141,36 @@ class Builder(BNodeContainer, BuilderProtocol):
         g.set_binary_blob(data)
         return g
     
+    def define_attrib(self, name: str, type: ElementType, componentType: ComponentType):
+        self.attr_type_map[name] = (type, componentType)
+
+    def get_attrib_info(self, name: str) -> tuple[ElementType, ComponentType]:
+        return self.attr_type_map.get(name) or self.attr_type_map['__DEFAULT__']
+
+    def get_index_size(self, max_value: int) -> int:
+        '''
+        Get the index size based on the configured size or the maximum value.
+        '''
+        match self.index_size:
+            case size if size > 16 and size <= 32:
+                if max_value < 4294967295:
+                    return gltf.UNSIGNED_INT
+            case size if size > 8 and size <= 16:
+                if max_value < 65535:
+                    return gltf.UNSIGNED_SHORT
+            case size if size > 0 and size <= 8:
+                if max_value < 255:
+                    return gltf.UNSIGNED_BYTE
+            case 0:
+                if max_value < 0:
+                    raise ValueError("Index size is negative.")
+                if max_value < 255:
+                    return gltf.UNSIGNED_BYTE
+                if max_value < 65535:
+                    return gltf.UNSIGNED_SHORT
+                if max_value < 4294967295:
+                    return gltf.UNSIGNED_INT
+                # Unlikely!
+                raise ValueError("Index size is too large.")
+            case _:
+                raise ValueError(f'Invalid index size: {self.index_size}')

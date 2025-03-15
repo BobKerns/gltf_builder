@@ -11,31 +11,31 @@ import pygltflib as gltf
 
 from gltf_builder.element import (
     Element, EMPTY_SET, Matrix4, Quaternion, Vector3,
-    BNodeContainerProtocol, BNodeProtocol, BuilderProtocol, BMeshProtocol
+    BNodeContainerProtocol, BNode, BuilderProtocol, BMesh
 )
-from gltf_builder.mesh import BMesh 
+from gltf_builder.mesh import _Mesh 
 from gltf_builder.holder import Holder
 
 
 class BNodeContainer(BNodeContainerProtocol):
-    children: Holder['BNode']
+    children: Holder['_Node']
     @property
     def nodes(self):
         return self.children
     @nodes.setter
-    def nodes(self, nodes: Holder['BNode']):
+    def nodes(self, nodes: Holder['_Node']):
         self.children = nodes
     
     def __init__(self, /,
-                 children: Iterable['BNode']=(),
+                 children: Iterable['_Node']=(),
                  **_
                 ):
         self.children = Holder(*children)
     
     def add_node(self,
                 name: str='',
-                children: Iterable[BNodeProtocol]=(),
-                mesh: Optional[BMeshProtocol]=None,
+                children: Iterable[BNode]=(),
+                mesh: Optional[BMesh]=None,
                 root: Optional[bool]=None,
                 translation: Optional[Vector3]=None,
                 rotation: Optional[Quaternion]=None,
@@ -44,9 +44,9 @@ class BNodeContainer(BNodeContainerProtocol):
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
                 **attrs: tuple[float|int,...]
-                ) -> 'BNode':
+                ) -> '_Node':
         root = isinstance(self, BuilderProtocol) if root is None else root
-        node = BNode(name=name,
+        node = _Node(name=name,
                     root=root,
                     children=children,
                     mesh=mesh,
@@ -62,11 +62,11 @@ class BNodeContainer(BNodeContainerProtocol):
         return node
 
 
-class BNode(BNodeContainer, BNodeProtocol):
+class _Node(BNodeContainer, BNode):
     def __init__(self,
                  name: str ='',
-                 children: Iterable['BNode']=(),
-                 mesh: Optional[BMesh]=None,
+                 children: Iterable['_Node']=(),
+                 mesh: Optional[_Mesh]=None,
                  root: Optional[bool]=None,
                  translation: Optional[Vector3]=None,
                  rotation: Optional[Quaternion]=None,
@@ -99,4 +99,3 @@ class BNode(BNodeContainer, BNodeProtocol):
             scale=self.scale,
             matrix=self.matrix,
         )
-    

@@ -8,16 +8,16 @@ from typing import Any, Optional
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    BuilderProtocol, BMeshProtocol, EMPTY_SET,
+    BuilderProtocol, BMesh, EMPTY_SET,
     Point, Vector3, Vector4,
 )
-from gltf_builder.primitives import BPrimitive, PrimitiveMode
+from gltf_builder.primitives import _Primitive, PrimitiveMode
 
 
-class BMesh(BMeshProtocol):
+class _Mesh(BMesh):
     def __init__(self, /,
                  name='',
-                 primitives: Iterable[BPrimitive]=(),
+                 primitives: Iterable[_Primitive]=(),
                  weights: Iterable[float]=(),
                  extras: Mapping[str, Any]=EMPTY_SET,
                  extensions: Mapping[str, Any]=EMPTY_SET,
@@ -38,8 +38,8 @@ class BMesh(BMeshProtocol):
                       extras: Mapping[str, Any]=EMPTY_SET,
                       extensions: Mapping[str, Any]=EMPTY_SET,
                       **attribs: Iterable[tuple[int|float,...]]
-                    ) -> BPrimitive:
-        prim = BPrimitive(mode, points,
+                    ) -> _Primitive:
+        prim = _Primitive(mode, points,
                           NORMAL=NORMAL,
                           TANGENT=TANGENT,
                           TEXCOORD_0=TEXCOORD_0,

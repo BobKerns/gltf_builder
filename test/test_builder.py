@@ -23,9 +23,16 @@ CUBE = (
 CUBE_FACE1 = (0, 1, 2, 3)
 CUBE_FACE2 = (4, 5, 6, 7)
 CUBE_FACE3 = (0, 4, 5, 1)
-CUBE_FACE4 = (0, 4, 7, 3)
-CUBE_FACE5 = (1, 2, 6, 5)
+CUBE_FACE4 = (2, 6, 7, 3)
+CUBE_FACE5 = (0, 4, 7, 3)
 CUBE_FACE6 = (1, 5, 6, 2)
+
+CUBE_NORMAL1 = (1, 0, 0)
+CUBE_NORMAL2 = (-1, 0, 0)
+CUBE_NORMAL3 = (0, 1, 0)
+CUBE_NORMAL4 = (0, -1, 0)
+CUBE_NORMAL5 = (0, 0, 1)
+CUBE_NORMAL6 = (0, 0, -1)
 
 def test_cube():
     b = Builder()

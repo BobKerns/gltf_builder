@@ -9,19 +9,19 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.element import (
-    BBufferViewProtocol, BuilderProtocol, EMPTY_SET,
+    BBufferView, BuilderProtocol, EMPTY_SET,
     BufferViewTarget, ComponentType, ElementType,
 )
-from gltf_builder.buffer import BBuffer
-from gltf_builder.accessor import BAccessor
+from gltf_builder.buffer import _Buffer
+from gltf_builder.accessor import _Accessor
 from gltf_builder.holder import Holder
 
 
-class BBufferView(BBufferViewProtocol):
+class _BufferView(BBufferView):
     __offset: int = -1 # -1 means not yet set
     
     def __init__(self, name: str='',
-                 buffer: Optional[BBuffer]=None,
+                 buffer: Optional[_Buffer]=None,
                  data: Optional[bytes]=None,
                  byteStride: int=0,
                  target: BufferViewTarget = BufferViewTarget.ARRAY_BUFFER,
@@ -107,7 +107,7 @@ class BBufferView(BBufferViewProtocol):
             raise ValueError(f'Inconsistent byteStride. old={self.byteStride}, new={stride}')
         encoded = data.flatten().tobytes()
         self.data = self.data + encoded
-        accessor = BAccessor(
+        accessor = _Accessor(
             view=self,
             byteOffset=offset,
             count=count,

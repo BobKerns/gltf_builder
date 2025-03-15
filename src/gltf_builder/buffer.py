@@ -8,14 +8,14 @@ from typing import Any
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    BBufferProtocol, BBufferViewProtocol, BuilderProtocol, EMPTY_SET,
+    BBuffer, BBufferView, BuilderProtocol, EMPTY_SET,
 )
 from gltf_builder.holder import Holder
 
 
-class BBuffer(BBufferProtocol):
+class _Buffer(BBuffer):
     __data: bytes
-    views: Holder[BBufferViewProtocol]
+    views: Holder[BBufferView]
     
     @property
     def data(self):
@@ -23,7 +23,7 @@ class BBuffer(BBufferProtocol):
     
     def __init__(self,
                  name: str='',
-                 views: Iterable[BBufferViewProtocol]=(),
+                 views: Iterable[BBufferView]=(),
                  extras: Mapping[str, Any]=EMPTY_SET,
                  extensions: Mapping[str, Any]=EMPTY_SET,
                  ):

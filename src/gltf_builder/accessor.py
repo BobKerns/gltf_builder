@@ -9,14 +9,14 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.element import (
-    BAccessorProtocol, BuilderProtocol, BBufferViewProtocol, EMPTY_SET,
+    BAccessor, BuilderProtocol, BBufferView, EMPTY_SET,
     ElementType,
 )
 
 
-class BAccessor(BAccessorProtocol):    
+class _Accessor(BAccessor):    
     def __init__(self, /,
-                 view: BBufferViewProtocol,
+                 view: BBufferView,
                  count: int,
                  type: ElementType,
                  data: np.ndarray[tuple[int, ...], Any],
