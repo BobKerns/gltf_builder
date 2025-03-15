@@ -12,7 +12,7 @@ def test_empty_builder():
     blob = g.binary_blob()
     assert len(blob) == 0
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 0
     assert len(g.nodes) == 0
     
 

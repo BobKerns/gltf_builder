@@ -108,6 +108,7 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
     accessors: Holder['BAccessorProtocol']
     extras: dict[str, Any]
     extensions: dict[str, Any]
+    index_size: int = 32
     
     @abstractmethod
     def add_mesh(self,
@@ -216,13 +217,13 @@ class BBufferViewProtocol(Element[gltf.BufferView], Protocol):
     accessors: Holder['BAccessorProtocol']
     data: bytes
 
-    @abstractmethod
     @property
+    @abstractmethod
     def offset(self):
         ...
     
-    @abstractmethod
     @offset.setter
+    @abstractmethod
     def offset(self, offset: int):
         ...
 
