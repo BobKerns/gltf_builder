@@ -4,6 +4,7 @@ Builder description that compiles to a BufferView
 
 from typing import Optional, Any
 from collections.abc import Iterable, Mapping
+import array # type: ignore
 
 import pygltflib as gltf
 import numpy as np
@@ -18,6 +19,21 @@ from gltf_builder.holder import Holder
 
 
 class _BufferView(BBufferView):
+    __array: array.array
+    __blob: bytes|None = None
+    @property
+    def blob(self):
+        if self.__blob is None:
+            self.__blob = self.__array.tobytes()
+        return self.__blob
+    
+    __offset: int = -1
+    @property
+    def offset(self) -> int:
+        if self.__offset < 0:
+            self.__offset = len(self.buffer)
+        return self.__offset
+
     def __init__(self, name: str='',
                  buffer: Optional[_Buffer]=None,
                  data: Optional[bytes]=None,
@@ -30,13 +46,10 @@ class _BufferView(BBufferView):
         self.buffer = buffer
         self.target = target
         buffer.views.add(self)
-        self.data = data or bytes()
+        self.__array = array.array('B', data or ())
         self.byteStride = byteStride
         self.accessors = Holder()
         
-    @property
-    def offset(self) -> int:
-        return len(self.buffer)
     
     def add_accessor(self,
                     type: ElementType,
@@ -48,7 +61,7 @@ class _BufferView(BBufferView):
                     extras: Mapping[str, Any]=EMPTY_SET,
                     extensions: Mapping[str, Any]=EMPTY_SET,
             ) -> gltf.Accessor:
-        offset = len(self.data)
+        offset = len(self)
         count = len(data)
         componentSize: int = 0
         if not isinstance(data, np.ndarray):
@@ -95,8 +108,7 @@ class _BufferView(BBufferView):
             pass
         else:
             raise ValueError(f'Inconsistent byteStride. old={self.byteStride}, new={stride}')
-        encoded = data.flatten().tobytes()
-        self.data = self.data + encoded
+        self.extend(data.flatten().tobytes())
         accessor = _Accessor(
             view=self,
             byteOffset=offset,
@@ -121,12 +133,19 @@ class _BufferView(BBufferView):
             if self.target ==  BufferViewTarget.ARRAY_BUFFER
             else None
         )
-        self.buffer.extend(self.data)
+        self.buffer.extend(self.blob)
         return gltf.BufferView(
             name=self.name,
             buffer=self.buffer.index,
             byteOffset=self.offset,
-            byteLength=len(self.data),
+            byteLength=len(self),
             byteStride=byteStride,
             target=self.target,
         )
+
+    def extend(self, data: bytes|np.typing.NDArray) -> None:
+        self.__array.extend(data)
+        self.__blob = None
+
+    def __len__(self):
+        return len(self.__array)
