@@ -62,15 +62,27 @@ class _Primitive(BPrimitive):
             return accessor.index
         
         index_size = builder.get_index_size(len(self.points))
-        indices_view = builder.get_view('indices', BufferViewTarget.ELEMENT_ARRAY_BUFFER)
-        indices_accessor = indices_view.add_accessor(gltf.SCALAR, index_size, list(range(len(self.points))))
-        indices_accessor.compile(builder)
+        if index_size >= 0:
+            indices_view = builder.get_view('indices', BufferViewTarget.ELEMENT_ARRAY_BUFFER)
+            indices = list(range(len(self.points)))
+            if index_size == 0:
+                match len(indices):
+                    case  size if size < 255:
+                        index_size = gltf.UNSIGNED_BYTE
+                    case  size if size < 65535:
+                        index_size = gltf.UNSIGNED_SHORT
+                    case  _:
+                        index_size = gltf.UNSIGNED_INT
+            indices_accessor = indices_view.add_accessor(gltf.SCALAR, index_size, indices)
+            indices_accessor.compile(builder)
+        else:
+            indices_accessor = None
         attrib_indices = {
             name: compile_attrib(name, data)
             for name, data in self.attribs.items()
         }
         return gltf.Primitive(
             mode=self.mode,
-            indices=indices_accessor.index,
+            indices=indices_accessor.index if indices_accessor else None,
             attributes=gltf.Attributes(**attrib_indices)
         )

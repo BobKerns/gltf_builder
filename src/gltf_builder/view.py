@@ -30,8 +30,12 @@ class _BufferView(BBufferView):
     __offset: int = -1
     @property
     def offset(self) -> int:
+        '''
+        The offset of the `BBufferView`` in the `BBuffer`.
+        The value is set when the `BBufferView` is compiled.
+        '''
         if self.__offset < 0:
-            self.__offset = len(self.buffer)
+            raise ValueError('BBufferView not compiled')
         return self.__offset
 
     def __init__(self, name: str='',
@@ -61,6 +65,19 @@ class _BufferView(BBufferView):
                     extras: Mapping[str, Any]=EMPTY_SET,
                     extensions: Mapping[str, Any]=EMPTY_SET,
             ) -> gltf.Accessor:
+        '''
+        Add an accessor to the buffer view, with the given data.
+        
+        The data is expected to be a numpy array, or an iterable of values.
+        
+        The type and componentType are used to determine the size of the data.
+    
+        The normalized flag is used to determine if the data should be normalized.
+
+        The min and max values are used to determine the bounds of the data.
+        
+        The extras and extensions are used to store additional data.
+        '''
         offset = len(self)
         count = len(data)
         componentSize: int = 0
@@ -133,6 +150,7 @@ class _BufferView(BBufferView):
             if self.target ==  BufferViewTarget.ARRAY_BUFFER
             else None
         )
+        self.__offset = len(self.buffer)
         self.buffer.extend(self.blob)
         return gltf.BufferView(
             name=self.name,
@@ -144,8 +162,15 @@ class _BufferView(BBufferView):
         )
 
     def extend(self, data: bytes|np.typing.NDArray) -> None:
+        '''
+        Extend the buffer view with the given data, to be added to the buffer
+        and made available to accessors at runtime.
+        '''
         self.__array.extend(data)
         self.__blob = None
 
     def __len__(self):
+        '''
+        The current length of the buffer view.
+        '''
         return len(self.__array)

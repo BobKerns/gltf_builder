@@ -117,9 +117,23 @@ class Builder(BNodeContainer, BuilderProtocol):
                 for a in self.accessors
                 if a.count > 0
             ],
+            # Sort the buffer views by alignment.
             bufferViews=[
-                v.compile(self)
-                for v in self.views
+                *(
+                    v.compile(self)
+                    for v in self.views
+                    if len(v) % 4 == 0
+                ),
+                *(
+                    v.compile(self)
+                    for v in self.views
+                    if len(v) % 4 == 2
+                ),
+                *(
+                    v.compile(self)
+                    for v in self.views
+                    if len(v) % 4 in (1, 3)
+                ),
             ],
             buffers=[
                 b.compile(self)
@@ -173,5 +187,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                     return gltf.UNSIGNED_INT
                 # Unlikely!
                 raise ValueError("Index size is too large.")
+            case -1:
+                return -1
             case _:
                 raise ValueError(f'Invalid index size: {self.index_size}')
