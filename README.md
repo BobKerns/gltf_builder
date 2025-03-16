@@ -13,7 +13,7 @@ Compilation and collection of the pieces is performed by the `Builder.build()` m
 Install via your usual tool (I recommend `uv` as the modern upgrade from `pip` and others).
 
 ```python
-from gtlf_builder import Builder
+from gltf_builder import Builder, PrimitiveMode
 
 CUBE = (
     (0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0),
