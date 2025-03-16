@@ -36,7 +36,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
         ):
-        super().__init__(nodes)
+        super().__init__(children=nodes)
         self.asset = asset
         self.meshes = MasterHolder(*meshes)
         self.nodes = MasterHolder(*nodes)
@@ -50,6 +50,11 @@ class Builder(BNodeContainer, BuilderProtocol):
         self.extensions = dict(extensions)
         self.attr_type_map ={
             'TANGENT': (gltf.VEC4, gltf.FLOAT),
+            'TEXCOORD_0': (gltf.VEC2, gltf.FLOAT),
+            'TEXCOORD_1': (gltf.VEC2, gltf.FLOAT),
+            'COLOR_0': (gltf.VEC4, gltf.FLOAT),
+            'JOINTS_0': (gltf.VEC4, gltf.UNSIGNED_SHORT),
+            'WEIGHTS_0': (gltf.VEC4, gltf.FLOAT),
             '__DEFAULT__': (gltf.VEC3, gltf.FLOAT),
         }
     
@@ -58,7 +63,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                  primitives: Iterable[BPrimitive]=()
                 ):
         mesh = _Mesh(name=name, primitives=primitives)
-        self.meshes.add(mesh)
+        #self.meshes.add(mesh)
         return mesh
     
     def add_buffer(self,

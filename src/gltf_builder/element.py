@@ -90,15 +90,47 @@ class BNodeContainerProtocol(Protocol):
                 name: str='',
                 children: Iterable['BNode']=(),
                 mesh: Optional['BMesh']=None,
-                root: Optional[bool]=None,
                 translation: Optional[Vector3]=None,
                 rotation: Optional[Quaternion]=None,
                 scale: Optional[Vector3]=None,
                 matrix: Optional[Matrix4]=None,
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
+                detached: bool=False,
                 **attrs: tuple[float|int,...]
                 ) -> 'BNode':
+        ...
+    
+    @abstractmethod
+    def instantiate(self, node: 'BNode', /,
+                    name: str='',
+                    translation: Optional[Vector3]=None,
+                    rotation: Optional[Quaternion]=None,
+                    scale: Optional[Vector3]=None,
+                    matrix: Optional[Matrix4]=None,
+                    extras: Mapping[str, Any]=EMPTY_SET,
+                    extensions: Mapping[str, Any]=EMPTY_SET,
+                ) -> 'BNode':
+        ...
+
+    @abstractmethod
+    def __len__(self):
+        ...
+
+    @abstractmethod
+    def __getitem__(self, name: str) -> 'BNode':
+        ...
+
+    @abstractmethod
+    def __setitem__(self, name: str, node: 'BNode'):
+        ...
+
+    @abstractmethod
+    def __contains__(self, name: str) -> bool:
+        ...
+
+    @abstractmethod
+    def __iter__(self):
         ...
 
 @runtime_checkable
