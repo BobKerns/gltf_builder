@@ -18,8 +18,6 @@ from gltf_builder.holder import Holder
 
 
 class _BufferView(BBufferView):
-    __offset: int = -1 # -1 means not yet set
-    
     def __init__(self, name: str='',
                  buffer: Optional[_Buffer]=None,
                  data: Optional[bytes]=None,
@@ -37,17 +35,9 @@ class _BufferView(BBufferView):
         self.accessors = Holder()
         
     @property
-    def offset(self):
-        if self.__offset == -1:
-            raise ValueError(f'Offset has not been set for {self}')
-        return self.__offset
+    def offset(self) -> int:
+        return len(self.buffer)
     
-    @offset.setter
-    def offset(self, offset: int):
-        if self.__offset != -1 and self.__offset != offset:
-            raise ValueError(f'Offset has already been set for {self} old={self.__offset} new={offset}')
-        self.__offset = offset
-        
     def add_accessor(self,
                     type: ElementType,
                     componentType: ComponentType,
@@ -131,6 +121,7 @@ class _BufferView(BBufferView):
             if self.target ==  BufferViewTarget.ARRAY_BUFFER
             else None
         )
+        self.buffer.extend(self.data)
         return gltf.BufferView(
             name=self.name,
             buffer=self.buffer.index,

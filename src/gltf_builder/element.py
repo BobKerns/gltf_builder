@@ -262,6 +262,12 @@ class BBuffer(Element[gltf.Buffer], Protocol):
     def blob(self) -> bytes:
         ...
     views: Holder['BBufferView']
+    @abstractmethod
+    def extend(self, data: bytes|np.typing.NDArray) -> None:
+        ...
+    @abstractmethod
+    def __len__(self) -> int:
+        ...
 
 
 class BBufferView(Element[gltf.BufferView], Protocol):
@@ -275,11 +281,6 @@ class BBufferView(Element[gltf.BufferView], Protocol):
     @abstractmethod
     def offset(self):
         ...
-    
-    @offset.setter
-    @abstractmethod
-    def offset(self, offset: int):
-        ...
 
     @abstractmethod
     def add_accessor(self,
@@ -292,6 +293,9 @@ class BBufferView(Element[gltf.BufferView], Protocol):
                     extras: Mapping[str, Any]=EMPTY_SET,
                     extensions: Mapping[str, Any]=EMPTY_SET,
             ) -> gltf.Accessor:
+        ...
+    
+    def append_data(self, data: bytes) -> None:
         ...
 
 class BAccessor(Element[gltf.Accessor], Protocol):

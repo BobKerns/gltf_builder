@@ -117,14 +117,14 @@ class Builder(BNodeContainer, BuilderProtocol):
                 for a in self.accessors
                 if a.count > 0
             ],
+            bufferViews=[
+                v.compile(self)
+                for v in self.views
+            ],
             buffers=[
                 b.compile(self)
                 for b in self.buffers
                 if len(b.blob) > 0
-            ],
-            bufferViews=[
-                v.compile(self)
-                for v in self.views
             ],
             scene=0,
             scenes=[
