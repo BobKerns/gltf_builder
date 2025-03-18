@@ -5,10 +5,20 @@ a glTF object.
 
 from collections.abc import Iterable, Mapping
 from typing import Optional, Any
+from itertools import count
+from datetime import datetime
+import os
+import sys
+import pwd
+import ctypes
+import ctypes.wintypes
+import subprocess
+import getpass
 
 import pygltflib as gltf
+import numpy as np
 
-from gltf_builder.asset import BAsset
+from gltf_builder.asset import BAsset, __version__
 from gltf_builder.holder import MasterHolder
 from gltf_builder.buffer import _Buffer
 from gltf_builder.view import _BufferView
@@ -16,12 +26,14 @@ from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_SET, BBuffer, BufferViewTarget, BPrimitive,
-    BuilderProtocol, ElementType, ComponentType,
+    EMPTY_SET, BBuffer, BufferViewTarget, BPrimitive, Element,
+    BuilderProtocol, ElementType, ComponentType, NameMode,
 )
 
 
 class Builder(BNodeContainer, BuilderProtocol):
+    id_counters: dict[str, count]
+    name: str = ''
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
@@ -32,9 +44,10 @@ class Builder(BNodeContainer, BuilderProtocol):
                 buffers: Iterable[_Buffer]=(),
                 views: Iterable[_BufferView]=(),
                 accessors: Iterable[_Accessor]=(),
-                index_size: int=32,
                 extras: Mapping[str, Any]=EMPTY_SET,
                 extensions: Mapping[str, Any]=EMPTY_SET,
+                index_size: int=32,
+                name_mode: NameMode=NameMode.AUTO,
         ):
         super().__init__(children=nodes)
         self.asset = asset
@@ -57,6 +70,8 @@ class Builder(BNodeContainer, BuilderProtocol):
             'WEIGHTS_0': (gltf.VEC4, gltf.FLOAT),
             '__DEFAULT__': (gltf.VEC3, gltf.FLOAT),
         }
+        self.id_counters = {}
+        self.name_mode = name_mode
     
     def add_mesh(self,
                  name: str='',
@@ -103,8 +118,35 @@ class Builder(BNodeContainer, BuilderProtocol):
         })
         # Add all the child nodes.
         self.nodes.add(*(n for n in nodes if not n.root))
-        
+        python = sys.version_info
+        self.asset.extras = self.asset.extras or {}
+        self.asset.extras = ({
+            'gltf-builder': {
+                'version': __version__,
+                'pygltflib': gltf.__version__,
+                'numpy': np.__version__,
+                'python': {
+                    'major': python.major,
+                    'minor': python.minor,
+                    'micro': python.micro,
+                    'releaselevel': python.releaselevel,
+                    'serial': python.serial,
+                },
+                'username': USERNAME,
+                'user': USER,
+                'date': datetime.now().isoformat(),
+            },
+            **self.asset.extras
+        })
+        # Filter out empty values.
+        self.asset.extras = {
+            key: value
+            for key, value in self.asset.extras.items()
+            if value is not None
+        }
+
         g = gltf.GLTF2(
+            asset = self.asset,
             nodes=[
                 v
                 for v in (
@@ -196,3 +238,91 @@ class Builder(BNodeContainer, BuilderProtocol):
                 return -1
             case _:
                 raise ValueError(f'Invalid index size: {self.index_size}')
+
+    __names: set[str] = set()
+
+    def gen_name(self, obj: Element[Any]|str) -> str:
+        '''
+        Generate a name according to the current name mode policy
+        '''
+        def get_count(obj) -> int:
+            tname = type(obj).__name__
+            counters = self.id_counters
+            if tname not in counters:
+                counters[tname] = count()
+            return next(counters[tname])
+            
+        def gen():
+            if obj and isinstance(obj, str):
+                return obj
+            if obj.name and self.name_mode != NameMode.UNIQUE:
+                # Increment the count anyway for stability.
+                # Naming one node should not affect the naming of another.
+                get_count(obj)
+                return obj.name
+            return f'{type(obj).__name__[1:]}{get_count(obj)}'
+        
+        def register(name: str|None) -> str|None:
+            if not name:
+                return None
+            self.__names.add(name)
+            return name
+        match self.name_mode:
+            case NameMode.AUTO:
+                return register(gen())
+            case NameMode.MANUAL:
+                return register(obj.name or None)
+            case NameMode.UNIQUE:
+                name = obj.name
+                while name in self.__names:
+                    name = gen()
+                return register(name)
+            case NameMode.NONE:
+                return None
+            case _:
+                raise ValueError(f'Invalid name mode: {self.name_mode}')
+
+
+def get_human_name():
+    """Returns the full name of the current user, falling back to the username if necessary."""
+    
+    full_name = None
+
+    if sys.platform.startswith("linux") or sys.platform == "darwin":  # macOS and Linux
+        try:
+            full_name = pwd.getpwuid(os.getuid()).pw_gecos.split(',')[0].strip()
+        except KeyError:
+            pass
+        
+        # Try getent as a fallback
+        if not full_name:
+            try:
+                result = subprocess.check_output(["getent", "passwd", os.getlogin()], text=True)
+                full_name = result.split(":")[4].split(",")[0].strip()
+            except (subprocess.CalledProcessError, IndexError, FileNotFoundError, OSError):
+                pass
+
+    elif sys.platform.startswith("win"):  # Windows
+        try:
+            size = ctypes.wintypes.DWORD(0)
+            ctypes.windll.advapi32.GetUserNameExW(3, None, ctypes.byref(size))  # Get required buffer size
+            buffer = ctypes.create_unicode_buffer(size.value)
+            if ctypes.windll.advapi32.GetUserNameExW(3, buffer, ctypes.byref(size)):
+                full_name = buffer.value.strip()
+        except Exception:
+            pass
+
+    # If full name is not found, fall back to the username
+    if not full_name:
+        full_name = getpass.getuser()
+
+    return full_name
+
+try:
+    USERNAME = getpass.getuser()
+except Exception:
+    USERNAME = ''
+try:
+    USER = get_human_name()
+except Exception:
+    USER = ''

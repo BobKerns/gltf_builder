@@ -76,6 +76,29 @@ Quaternion: TypeAlias = Vector4
 EMPTY_SET: Mapping[str, Any] = frozenset()
 
 
+class NameMode(StrEnum):
+    '''
+    Enum for how to handle or generate names for objects.
+    '''
+    
+    AUTO = 'auto'
+    '''
+    Automatically generate names.
+    '''
+    MANUAL = 'manual'
+    '''
+    Use the name provided.
+    '''
+    UNIQUE = 'unique'
+    '''
+    Ensure the name is unique.
+    '''
+    NONE = 'none'
+    '''
+    Do not use names.
+    '''
+
+
 class BNodeContainerProtocol(Protocol):
     children: Holder['BNode']
     @property
@@ -179,6 +202,13 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
 
     '''
     attr_type_map: dict[str, tuple[ElementType, ComponentType]]
+    '''
+    The mapping of attribute names to their types.
+    '''
+    name_mode: NameMode
+    '''
+    The mode for handling names.
+    '''
     
     @abstractmethod
     def add_mesh(self,
@@ -223,12 +253,24 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
     def get_index_size(self, max_value: int) -> int:
         ...
 
+    def gen_name(self, name: str|None, gen_prefix: str|object) -> str|None:
+        '''
+        Generate a name for an object according to the current `NameMode` policy.
+
+        PARAMETERS
+        ----------
+        object: Element
+            The object to generate a name for.
+        '''
+        ...
+
 
 T = TypeVar('T')
 class Compileable(Generic[T], Protocol):
     __compiled: T|None = None
     extensions: dict[str, Any]
     extras: dict[str, Any]
+    name: str = ''
     def __init__(self,
                  extras: Mapping[str, Any]=EMPTY_SET,
                  extensions: Mapping[str, Any]=EMPTY_SET,
@@ -238,6 +280,7 @@ class Compileable(Generic[T], Protocol):
     
     def compile(self, builder: BuilderProtocol) -> T:
         if self.__compiled is None:
+            self.name = builder.gen_name(self)
             self.__compiled = self.do_compile(builder)
         return self.__compiled
             
@@ -248,7 +291,6 @@ class Compileable(Generic[T], Protocol):
 
 class Element(Compileable[T], Protocol):
     __index: int = -1 # -1 means not set
-    name: str = ''    # '' means not set
     
     def __init__(self,
                  name: str='',
@@ -323,6 +365,7 @@ class BBufferView(Element[gltf.BufferView], Protocol):
                     type: ElementType,
                     componentType: ComponentType,
                     data: np.ndarray[tuple[int, ...], Any]|Iterable[Any],
+                    name: str='',
                     normalized: bool=False,
                     min: Optional[list[float]]=None,
                     max: Optional[list[float]]=None,
@@ -359,6 +402,7 @@ class BPrimitive(Compileable[gltf.Primitive], Protocol):
     points: list[Point]
     indicies: list[int]
     attribs: dict[str, list[tuple[int|float,...]]]
+    mesh: Optional['BMesh']
     
     
 class BMesh(Element[gltf.Mesh], Protocol):

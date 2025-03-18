@@ -43,11 +43,18 @@ class _Buffer(BBuffer):
     def do_compile(self, builder: BuilderProtocol):
         for view in self.views:
             view.compile(builder)
-        return gltf.Buffer(
+        namespec = {
+            'gltf_builder:name': self.name,
+        } if self.name else {}
+        b = gltf.Buffer(
             byteLength=len(self.blob),
-            extras=self.extras,
+            extras={
+                **self.extras,
+                **namespec,
+            },
             extensions=self.extensions,
             )
+        return b
     
     def __len__(self) -> int:
         return len(self.__array)

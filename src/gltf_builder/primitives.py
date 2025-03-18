@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.element import (
     BPrimitive, BuilderProtocol, PrimitiveMode, Point, Vector3, Vector4,
-    EMPTY_SET, BufferViewTarget,
+    EMPTY_SET, BufferViewTarget, BMesh,
 )
 
 class _Primitive(BPrimitive):
@@ -29,6 +29,7 @@ class _Primitive(BPrimitive):
                  WEIGHTS_0: Optional[Iterable[Point]]=None,
                  extras: Mapping[str, Any]=EMPTY_SET,
                  extensions: Mapping[str, Any]=EMPTY_SET,
+                 mesh: Optional[BMesh]=None,
                  **attribs: Iterable[tuple[int|float,...]],
             ):
         super().__init__(extras, extensions)
@@ -52,12 +53,21 @@ class _Primitive(BPrimitive):
                 if v is not None
             }
         }
+        lengths = {len(v) for v in self.attribs.values()}
+        if len(lengths) > 1:
+            raise ValueError('All attributes must have the same length')
+        self.mesh = mesh
 
     def do_compile(self, builder: BuilderProtocol):
+        index = self.mesh.primitives.index(self)
+        mesh = self.mesh
+        mesh.name = mesh.name or builder.gen_name(mesh)        
         def compile_attrib(name: str, data: list[tuple[float,...]]):
+            prim_name = f'{mesh.name}:{self.mode.name}/{name}[{index}]'
             eltType, componentType = builder.get_attrib_info(name)
             view = builder.get_view(name, BufferViewTarget.ARRAY_BUFFER)
-            accessor = view.add_accessor(eltType, componentType, data)
+            accessor = view.add_accessor(eltType, componentType, data,
+                                         name=prim_name)
             accessor.compile(builder)
             return accessor.index
         

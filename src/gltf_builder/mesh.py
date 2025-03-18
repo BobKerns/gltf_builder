@@ -49,6 +49,7 @@ class _Mesh(BMesh):
                           WEIGHTS_0=WEIGHTS_0,
                           extras=extras,
                           extensions=extensions,
+                          mesh=self,
                           **attribs)
         self.primitives.append(prim)
         return prim
