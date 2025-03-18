@@ -226,3 +226,25 @@ def test_instances(cube, outdir):
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
     g.save_binary(outdir / 'instances.glb')
+
+
+def test_normal(outdir):
+    b = Builder(index_size=-1)
+    m = b.add_mesh('CUBE_MESH')
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1], NORMAL=4   *(CUBE_NORMAL1,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2], NORMAL=4   *(CUBE_NORMAL2,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3], NORMAL=4   *(CUBE_NORMAL3,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4], NORMAL=4   *(CUBE_NORMAL4,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5], NORMAL=4   *(CUBE_NORMAL5,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6], NORMAL=4   *(CUBE_NORMAL6,))
+    top = b.add_node(name='TOP')
+    cube = top.add_node('CUBE', mesh=m, detached=True)
+    top.instantiate(cube)
+    g = b.build()
+    g.save_binary(outdir / 'normal.glb')
+    g.save_json(outdir / 'normal.gltf   ')
+    assert len(g.bufferViews) == 2
+    assert len(g.accessors) == 12
+    assert len(g.nodes) == 3
+    size = 2 * 6 * 3 * 4 * 4 + 0 * 4 * 6
+    assert len(g.binary_blob()) ==  size
