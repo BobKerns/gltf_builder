@@ -34,6 +34,7 @@ class _Accessor(BAccessor):
         self.count = count
         self.type = type
         self.data = data
+        self.name = name
         self.byteOffset = byteOffset
         self.componentType = componentType
         self.normalized = normalized
@@ -57,6 +58,7 @@ class _Accessor(BAccessor):
             count=self.count,
             type=self.type,
             componentType=self.componentType,
+            name=self.name,
             byteOffset=self.byteOffset,
             normalized=self.normalized,
             max=max_axis,
