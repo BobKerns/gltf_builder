@@ -10,7 +10,7 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    Element, EMPTY_SET, Matrix4, Vector3,
+    Element, EMPTY_MAP, Matrix4, Vector3,
     BNodeContainerProtocol, BNode, BuilderProtocol, BMesh
 )
 from gltf_builder.quaternion import Quaternion
@@ -47,8 +47,8 @@ class BNodeContainer(BNodeContainerProtocol):
                 rotation: Optional[Quaternion]=None,
                 scale: Optional[Vector3]=None,
                 matrix: Optional[Matrix4]=None,
-                extras: Mapping[str, Any]=EMPTY_SET,
-                extensions: Mapping[str, Any]=EMPTY_SET,
+                extras: Mapping[str, Any]=EMPTY_MAP,
+                extensions: Mapping[str, Any]=EMPTY_MAP,
                 detached: bool=False,
                 **attrs: tuple[float|int,...]
                 ) -> '_Node':
@@ -88,8 +88,8 @@ class BNodeContainer(BNodeContainerProtocol):
                     rotation: Optional[Quaternion]=None,
                     scale: Optional[Vector3]=None,
                     matrix: Optional[Matrix4]=None,
-                    extras: Mapping[str, Any]=EMPTY_SET,
-                    extensions: Mapping[str, Any]=EMPTY_SET,
+                    extras: Mapping[str, Any]=EMPTY_MAP,
+                    extensions: Mapping[str, Any]=EMPTY_MAP,
                 ) -> BNode:
         def clone(node: BNode):
             return _Node(
@@ -139,8 +139,8 @@ class _Node(BNodeContainer, BNode):
                  rotation: Optional[Quaternion]=None,
                  scale: Optional[Vector3]=None,
                  matrix: Optional[Matrix4]=None,
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
                  _parent: Optional[BNodeContainerProtocol]=None,
                  ):
         Element.__init__(self, name, extras, extensions)

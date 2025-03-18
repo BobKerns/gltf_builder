@@ -10,7 +10,7 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.element import (
-    BBuffer, BBufferView, BuilderProtocol, EMPTY_SET,
+    BBuffer, BBufferView, BuilderProtocol, EMPTY_MAP,
 )
 from gltf_builder.holder import Holder
 
@@ -29,8 +29,8 @@ class _Buffer(BBuffer):
     def __init__(self,
                  name: str='',
                  views: Iterable[BBufferView]=(),
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
                  ):
         super().__init__(name, extras, extensions)
         self.__array = array.array('B')

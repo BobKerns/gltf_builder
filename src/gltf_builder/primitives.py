@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.element import (
     BPrimitive, BuilderProtocol, PrimitiveMode, Point, Vector3, Vector4,
-    EMPTY_SET, BufferViewTarget, BMesh,
+    EMPTY_MAP, BufferViewTarget, BMesh,
 )
 
 class _Primitive(BPrimitive):
@@ -27,8 +27,8 @@ class _Primitive(BPrimitive):
                  COLOR_0: Optional[Iterable[Point]]=None,
                  JOINTS_0: Optional[Iterable[Point]]=None,
                  WEIGHTS_0: Optional[Iterable[Point]]=None,
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
                  mesh: Optional[BMesh]=None,
                  **attribs: Iterable[tuple[int|float,...]],
             ):

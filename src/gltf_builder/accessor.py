@@ -9,7 +9,7 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.element import (
-    BAccessor, BuilderProtocol, BBufferView, EMPTY_SET,
+    BAccessor, BuilderProtocol, BBufferView, EMPTY_MAP,
     ElementType,
 )
 
@@ -26,8 +26,8 @@ class _Accessor(BAccessor):
                  normalized: bool=False,
                  max: Optional[list[float]]=None,
                  min: Optional[list[float]]=None,
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
     ):
         super().__init__(name, extras, extensions)
         self.view = view

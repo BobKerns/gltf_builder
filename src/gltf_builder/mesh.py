@@ -8,7 +8,7 @@ from typing import Any, Optional
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    BuilderProtocol, BMesh, EMPTY_SET,
+    BuilderProtocol, BMesh, EMPTY_MAP,
     Point, Vector3, Vector4,
 )
 from gltf_builder.primitives import _Primitive, PrimitiveMode
@@ -19,8 +19,8 @@ class _Mesh(BMesh):
                  name='',
                  primitives: Iterable[_Primitive]=(),
                  weights: Iterable[float]=(),
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
             ):
         super().__init__(name, extras, extensions)
         self.primitives = list(primitives)
@@ -35,8 +35,8 @@ class _Mesh(BMesh):
                       COLOR_0: Optional[Iterable[Vector4]]=None,
                       JOINTS_0: Optional[Iterable[Vector4]]=None,
                       WEIGHTS_0: Optional[Iterable[Vector4]]=None,
-                      extras: Mapping[str, Any]=EMPTY_SET,
-                      extensions: Mapping[str, Any]=EMPTY_SET,
+                      extras: Mapping[str, Any]=EMPTY_MAP,
+                      extensions: Mapping[str, Any]=EMPTY_MAP,
                       **attribs: Iterable[tuple[int|float,...]]
                     ) -> _Primitive:
         prim = _Primitive(mode, points,

@@ -73,7 +73,7 @@ Tangent: TypeAlias = Vector4
 Normal: TypeAlias = Vector3
 
 
-EMPTY_SET: Mapping[str, Any] = frozenset()
+EMPTY_MAP: Mapping[str, Any] = frozenset()
 
 
 class NameMode(StrEnum):
@@ -117,8 +117,8 @@ class BNodeContainerProtocol(Protocol):
                 rotation: Optional[Quaternion]=None,
                 scale: Optional[Vector3]=None,
                 matrix: Optional[Matrix4]=None,
-                extras: Mapping[str, Any]=EMPTY_SET,
-                extensions: Mapping[str, Any]=EMPTY_SET,
+                extras: Mapping[str, Any]=EMPTY_MAP,
+                extensions: Mapping[str, Any]=EMPTY_MAP,
                 detached: bool=False,
                 **attrs: tuple[float|int,...]
                 ) -> 'BNode':
@@ -131,8 +131,8 @@ class BNodeContainerProtocol(Protocol):
                     rotation: Optional[Quaternion]=None,
                     scale: Optional[Vector3]=None,
                     matrix: Optional[Matrix4]=None,
-                    extras: Mapping[str, Any]=EMPTY_SET,
-                    extensions: Mapping[str, Any]=EMPTY_SET,
+                    extras: Mapping[str, Any]=EMPTY_MAP,
+                    extensions: Mapping[str, Any]=EMPTY_MAP,
                 ) -> 'BNode':
         ...
 
@@ -272,8 +272,8 @@ class Compileable(Generic[T], Protocol):
     extras: dict[str, Any]
     name: str = ''
     def __init__(self,
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
                 ):
         self.extras = extras
         self.extensions = extensions
@@ -294,8 +294,8 @@ class Element(Compileable[T], Protocol):
     
     def __init__(self,
                  name: str='',
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
             ):
         super().__init__(extras, extensions)
         self.name = name
@@ -369,8 +369,8 @@ class BBufferView(Element[gltf.BufferView], Protocol):
                     normalized: bool=False,
                     min: Optional[list[float]]=None,
                     max: Optional[list[float]]=None,
-                    extras: Mapping[str, Any]=EMPTY_SET,
-                    extensions: Mapping[str, Any]=EMPTY_SET,
+                    extras: Mapping[str, Any]=EMPTY_MAP,
+                    extensions: Mapping[str, Any]=EMPTY_MAP,
             ) -> gltf.Accessor:
         ...
 
@@ -419,8 +419,8 @@ class BMesh(Element[gltf.Mesh], Protocol):
                       COLOR_0: Optional[Iterable[Vector4]]=None,
                       JOINTS_0: Optional[Iterable[Vector4]]=None,
                       WEIGHTS_0: Optional[Iterable[Vector4]]=None,
-                      extras: Mapping[str, Any]=EMPTY_SET,
-                      extensions: Mapping[str, Any]=EMPTY_SET,
+                      extras: Mapping[str, Any]=EMPTY_MAP,
+                      extensions: Mapping[str, Any]=EMPTY_MAP,
                       **attribs: Iterable[tuple[int|float,...]]
                     ) -> BPrimitive:
         ...

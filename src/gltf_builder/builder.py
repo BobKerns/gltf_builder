@@ -26,7 +26,7 @@ from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_SET, BBuffer, BufferViewTarget, BPrimitive, Element,
+    EMPTY_MAP, BBuffer, BufferViewTarget, BPrimitive, Element,
     BuilderProtocol, ElementType, ComponentType, NameMode,
 )
 
@@ -44,8 +44,8 @@ class Builder(BNodeContainer, BuilderProtocol):
                 buffers: Iterable[_Buffer]=(),
                 views: Iterable[_BufferView]=(),
                 accessors: Iterable[_Accessor]=(),
-                extras: Mapping[str, Any]=EMPTY_SET,
-                extensions: Mapping[str, Any]=EMPTY_SET,
+                extras: Mapping[str, Any]=EMPTY_MAP,
+                extensions: Mapping[str, Any]=EMPTY_MAP,
                 index_size: int=32,
                 name_mode: NameMode=NameMode.AUTO,
         ):

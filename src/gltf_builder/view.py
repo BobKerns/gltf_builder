@@ -10,7 +10,7 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.element import (
-    BBufferView, BuilderProtocol, EMPTY_SET,
+    BBufferView, BuilderProtocol, EMPTY_MAP,
     BufferViewTarget, ComponentType, ElementType,
 )
 from gltf_builder.buffer import _Buffer
@@ -43,8 +43,8 @@ class _BufferView(BBufferView):
                  data: Optional[bytes]=None,
                  byteStride: int=0,
                  target: BufferViewTarget = BufferViewTarget.ARRAY_BUFFER,
-                 extras: Mapping[str, Any]=EMPTY_SET,
-                 extensions: Mapping[str, Any]=EMPTY_SET,
+                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extensions: Mapping[str, Any]=EMPTY_MAP,
                  ):
         super().__init__(name, extras, extensions)
         self.buffer = buffer
@@ -63,8 +63,8 @@ class _BufferView(BBufferView):
                     normalized: bool=False,
                     min: Optional[list[float]]=None,
                     max: Optional[list[float]]=None,
-                    extras: Mapping[str, Any]=EMPTY_SET,
-                    extensions: Mapping[str, Any]=EMPTY_SET,
+                    extras: Mapping[str, Any]=EMPTY_MAP,
+                    extensions: Mapping[str, Any]=EMPTY_MAP,
             ) -> gltf.Accessor:
         '''
         Add an accessor to the buffer view, with the given data.
