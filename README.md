@@ -4,9 +4,28 @@ This library wraps the `pygltflib` library to handle the low-level details of ma
 
 In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` orefix.
 
-You start by creating a `Builder` instance. There are classes corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classe are compiled to the corresponding `gltf` clases with the `compile(Builder)` method.
+You start by creating a `Builder` instance. There are abstract types corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classe are compiled to the corresponding `gltf` clases with the `compile(Builder)` method.
+
+The `BXxxxx` names are abstract; the implementation classes bear names like `_Xxxxx`.
 
 Compilation and collection of the pieces is performed by the `Builder.build()` method.
+
+# Quaternions
+
+Because `pygltflib` uses quaternions of the form (X, Y, Z, W) instead of the form (W, X, Y, Z) used by `scipy`, and to avoid introducing heavyweight and potentially incompatible libraries, we provided (courtesy of ChatGPT to my specifications) an implementation of various quaternion routines relating to rotations.
+
+Basic usage
+
+```python
+import gltf_builder.quaternion as quat
+
+# Rotate around Z axis by pi/2 
+rotation = quat.from_axis_angle((0, 0, 1), math.py / 4)
+# Instantiate a geometry, rotated.
+root_node.instantiate(cube, rotation=rotation)
+```
+
+See [quaternion.md](quaternion.md) or [quaternion.py](quaternion.py) for more information.
 
 ## Usage
 

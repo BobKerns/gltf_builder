@@ -10,9 +10,10 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    Element, EMPTY_SET, Matrix4, Quaternion, Vector3,
+    Element, EMPTY_SET, Matrix4, Vector3,
     BNodeContainerProtocol, BNode, BuilderProtocol, BMesh
 )
+from gltf_builder.quaternion import Quaternion
 from gltf_builder.mesh import _Mesh 
 from gltf_builder.holder import Holder
 

@@ -15,6 +15,7 @@ import numpy as np
 import pygltflib as gltf
 
 from gltf_builder.holder import Holder
+from gltf_builder.quaternion import Quaternion
     
 
 class PrimitiveMode(IntEnum):
@@ -70,7 +71,6 @@ Scalar: TypeAlias = float
 Point: TypeAlias = Vector3
 Tangent: TypeAlias = Vector4
 Normal: TypeAlias = Vector3
-Quaternion: TypeAlias = Vector4
 
 
 EMPTY_SET: Mapping[str, Any] = frozenset()
