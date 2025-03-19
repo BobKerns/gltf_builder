@@ -8,6 +8,13 @@ from typing import Iterable
 from dataclasses import dataclass, field
 
 from gltf_builder import Builder, PrimitiveMode, BMesh
+from gltf_builder.geometries import (
+    _CUBE,
+    _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3,
+    _CUBE_FACE4, _CUBE_FACE5, _CUBE_FACE6,
+    _CUBE_NORMAL1, _CUBE_NORMAL2, _CUBE_NORMAL3,
+    _CUBE_NORMAL4, _CUBE_NORMAL5, _CUBE_NORMAL6,
+)
 
 @dataclass
 class Geometry:
@@ -40,35 +47,16 @@ def test_empty_builder(outdir):
     g.save_json(outdir / 'empty.gltf')
     
 
-CUBE = (
-    (0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0),
-    (1, 0, 0), (1, 0, 1), (1, 1, 1), (1, 1, 0),
-)
-CUBE_FACE1 = (0, 1, 2, 3)
-CUBE_FACE2 = (4, 5, 6, 7)
-CUBE_FACE3 = (0, 4, 5, 1)
-CUBE_FACE4 = (2, 6, 7, 3)
-CUBE_FACE5 = (0, 4, 7, 3)
-CUBE_FACE6 = (1, 5, 6, 2)
-
-CUBE_NORMAL1 = (1, 0, 0)
-CUBE_NORMAL2 = (-1, 0, 0)
-CUBE_NORMAL3 = (0, 1, 0)
-CUBE_NORMAL4 = (0, -1, 0)
-CUBE_NORMAL5 = (0, 0, 1)
-CUBE_NORMAL6 = (0, 0, -1)
-
-
 @pytest.fixture
 def cube():
     b = Builder()
     m = b.add_mesh('CUBE_MESH')
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1])
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2])
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE1])
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE2])
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE3])
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE4])
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE5])
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE6])
     top = b.add_node(name='TOP')
     top.add_node('CUBE', mesh=m)
     return Geometry(builder=b, meshes={'CUBE_MESH': m}, nodes={'TOP': top})
@@ -93,16 +81,16 @@ def test_faces(outdir):
     b = Builder()
     def face(name, indices: Iterable[int]):
         m = b.add_mesh(name)
-        m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in indices])
+        m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
         return b.add_node(name=name, mesh=m)
     b.add_node(name='CUBE',
                 children=[
-                    face('FACE1', CUBE_FACE1),
-                    face('FACE2', CUBE_FACE2),
-                    face('FACE3', CUBE_FACE3),
-                    face('FACE4', CUBE_FACE4),
-                    face('FACE5', CUBE_FACE5),
-                    face('FACE6', CUBE_FACE6),
+                    face('FACE1', _CUBE_FACE1),
+                    face('FACE2', _CUBE_FACE2),
+                    face('FACE3', _CUBE_FACE3),
+                    face('FACE4', _CUBE_FACE4),
+                    face('FACE5', _CUBE_FACE5),
+                    face('FACE6', _CUBE_FACE6),
                ])
     g = b.build()
     assert len(g.buffers) == 1
@@ -118,14 +106,14 @@ def test_faces2(outdir):
     cube = b.add_node(name='CUBE')
     def face(name, indices: Iterable[int]):
         m = b.add_mesh(name)
-        m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in indices])
+        m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
         return cube.add_node(name=name, mesh=m)
-    face('FACE1', CUBE_FACE1)
-    face('FACE2', CUBE_FACE2)
-    face('FACE3', CUBE_FACE3)
-    face('FACE4', CUBE_FACE4)
-    face('FACE5', CUBE_FACE5)
-    face('FACE6', CUBE_FACE6)
+    face('FACE1', _CUBE_FACE1)
+    face('FACE2', _CUBE_FACE2)
+    face('FACE3', _CUBE_FACE3)
+    face('FACE4', _CUBE_FACE4)
+    face('FACE5', _CUBE_FACE5)
+    face('FACE6', _CUBE_FACE6)
     g = b.build()
     assert len(g.buffers) == 1
     assert len(g.bufferViews) == 2
@@ -231,12 +219,12 @@ def test_instances(cube, outdir):
 def test_normal(outdir):
     b = Builder(index_size=-1)
     m = b.add_mesh('CUBE_MESH')
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1], NORMAL=4   *(CUBE_NORMAL1,))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2], NORMAL=4   *(CUBE_NORMAL2,))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3], NORMAL=4   *(CUBE_NORMAL3,))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4], NORMAL=4   *(CUBE_NORMAL4,))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5], NORMAL=4   *(CUBE_NORMAL5,))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6], NORMAL=4   *(CUBE_NORMAL6,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE1], NORMAL=4   *(_CUBE_NORMAL1,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE2], NORMAL=4   *(_CUBE_NORMAL2,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE3], NORMAL=4   *(_CUBE_NORMAL3,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE4], NORMAL=4   *(_CUBE_NORMAL4,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE5], NORMAL=4   *(_CUBE_NORMAL5,))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE6], NORMAL=4   *(_CUBE_NORMAL6,))
     top = b.add_node(name='TOP')
     cube = top.add_node('CUBE', mesh=m, detached=True)
     top.instantiate(cube)
