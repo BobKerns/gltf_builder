@@ -29,7 +29,7 @@ class _Buffer(BBuffer):
     def __init__(self,
                  name: str='',
                  views: Iterable[BBufferView]=(),
-                 extras: Mapping[str, Any]=EMPTY_MAP,
+                 extras: Mapping[str, Any]|None=EMPTY_MAP,
                  extensions: Mapping[str, Any]=EMPTY_MAP,
                  ):
         super().__init__(name, extras, extensions)
@@ -46,10 +46,11 @@ class _Buffer(BBuffer):
         namespec = {
             'gltf_builder:name': self.name,
         } if self.name else {}
+        extras = self.extras or {}
         b = gltf.Buffer(
             byteLength=len(self.blob),
             extras={
-                **self.extras,
+                **extras,
                 **namespec,
             },
             extensions=self.extensions,

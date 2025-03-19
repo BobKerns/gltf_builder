@@ -11,7 +11,8 @@ import pygltflib as gltf
 
 from gltf_builder.element import (
     Element, EMPTY_MAP, Matrix4, Vector3,
-    BNodeContainerProtocol, BNode, BuilderProtocol, BMesh
+    BNodeContainerProtocol, BuilderProtocol,
+    BNode, BMesh, BPrimitive,
 )
 from gltf_builder.quaternion import Quaternion
 from gltf_builder.mesh import _Mesh 
@@ -19,6 +20,7 @@ from gltf_builder.holder import Holder
 
 
 class BNodeContainer(BNodeContainerProtocol):
+    builder: BuilderProtocol
     children: Holder['_Node']
     descendants: dict[str, '_Node']   
     @property
@@ -31,10 +33,12 @@ class BNodeContainer(BNodeContainerProtocol):
     _parent: Optional[BNodeContainerProtocol]
     
     def __init__(self, /,
-                 children: Iterable['_Node']=(),
-                 _parent: Optional[BNodeContainerProtocol]=None,
-                 **_
-                ):
+                builder: BuilderProtocol,
+                children: Iterable['_Node']=(),
+                _parent: Optional[BNodeContainerProtocol]=None,
+                **_
+            ):
+        self.builder = builder
         self.children = Holder(*children)
         self._parent = _parent
         self.descendants = {}
@@ -68,6 +72,8 @@ class BNodeContainer(BNodeContainerProtocol):
                     matrix=matrix,
                     extras=extras,
                     extensions=extensions,
+                    builder=self.builder,
+                    detached=detached,
                     _parent=self,
                     **attrs,
                 )
@@ -102,6 +108,7 @@ class BNodeContainer(BNodeContainerProtocol):
                 matrix=node.matrix,
                 extras=node.extras,
                 extensions=node.extensions,
+                builder=self.builder,
             )
         return self.add_node(
             name=name,
@@ -112,6 +119,7 @@ class BNodeContainer(BNodeContainerProtocol):
             extras=extras,
             extensions=extensions,
             children=[clone(node)],
+            detached=False,
         )
 
     def __getitem__(self, name: str) -> BNode:
@@ -130,7 +138,9 @@ class BNodeContainer(BNodeContainerProtocol):
         return len(self.children)
 
 class _Node(BNodeContainer, BNode):
+    detached: bool
     def __init__(self,
+                 builder: BuilderProtocol,
                  name: str ='',
                  children: Iterable['_Node']=(),
                  mesh: Optional[_Mesh]=None,
@@ -141,13 +151,16 @@ class _Node(BNodeContainer, BNode):
                  matrix: Optional[Matrix4]=None,
                  extras: Mapping[str, Any]=EMPTY_MAP,
                  extensions: Mapping[str, Any]=EMPTY_MAP,
+                 detached: bool=False,
                  _parent: Optional[BNodeContainerProtocol]=None,
                  ):
         Element.__init__(self, name, extras, extensions)
         BNodeContainer.__init__(self,
+                                builder=builder,
                                 children=children,
                                 _parent=_parent,
                             )
+        self.detached = detached
         self.root = root
         self.mesh = mesh
         self.translation = translation
@@ -161,6 +174,7 @@ class _Node(BNodeContainer, BNode):
             self.mesh.compile(builder)
         for child in self.children:
             child.compile(builder)
+        self.builder.nodes.add(self)
         return gltf.Node(
             name=self.name,
             mesh=self.mesh.index if self.mesh else None,
@@ -170,3 +184,17 @@ class _Node(BNodeContainer, BNode):
             scale=self.scale,
             matrix=self.matrix,
         )
+
+    def add_mesh(self,
+                 name: str='',
+                 primitives: Iterable['BPrimitive']=(),
+                 extras: Mapping[str, Any]|None=EMPTY_MAP,
+                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
+                 detached: bool=False,
+            ) -> 'BMesh':
+        return self.builder.add_mesh(name=name,
+                                    primitives=primitives,
+                                    extras=extras,
+                                    extensions=extensions,
+                                    detached=detached or self.detached,
+                                )

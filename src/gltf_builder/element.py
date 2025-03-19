@@ -3,6 +3,7 @@ Base class for objects which will be referred to by their index
 in the glTF. This also holds the name, defaulting it by the index.
 '''
 
+from types import MappingProxyType
 from typing import (
     TypeAlias, Protocol, TypeVar, Generic, Optional, Any, 
     runtime_checkable,
@@ -73,7 +74,7 @@ Tangent: TypeAlias = Vector4
 Normal: TypeAlias = Vector3
 
 
-EMPTY_MAP: Mapping[str, Any] = frozenset()
+EMPTY_MAP: Mapping[str, Any] = MappingProxyType({})
 
 
 class NameMode(StrEnum):
@@ -214,6 +215,9 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
     def add_mesh(self,
                  name: str='',
                  primitives: Iterable['BPrimitive']=(),
+                 detatched: bool=False,
+                 extras: Mapping[str, Any]|None=EMPTY_MAP,
+                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
             ) -> 'BMesh':
         ...
     
@@ -294,13 +298,13 @@ class Element(Compileable[T], Protocol):
     
     def __init__(self,
                  name: str='',
-                 extras: Mapping[str, Any]=EMPTY_MAP,
-                 extensions: Mapping[str, Any]=EMPTY_MAP,
+                 extras: Mapping[str, Any]|None=EMPTY_MAP,
+                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
             ):
         super().__init__(extras, extensions)
         self.name = name
-        self.extensions = dict(extras)
-        self.extras = dict(extensions)
+        self.extensions = dict(extras) if extras else None
+        self.extras = dict(extensions) if extensions else None
     
     @property
     def index(self):
@@ -319,6 +323,9 @@ class Element(Compileable[T], Protocol):
         
     def __eq__(self, other):
         return self is other
+    
+    def __repr__(self):
+        return f'<{type(self).__name__} {self!s}>'
     
     def __str__(self):
         if self.name == '':
@@ -369,8 +376,8 @@ class BBufferView(Element[gltf.BufferView], Protocol):
                     normalized: bool=False,
                     min: Optional[list[float]]=None,
                     max: Optional[list[float]]=None,
-                    extras: Mapping[str, Any]=EMPTY_MAP,
-                    extensions: Mapping[str, Any]=EMPTY_MAP,
+                    extras: Mapping[str, Any]|None=EMPTY_MAP,
+                    extensions: Mapping[str, Any]|None=EMPTY_MAP,
             ) -> gltf.Accessor:
         ...
 
@@ -419,8 +426,8 @@ class BMesh(Element[gltf.Mesh], Protocol):
                       COLOR_0: Optional[Iterable[Vector4]]=None,
                       JOINTS_0: Optional[Iterable[Vector4]]=None,
                       WEIGHTS_0: Optional[Iterable[Vector4]]=None,
-                      extras: Mapping[str, Any]=EMPTY_MAP,
-                      extensions: Mapping[str, Any]=EMPTY_MAP,
+                      extras: Mapping[str, Any]|None=EMPTY_MAP,
+                      extensions: Mapping[str, Any]|None=EMPTY_MAP,
                       **attribs: Iterable[tuple[int|float,...]]
                     ) -> BPrimitive:
         ...
@@ -433,3 +440,13 @@ class BNode(Element[gltf.Node]):
     rotation: Optional[Quaternion]
     scale: Optional[Vector3]
     matrix: Optional[Matrix4]
+
+    @abstractmethod
+    def add_mesh(self,
+                name: str='',
+                primitives: Iterable['BPrimitive']=(),
+                weights: Iterable[float]|None=(),
+                extras: Mapping[str, Any]|None=EMPTY_MAP,
+                extensions: Mapping[str, Any]|None=EMPTY_MAP,
+            ) -> 'BMesh':
+        ...

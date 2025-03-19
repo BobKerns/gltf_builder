@@ -26,8 +26,8 @@ class _Accessor(BAccessor):
                  normalized: bool=False,
                  max: Optional[list[float]]=None,
                  min: Optional[list[float]]=None,
-                 extras: Mapping[str, Any]=EMPTY_MAP,
-                 extensions: Mapping[str, Any]=EMPTY_MAP,
+                 extras: Mapping[str, Any]|None=EMPTY_MAP,
+                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
     ):
         super().__init__(name, extras, extensions)
         self.view = view

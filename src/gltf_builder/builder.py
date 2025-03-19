@@ -49,7 +49,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                 index_size: int=32,
                 name_mode: NameMode=NameMode.AUTO,
         ):
-        super().__init__(children=nodes)
+        super().__init__(builder=self, children=nodes)
         self.asset = asset
         self.meshes = MasterHolder(*meshes)
         self.nodes = MasterHolder(*nodes)
@@ -74,10 +74,20 @@ class Builder(BNodeContainer, BuilderProtocol):
         self.name_mode = name_mode
     
     def add_mesh(self,
-                 name: str='',
-                 primitives: Iterable[BPrimitive]=()
+                name: str='',
+                primitives: Iterable[BPrimitive]=(),
+                weights: Iterable[float]|None=(),
+                extras: Mapping[str, Any] = EMPTY_MAP,
+                extensions: Mapping[str, Any] = EMPTY_MAP,
+                detached: bool=False,
                 ):
-        mesh = _Mesh(name=name, primitives=primitives)
+        mesh = _Mesh(name=name,
+                     primitives=primitives,
+                     weights=weights,
+                     extras=extras,
+                     extensions=extensions,
+                     detached=detached,
+        )
         #self.meshes.add(mesh)
         return mesh
     
@@ -120,8 +130,8 @@ class Builder(BNodeContainer, BuilderProtocol):
         self.nodes.add(*(n for n in nodes if not n.root))
         python = sys.version_info
         self.asset.extras = self.asset.extras or {}
-        self.asset.extras = ({
-            'gltf-builder': {
+        builder_info = self.asset.extras.get('gltf-builder', {})
+        builder_info = {
                 'version': __version__,
                 'pygltflib': gltf.__version__,
                 'numpy': np.__version__,
@@ -132,12 +142,16 @@ class Builder(BNodeContainer, BuilderProtocol):
                     'releaselevel': python.releaselevel,
                     'serial': python.serial,
                 },
+                'creation_time': datetime.now().isoformat(),
+                **builder_info
+            }
+        self.asset.extras = {
+            'gltf-builder': builder_info,
                 'username': USERNAME,
                 'user': USER,
                 'date': datetime.now().isoformat(),
-            },
-            **self.asset.extras
-        })
+            **self.asset.extras,
+        }
         # Filter out empty values.
         self.asset.extras = {
             key: value
@@ -246,7 +260,7 @@ class Builder(BNodeContainer, BuilderProtocol):
         Generate a name according to the current name mode policy
         '''
         def get_count(obj) -> int:
-            tname = type(obj).__name__
+            tname = type(obj).__name__[1:]
             counters = self.id_counters
             if tname not in counters:
                 counters[tname] = count()

@@ -74,6 +74,12 @@ class Holder(Iterable[T]):
                 return item >= 0 and item < len(self)
             case _:
                 return item in self.__by_index
+            
+    def __repr__(self):
+        '''
+        A string representation of the `Holder`.
+        '''
+        return f'<{self.__class__.__name__}({len(self)})>'
 
 
 class MasterHolder(Holder[T]):
