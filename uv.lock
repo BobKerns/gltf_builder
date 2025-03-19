@@ -91,7 +91,7 @@ wheels = [
 
 [[package]]
 name = "gltf-builder"
-version = "0.1.7"
+version = "0.1.8"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
