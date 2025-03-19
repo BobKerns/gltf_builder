@@ -192,9 +192,11 @@ class _Node(BNodeContainer, BNode):
                  extensions: Mapping[str, Any]|None=EMPTY_MAP,
                  detached: bool=False,
             ) -> 'BMesh':
-        return self.builder.add_mesh(name=name,
+        mesh = self.builder.add_mesh(name=name,
                                     primitives=primitives,
                                     extras=extras,
                                     extensions=extensions,
                                     detached=detached or self.detached,
                                 )
+        self.mesh = mesh
+        return mesh

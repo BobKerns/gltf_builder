@@ -19,7 +19,7 @@ def outdir():
     return dir
 
 @pytest.fixture
-def test_builder(request):
+def test_builder(outdir, request):
     builder = Builder(
         index_size=-1,
         name_mode=NameMode.UNIQUE,
