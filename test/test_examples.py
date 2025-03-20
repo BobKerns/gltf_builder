@@ -1,6 +1,6 @@
 from gltf_builder import Builder, PrimitiveMode
 
-def test_example1(outdir):
+def test_example1(save):
     builder = Builder()
 
     CUBE = (
@@ -36,4 +36,4 @@ def test_example1(outdir):
                     rotation=(0.47415988, -0.40342268,  0.73846026,  0.25903472)
                 )
     gltf = builder.build()
-    gltf.save_binary(outdir / 'example1.glb')
+    save(gltf)

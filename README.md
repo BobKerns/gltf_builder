@@ -19,7 +19,7 @@ Basic usage
 ```python
 import gltf_builder.quaternion as quat
 
-# Rotate around Z axis by pi/2 
+# Rotate around Z axis by pi/4
 rotation = quat.from_axis_angle((0, 0, 1), math.py / 4)
 # Instantiate a geometry, rotated.
 root_node.instantiate(cube, rotation=rotation)
@@ -100,9 +100,23 @@ for node in builder:
 fred = [n for n in builder if n.name == 'Fred']
 ```
 
+## Naming
+
+`name_mode` is a configuration option on the `Builder` that determines how names are applied to elements within the GLTF builder. It can be set to different modes to control the naming behavior:
+- `explicit`: Names are only applied to elements that you explicitly name.
+- `auto`: Names are automatically generated and applied to all elements.
+- `mixed`: A combination of explicit and automatic naming is used.
+
+Adjusting the `name_mode` allows for greater flexibility and control over the naming conventions used in your GLTF files.
+
+
+## Testing
+
+There are a number of test modules in [test/](test/). These use the `pytest` unit test framework, with test fixtures in [test/conftest.py](test/conftest.py). Test cases should generalliy use the `save` fixture to save the file in both `.glb` and `.gltf` formats. They are sved in the [test/out/](test/out/) directory, grouped by module and test. The `out_dir` fixture points to the directory, allowing you to access the files or to write additional ones.
+
+
 ## Still Needed
 
-* Tangents and other attributes (implemented but no tested)
 * Materials
 * Skins
 * Textures
