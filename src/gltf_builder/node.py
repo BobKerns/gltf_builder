@@ -9,9 +9,11 @@ from typing import Optional, Any
 
 import pygltflib as gltf
 
+from gltf_builder.types import (
+    EMPTY_MAP, Matrix4, Phase, Vector3,
+)
 from gltf_builder.element import (
-    Element, EMPTY_MAP, Matrix4, Phase, Vector3, _Scope,
-    BNodeContainerProtocol, BuilderProtocol,
+    Element, BNodeContainerProtocol, BuilderProtocol, _Scope,
     BNode, BMesh, BPrimitive,
 )
 from gltf_builder.quaternion import Quaternion

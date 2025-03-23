@@ -7,11 +7,14 @@ from typing import Any, Optional
 
 import pygltflib as gltf
 
-from gltf_builder.element import (
-    BuilderProtocol, BMesh, EMPTY_MAP, Phase, _Scope,
+from gltf_builder.types import (
+    Phase, PrimitiveMode, EMPTY_MAP,
     Point, Vector3, Vector4,
 )
-from gltf_builder.primitives import _Primitive, PrimitiveMode
+from gltf_builder.element import (
+    BuilderProtocol, BMesh, _Scope,
+)
+from gltf_builder.primitives import _Primitive
 
 
 class _Mesh(BMesh):

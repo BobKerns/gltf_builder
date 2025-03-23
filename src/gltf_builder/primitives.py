@@ -7,12 +7,16 @@ from typing import Any, Optional
 
 import pygltflib as gltf
 
+from gltf_builder.types import (
+    Phase, PrimitiveMode, EMPTY_MAP,
+    Point, Vector3, Vector4, BufferViewTarget,
+)
 from gltf_builder.element import (
-    BAccessor, BPrimitive, BuilderProtocol, Phase, PrimitiveMode, _Scope,
-    Point, Vector3, Vector4,
-    EMPTY_MAP, BufferViewTarget, BMesh,
+    BAccessor, BPrimitive, BMesh, BuilderProtocol, _Scope,
 )
 from gltf_builder.accessor import _Accessor
+
+
 class _Primitive(BPrimitive):
     '''
     Base implementation class for primitives

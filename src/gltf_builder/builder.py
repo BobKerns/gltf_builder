@@ -20,6 +20,10 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 
+from gltf_builder.types import (
+     NameMode, Phase, EMPTY_MAP,
+     ElementType, ComponentType,
+)
 from gltf_builder.asset import BAsset, __version__
 from gltf_builder.holder import Holder
 from gltf_builder.buffer import _Buffer
@@ -28,8 +32,8 @@ from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_MAP, BPrimitive, Collected, Element,
-    BuilderProtocol, ElementType, ComponentType, NameMode, Phase,
+    BPrimitive, Collected, Element,
+    BuilderProtocol, 
     Compileable, GLTF_LOG,
 )
 

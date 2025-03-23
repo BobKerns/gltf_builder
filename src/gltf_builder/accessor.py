@@ -7,10 +7,12 @@ from collections.abc import Mapping, Iterable
 
 import pygltflib as gltf
 import numpy as np
-
+from gltf_builder.types import (
+    ElementType, Phase, EMPTY_MAP, BufferViewTarget,
+    AttributeDataSequence, AttributeDataItem,
+)
 from gltf_builder.element import (
-    BAccessor, BufferViewTarget, BuilderProtocol, BBuffer, EMPTY_MAP,
-    ElementType, _Scope, Phase, AttributeDataSequence, AttributeDataItem
+    BAccessor,  BuilderProtocol, BBuffer, _Scope,
 )
 from gltf_builder.utils import decode_dtype, decode_stride, decode_type
 

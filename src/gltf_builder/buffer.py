@@ -7,9 +7,12 @@ from typing import Any, NamedTuple
 
 import pygltflib as gltf
 
+from gltf_builder.types import (
+    Phase, EMPTY_MAP, BufferViewTarget,
+)
 from gltf_builder.element import (
-    BBuffer, BBufferView, BufferViewTarget, BuilderProtocol,
-    EMPTY_MAP, Phase, _Scope,
+    BBuffer, BBufferView,  BuilderProtocol,
+    _Scope,
 )
 from gltf_builder.holder import Holder
 from gltf_builder.view import _BufferView
