@@ -29,18 +29,19 @@ class BNodeContainer(BNodeContainerProtocol):
     @nodes.setter
     def nodes(self, nodes: Holder['_Node']):
         self.children = nodes
-
-    _parent: Optional[BNodeContainerProtocol]
     
     def __init__(self, /,
                 builder: BuilderProtocol,
                 children: Iterable['_Node']=(),
-                _parent: Optional[BNodeContainerProtocol]=None,
                 **_
             ):
         self.builder = builder
         self.children = Holder(*children)
-        self._parent = _parent
+        for c in children:
+            if c._parent is not None and c._parent is not self:
+                raise ValueError(f'Node {c.name} already has a parent')
+            c._parent = self
+            c.root = False
         self.descendants = {}
     
     def create_node(self,
@@ -74,7 +75,6 @@ class BNodeContainer(BNodeContainerProtocol):
                     extensions=extensions,
                     builder=self.builder,
                     detached=detached,
-                    _parent=self,
                     **attrs,
                 )
         if not detached:
@@ -171,13 +171,11 @@ class _Node(BNodeContainer, BNode):
                  extras: Mapping[str, Any]=EMPTY_MAP,
                  extensions: Mapping[str, Any]=EMPTY_MAP,
                  detached: bool=False,
-                 _parent: Optional[BNodeContainerProtocol]=None,
                  ):
         Element.__init__(self, name, extras, extensions)
         BNodeContainer.__init__(self,
                                 builder=builder,
                                 children=children,
-                                _parent=_parent,
                             )
         self.__detached = detached
         self.root = root

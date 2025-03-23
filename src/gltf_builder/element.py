@@ -152,6 +152,7 @@ class NameMode(StrEnum):
 
 
 class BNodeContainerProtocol(Protocol):
+    _parent: Optional['BNode'] = None
     children: Holder['BNode']
     @property
     def nodes(self):
