@@ -10,7 +10,7 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    Element, EMPTY_MAP, Matrix4, Vector3,
+    Element, EMPTY_MAP, Matrix4, Phase, Vector3, _Scope,
     BNodeContainerProtocol, BuilderProtocol,
     BNode, BMesh, BPrimitive,
 )
@@ -43,7 +43,7 @@ class BNodeContainer(BNodeContainerProtocol):
         self._parent = _parent
         self.descendants = {}
     
-    def add_node(self,
+    def create_node(self,
                 name: str='',
                 children: Iterable[BNode]=(),
                 mesh: Optional[BMesh]=None,
@@ -88,7 +88,7 @@ class BNodeContainer(BNodeContainerProtocol):
         return node
 
     
-    def instantiate(self, node: BNode, /,
+    def instantiate(self, node_or_mesh: BNode|BMesh, /,
                     name: str='',
                     translation: Optional[Vector3]=None,
                     rotation: Optional[Quaternion]=None,
@@ -97,6 +97,17 @@ class BNodeContainer(BNodeContainerProtocol):
                     extras: Mapping[str, Any]=EMPTY_MAP,
                     extensions: Mapping[str, Any]=EMPTY_MAP,
                 ) -> BNode:
+        if isinstance(node_or_mesh, BMesh):
+            return self.create_node(
+                name=name,
+                mesh=node_or_mesh,
+                translation=translation,
+                rotation=rotation,
+                scale=scale,
+                matrix=matrix,
+                extras=extras,
+                extensions=extensions,
+            )
         def clone(node: BNode):
             return _Node(
                 name=node.name,
@@ -110,7 +121,7 @@ class BNodeContainer(BNodeContainerProtocol):
                 extensions=node.extensions,
                 builder=self.builder,
             )
-        return self.add_node(
+        return self.create_node(
             name=name,
             translation=translation,
             rotation=rotation,
@@ -118,7 +129,7 @@ class BNodeContainer(BNodeContainerProtocol):
             matrix=matrix,
             extras=extras,
             extensions=extensions,
-            children=[clone(node)],
+            children=[clone(node_or_mesh)],
             detached=False,
         )
 
@@ -138,7 +149,15 @@ class BNodeContainer(BNodeContainerProtocol):
         return len(self.children)
 
 class _Node(BNodeContainer, BNode):
-    detached: bool
+    __detached: bool
+    @property
+    def detached(self) -> bool:
+        '''
+        A detached node is not added to the builder, but is returned
+        to be used as the root of an instancable object.
+        '''
+        return self.__detached
+    
     def __init__(self,
                  builder: BuilderProtocol,
                  name: str ='',
@@ -160,7 +179,7 @@ class _Node(BNodeContainer, BNode):
                                 children=children,
                                 _parent=_parent,
                             )
-        self.detached = detached
+        self.__detached = detached
         self.root = root
         self.mesh = mesh
         self.translation = translation
@@ -168,35 +187,54 @@ class _Node(BNodeContainer, BNode):
         self.scale = scale
         self.matrix = matrix
         
-    def do_compile(self, builder: BuilderProtocol):
-        if self.mesh:
-            builder.meshes.add(self.mesh)
-            self.mesh.compile(builder)
-        for child in self.children:
-            child.compile(builder)
-        self.builder.nodes.add(self)
-        return gltf.Node(
-            name=self.name,
-            mesh=self.mesh.index if self.mesh else None,
-            children=[child.index for child in self.children],
-            translation=self.translation,
-            rotation=self.rotation,
-            scale=self.scale,
-            matrix=self.matrix,
-        )
+    def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
+        match phase:
+            case Phase.COLLECT:
+                self.builder.nodes.add(self)
+                if self.mesh:
+                    self.mesh.compile(builder, scope, phase)
+                    return [self.mesh]
+                return []
+            case Phase.SIZES:
+                size = sum(
+                    n.compile(builder, scope, phase)
+                    for n in self.children
+                )
+                if self.mesh is not None:
+                    size += self.mesh.compile(builder, scope, phase)
+                return size
+            case Phase.BUILD:
+                if self.mesh is not None:
+                    self.mesh.compile(builder, scope, phase)
+                return gltf.Node(
+                    name=self.name,
+                    mesh=self.mesh.index if self.mesh else None,
+                    children=[child.index for child in self.children],
+                    translation=self.translation,
+                    rotation=self.rotation,
+                    scale=self.scale,
+                    matrix=self.matrix,
+                )
+            case _:
+                if self.mesh is not None:
+                    self.mesh.compile(builder, scope, phase)
+                for child in self.children:
+                    child.compile(builder, scope, phase)
 
-    def add_mesh(self,
+    def create_mesh(self,
                  name: str='',
                  primitives: Iterable['BPrimitive']=(),
                  extras: Mapping[str, Any]|None=EMPTY_MAP,
                  extensions: Mapping[str, Any]|None=EMPTY_MAP,
                  detached: bool=False,
             ) -> 'BMesh':
-        mesh = self.builder.add_mesh(name=name,
+        mesh = self.builder.create_mesh(name=name,
                                     primitives=primitives,
                                     extras=extras,
                                     extensions=extensions,
                                     detached=detached or self.detached,
                                 )
+        if detached:
+            return mesh
         self.mesh = mesh
         return mesh

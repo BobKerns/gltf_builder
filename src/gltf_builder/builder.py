@@ -19,21 +19,23 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.asset import BAsset, __version__
-from gltf_builder.holder import MasterHolder
+from gltf_builder.holder import Holder
 from gltf_builder.buffer import _Buffer
 from gltf_builder.view import _BufferView
 from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_MAP, BBuffer, BufferViewTarget, BPrimitive, Element,
-    BuilderProtocol, ElementType, ComponentType, NameMode,
+    EMPTY_MAP, BBuffer, BufferViewTarget, BPrimitive, Collected, Element,
+    BuilderProtocol, ElementType, ComponentType, NameMode, Phase,
+    Compileable,
 )
 
 
 class Builder(BNodeContainer, BuilderProtocol):
     id_counters: dict[str, count]
     name: str = ''
+    __ordered_views: list[_BufferView]
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
@@ -51,13 +53,13 @@ class Builder(BNodeContainer, BuilderProtocol):
         ):
         super().__init__(builder=self, children=nodes)
         self.asset = asset
-        self.meshes = MasterHolder(*meshes)
-        self.nodes = MasterHolder(*nodes)
+        self.meshes = Holder(*meshes)
+        self.nodes = Holder(*nodes)
         if not buffers:
             buffers = [_Buffer('main')]
-        self.buffers = MasterHolder(*buffers)
-        self.views = MasterHolder(*views)
-        self.accessors = MasterHolder(*accessors)
+        self._buffers = Holder(*buffers)
+        self._views = Holder(*views)
+        self._accessors = Holder(*accessors)
         self.index_size = index_size
         self.extras = dict(extras)
         self.extensions = dict(extensions)
@@ -73,7 +75,7 @@ class Builder(BNodeContainer, BuilderProtocol):
         self.id_counters = {}
         self.name_mode = name_mode
     
-    def add_mesh(self,
+    def create_mesh(self,
                 name: str='',
                 primitives: Iterable[BPrimitive]=(),
                 weights: Iterable[float]|None=(),
@@ -88,32 +90,89 @@ class Builder(BNodeContainer, BuilderProtocol):
                      extensions=extensions,
                      detached=detached,
         )
-        #self.meshes.add(mesh)
+        if not detached:
+            self.meshes.add(mesh)
         return mesh
     
-    def add_buffer(self,
+    def _add_buffer(self,
                    name: str='') -> _Buffer:
-        buffer = _Buffer(name=name, index=len(self.buffers))
-        self.buffers.add(buffer)
+        if len(self._buffers) > 0:
+            raise ValueError("Only one buffer is supported by pygltflib.")
+        buffer = _Buffer(name=name, index=len(self._buffers))
+        self._buffers.add(buffer)
         return buffer
         
-    def add_view(self,
+    def _add_view(self,
                  name: str='',
                  buffer: Optional[BBuffer]=None,
-                 data: Optional[bytes]=None,
                  target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
             ) -> _BufferView:
-        buffer = buffer or self.buffers[0]
-        view = _BufferView(name=name, buffer=buffer, data=data, target=target)
-        self.views.add(view)
+        buffer = buffer or self._buffers[0]
+        view = _BufferView(name=name, buffer=buffer, target=target)
+        self._views.add(view)
         return view
     
-    def get_view(self, name: str,
+    def _get_view(self, name: str,
                  target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
        ) -> _BufferView:
-        if name in self.views:
-            return self.views[name]
-        return self.add_view(name=name, target=target)
+        if name in self._views:
+            return self._views[name]
+        return self._add_view(name=name, target=target)
+    
+    def compile(self, phase: Phase):
+        match phase:
+            case Phase.ENUMERATE:
+                def assign_index(items: list[Compileable]):
+                    for i, n in enumerate(items):
+                        n.index = i
+                assign_index(self._buffers)
+                assign_index(self.__ordered_views)
+                assign_index(self._accessors)
+                assign_index(self.meshes)
+                assign_index(self.nodes)
+
+        match phase:
+            case Phase.COLLECT:
+                collected = [
+                    *(n.compile(self, self, phase) for n in self.nodes),
+                    *(m.compile(self, self, phase) for m in self.meshes),
+                    *(a.compile(self, self, phase) for a in self._accessors),
+                    *(v.compile(self, self, phase) for v in self._views),
+                    *(b.compile(self, self, phase) for b in self._buffers),
+                ]
+                ordered = sorted(list(self._views),
+                                                key=lambda v: v.byteStride or 4,
+                                                reverse=True)
+                self.__ordered_views = ordered
+                print(f'Collected {len(collected)} items.')
+                def print_collcted(collected: list[Collected], indent: int = 0):
+                    for item, children in collected:
+                        print('. ' * indent + str(item))
+                        for child in children:
+                            print('. ' * (indent +1) + '=> ' + str(child))
+                        print_collcted(children, indent + 2)
+                print_collcted(collected)
+            case Phase.SIZES:
+                for n in self.nodes:
+                    n.compile(self, self, phase)
+                for v in self._buffers:
+                    v.compile(self, self, phase)
+            case Phase.OFFSETS:
+                for b in self._buffers:
+                    b.compile(self, self, phase)
+                for n in self.nodes:
+                    n.compile(self, self, phase)
+            case _:
+                for n in self.nodes:
+                    n.compile(self, self, phase)
+                for m in self.meshes:
+                    m.compile(self, self, phase)
+                for a in self._accessors:
+                    a.compile(self, self, phase)
+                for v in self.__ordered_views if self._views else ():
+                    v.compile(self, self, phase)
+                for b in self._buffers:
+                    b.compile(self, self, phase)
     
     def build(self) -> gltf.GLTF2:
         def flatten(node: _Node) -> Iterable[_Node]:
@@ -158,47 +217,36 @@ class Builder(BNodeContainer, BuilderProtocol):
             for key, value in self.asset.extras.items()
             if value is not None
         }
-
+        for phase in Phase:
+            if phase != Phase.BUILD:
+               self.compile(phase)
         g = gltf.GLTF2(
             asset = self.asset,
             nodes=[
                 v
                 for v in (
-                    n.compile(self)
+                    n.compile(self, self, Phase.BUILD)
                     for n in nodes
                 )
                 if v is not None
             ],
             meshes=[
-                m.compile(self)
+                m.compile(self, self, Phase.BUILD)
                 for m in self.meshes
             ],
             accessors=[
-                a.compile(self)
-                for a in self.accessors
+                a.compile(self, self, Phase.BUILD)
+                for a in self._accessors
                 if a.count > 0
             ],
             # Sort the buffer views by alignment.
             bufferViews=[
-                *(
-                    v.compile(self)
-                    for v in self.views
-                    if len(v) % 4 == 0
-                ),
-                *(
-                    v.compile(self)
-                    for v in self.views
-                    if len(v) % 4 == 2
-                ),
-                *(
-                    v.compile(self)
-                    for v in self.views
-                    if len(v) % 4 in (1, 3)
-                ),
+                v.compile(self, self, Phase.BUILD)
+                for v in self.__ordered_views
             ],
             buffers=[
-                b.compile(self)
-                for b in self.buffers
+                b.compile(self, self, Phase.BUILD)
+                for b in self._buffers
                 if len(b.blob) > 0
             ],
             scene=0,
@@ -211,19 +259,33 @@ class Builder(BNodeContainer, BuilderProtocol):
                  ]}
             ]
         )
-        data = bytes(())
-        for buf in self.buffers:
-            data = data + buf.blob
+        if len(self._buffers) == 1 :
+            data = self._buffers[0].blob
+        else:
+            raise ValueError("Only one buffer is supported by pygltfllib.")
         g.set_binary_blob(data)
         return g
     
-    def define_attrib(self, name: str, type: ElementType, componentType: ComponentType):
+    def define_attrib(self,
+                      name: str,
+                      type: ElementType,
+                      componentType: ComponentType,
+                ):
+        '''
+        Define the type of an attribute. The default is VEC3/FLOAT, except for the following:
+        - TANGENT: VEC4/FLOAT
+        - TEXCOORD_0: VEC2/FLOAT
+        - TEXCOORD_1: VEC2/FLOAT
+        - COLOR_0: VEC4/FLOAT
+        - JOINTS_0: VEC4/UNSIGNED_SHORT
+        - WEIGHTS_0: VEC4/FLOAT
+        '''
         self.attr_type_map[name] = (type, componentType)
 
     def get_attrib_info(self, name: str) -> tuple[ElementType, ComponentType]:
         return self.attr_type_map.get(name) or self.attr_type_map['__DEFAULT__']
 
-    def get_index_size(self, max_value: int) -> int:
+    def _get_index_size(self, max_value: int) -> int:
         '''
         Get the index size based on the configured size or the maximum value.
         '''
@@ -255,7 +317,7 @@ class Builder(BNodeContainer, BuilderProtocol):
 
     __names: set[str] = set()
 
-    def gen_name(self, obj: Element[Any]|str) -> str:
+    def _gen_name(self, obj: Element[Any]|str) -> str:
         '''
         Generate a name according to the current name mode policy
         '''
@@ -297,7 +359,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                 raise ValueError(f'Invalid name mode: {self.name_mode}')
 
 
-def get_human_name():
+def _get_human_name():
     """Returns the full name of the current user, falling back to the username if necessary."""
     
     full_name = None
@@ -337,6 +399,6 @@ try:
 except Exception:
     USERNAME = ''
 try:
-    USER = get_human_name()
+    USER = _get_human_name()
 except Exception:
     USER = ''

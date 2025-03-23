@@ -1,4 +1,7 @@
+import math
+
 from gltf_builder import Builder, PrimitiveMode
+import gltf_builder.quaternion as q
 
 def test_example1(save):
     builder = Builder()
@@ -14,15 +17,15 @@ def test_example1(save):
     CUBE_FACE5 = (1, 2, 6, 5)
     CUBE_FACE6 = (1, 5, 6, 2)
 
-    mesh = builder.add_mesh('CUBE')
+    mesh = builder.create_mesh('CUBE', detached=True)
     mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1])
     mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2])
     mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
     mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
     mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
     mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
-    top = builder.add_node(name='TOP')
-    cube = builder.add_node(name='CUBE',
+    top = builder.create_node(name='TOP')
+    cube = builder.create_node(name='CUBE',
                             mesh=mesh,
                             translation=(-0.5, -0.5, -0.5),
                             detached=True, # Don't make it part of the scene
@@ -33,7 +36,7 @@ def test_example1(save):
     top.instantiate(cube,
                     translation=(2, 0, 0),
                     scale=(1, 2, 2),
-                    rotation=(0.47415988, -0.40342268,  0.73846026,  0.25903472)
+                    rotation=q.from_axis_angle((1, 1, 0.5), math.pi/4)
                 )
     gltf = builder.build()
     save(gltf)

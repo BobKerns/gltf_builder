@@ -31,8 +31,8 @@ def make(name: str,
             'geometry': name,
         }
     }
-    b = Builder(index_size,)
-    node = b.add_node(name=name,
+    b = Builder(index_size=index_size, name_mode=name_mode)
+    node = b.create_node(name=name,
                       detached=True,
                       extras=extras,
                       extensions=extensions,
@@ -70,8 +70,8 @@ _CUBE_FACES = (
 with make('CUBE') as cube:
     for i, (face, normal) in enumerate(_CUBE_FACES):
         name = f'FACE{i+1}'
-        node = cube.add_node(name)
-        mesh = node.add_mesh(name)
+        node = cube.create_node(name)
+        mesh = node.create_mesh(name)
         mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in face], NORMAL=4 *(normal,))
     CUBE = cube
 

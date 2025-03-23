@@ -24,20 +24,13 @@ class Holder(Iterable[T]):
         self.__by_name = {}
         self.__by_value = set()
         self.add(*items)
-        
-    def set_index(self, item: T):
-        '''
-        The default `Holder` class does not set the item's index.
-        '''
-        pass
-        
+     
     def add(self, *items: T):
         '''
         Add itens to the holder, if not already present.
         '''
         for item in items:
             if item not in self.__by_value:
-                self.set_index(item)
                 self.__by_value.add(item)
                 self.__by_index.append(item)
                 if item.name:
@@ -80,14 +73,3 @@ class Holder(Iterable[T]):
         A string representation of the `Holder`.
         '''
         return f'<{self.__class__.__name__}({len(self)})>'
-
-
-class MasterHolder(Holder[T]):
-    '''
-    A `Holder` that determines the index position.
-    '''
-    def set_index(self, item: T):
-        '''
-        Set the index position to where we are about to insert it.
-        '''
-        item.index = len(self)

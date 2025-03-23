@@ -3,6 +3,7 @@ from gltf_builder.asset import BAsset, __version__
 from gltf_builder.element import (
     Point, Tangent, Normal, PrimitiveMode, ComponentType,
     Scalar, Vector2, Vector3, Vector4, Matrix2, Matrix3, Matrix4,
+    BufferViewTarget,
 )
 
 from gltf_builder.primitives import BPrimitive
@@ -20,6 +21,7 @@ __all__ = [
     'BAsset',
     'BBuffer',
     'BBufferView',
+    'BufferViewTarget',
     'BMesh',
     'BNode',
     'Builder',

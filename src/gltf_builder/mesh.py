@@ -8,14 +8,17 @@ from typing import Any, Optional
 import pygltflib as gltf
 
 from gltf_builder.element import (
-    BuilderProtocol, BMesh, EMPTY_MAP,
+    BuilderProtocol, BMesh, EMPTY_MAP, Phase, _Scope,
     Point, Vector3, Vector4,
 )
 from gltf_builder.primitives import _Primitive, PrimitiveMode
 
 
 class _Mesh(BMesh):
-    detatched: bool
+    __detatched: bool
+    @property
+    def detached(self):
+        return self.__detatched
     def __init__(self, /,
                  name='',
                  primitives: Iterable[_Primitive]=(),
@@ -27,7 +30,7 @@ class _Mesh(BMesh):
         super().__init__(name, extras, extensions)
         self.primitives = list(primitives)
         self.weights = list(weights)
-        self.detached = detached
+        self.__detached = detached
         
     def add_primitive(self, mode: PrimitiveMode,
                       *points: Point,
@@ -57,12 +60,29 @@ class _Mesh(BMesh):
         self.primitives.append(prim)
         return prim
     
-    def do_compile(self, builder: BuilderProtocol):
-        builder.meshes.add(self)
-        return gltf.Mesh(
-            name=self.name,
-            primitives=[
-                p.compile(builder)
-                for p in self.primitives
-            ]
-        )
+    def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
+        match phase:
+            case Phase.COLLECT:
+                builder.meshes.add(self)
+                return [prim.compile(builder, scope, phase)
+                        for prim in self.primitives]
+            case Phase.ENUMERATE:
+                for i, prim in enumerate(self.primitives):
+                    prim.index = i
+                    prim.compile(builder, scope, phase)
+            case Phase.SIZES:
+                return sum(
+                    prim.compile(builder, scope, phase)
+                    for prim in self.primitives
+                )
+            case Phase.BUILD:
+                return gltf.Mesh(
+                    name=self.name,
+                    primitives=[
+                        p.compile(builder, scope, phase)
+                        for p in self.primitives
+                    ]
+                )
+            case _:
+                for prim in self.primitives:
+                    prim.compile(builder, scope, phase)

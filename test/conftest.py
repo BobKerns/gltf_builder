@@ -95,8 +95,13 @@ def save(out_dir):
         g.convert_buffers(BufferFormat.DATAURI)
 
         out = out_dir / out_dir.name
+        print(f'Writing to {out.with_suffix("")} gltf and .glb')
         g.save_json(out.with_suffix('.gltf'))
         g.save_binary(out.with_suffix('.glb'))
+        # Convert back for the tests.
+        g.convert_buffers(BufferFormat.BINARYBLOB)
+    for f in out_dir.iterdir():
+        unlink_tree(f)
     return save
 
 

@@ -4,8 +4,12 @@ Test cases
 
 import pytest
 
+from collections.abc import Callable
 from typing import Iterable
 from dataclasses import dataclass, field
+import math
+
+import pygltflib as gltf
 
 from gltf_builder import Builder, PrimitiveMode, BMesh
 from gltf_builder.geometries import (
@@ -15,14 +19,18 @@ from gltf_builder.geometries import (
     _CUBE_NORMAL1, _CUBE_NORMAL2, _CUBE_NORMAL3,
     _CUBE_NORMAL4, _CUBE_NORMAL5, _CUBE_NORMAL6,
 )
+import gltf_builder.quaternion as Q
 
 @dataclass
-class Geometry:
+class TestGeometry:
     builder: Builder
     meshes: dict[str, BMesh] = field(default_factory=dict)
     nodes: dict[str, BMesh] = field(default_factory=dict)
+    save: Callable[[gltf.GLTF2], None] = lambda g: None
     def build(self):
-        return self.builder.build()
+        g = self.builder.build()
+        self.save(g)
+        return g
     def __getitem__(self, name):
         return (
             self.nodes.get(name)
@@ -48,20 +56,23 @@ def test_empty_builder(save):
     save(g)
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def cube(save):
     b = Builder()
-    m = b.add_mesh('CUBE_MESH')
+    m = b.create_mesh('CUBE_MESH')
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE1])
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE2])
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE3])
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE4])
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE5])
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE6])
-    top = b.add_node(name='TOP')
-    top.add_node('CUBE', mesh=m)
-    yield Geometry(builder=b, meshes={'CUBE_MESH': m}, nodes={'TOP': top})
-    save(b.build())
+    top = b.create_node(name='TOP')
+    top.create_node('CUBE', mesh=m)
+    yield TestGeometry(builder=b,
+                   meshes={'CUBE_MESH': m},
+                   nodes={'TOP': top},
+                   save=save,
+                )
 
 
 def test_cube(cube):
@@ -71,19 +82,19 @@ def test_cube(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 1
+    assert len(g.bufferViews) == 6
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
 
 
 def test_faces(save):
-    b = Builder()
+    b = Builder(index_size=8)
     def face(name, indices: Iterable[int]):
-        m = b.add_mesh(name)
+        m = b.create_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
-        return b.add_node(name=name, mesh=m)
-    b.add_node(name='CUBE',
+        return b.create_node(name=name, mesh=m)
+    b.create_node(name='CUBE',
                 children=[
                     face('FACE1', _CUBE_FACE1),
                     face('FACE2', _CUBE_FACE2),
@@ -93,21 +104,21 @@ def test_faces(save):
                     face('FACE6', _CUBE_FACE6),
                ])
     g = b.build()
-    assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 2
-    assert len(g.nodes) == 7
-    size = 6 * 3 * 4 * 4 + 4 * 4 * 6
-    assert len(g.binary_blob()) == size
     save(g)
+    assert len(g.buffers) == 1
+    assert len(g.bufferViews) == 12
+    assert len(g.nodes) == 7
+    size = 6 * 3 * 4 * 4 + 1 * 4 * 6
+    assert len(g.binary_blob()) == size
     
 
 def test_faces2(save):
     b = Builder()
-    cube = b.add_node(name='CUBE')
+    cube = b.create_node(name='CUBE')
     def face(name, indices: Iterable[int]):
-        m = b.add_mesh(name)
+        m = b.create_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
-        return cube.add_node(name=name, mesh=m)
+        return cube.create_node(name=name, mesh=m)
     face('FACE1', _CUBE_FACE1)
     face('FACE2', _CUBE_FACE2)
     face('FACE3', _CUBE_FACE3)
@@ -115,12 +126,12 @@ def test_faces2(save):
     face('FACE5', _CUBE_FACE5)
     face('FACE6', _CUBE_FACE6)
     g = b.build()
+    save(g)
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 12
     assert len(g.nodes) == 7
     size = 6 * 3 * 4 * 4 + 4 * 4 * 6
     assert len(g.binary_blob()) == size
-    save(g)
     
 
 def test_cube8(cube):
@@ -130,7 +141,7 @@ def test_cube8(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 12
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 1 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -143,7 +154,7 @@ def test_cube16(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 12
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 2 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -156,7 +167,7 @@ def test_cube0(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 12
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 1 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -169,7 +180,7 @@ def test_cube32(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 12
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 4 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -180,11 +191,11 @@ def test_instances_mesh(cube):
     m = cube.meshes['CUBE_MESH']
 
     n = cube.nodes['TOP']
-    n2 = n.add_node('CUBE1', mesh=m)
+    n2 = n.create_node('CUBE1', mesh=m)
     n2.translation = (1.25, 0, 0)
     assert len(n.children) == 2
     g = cube.build()
-    assert len(g.bufferViews) == 1
+    assert len(g.bufferViews) == 6
     assert len(g.nodes) == 3
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -192,40 +203,40 @@ def test_instances_mesh(cube):
 
 def test_instances(cube):
     cube.index_size = -1
-    c = cube['CUBE']
-    n = cube['TOP']
+    c = cube.builder.create_node(name='CUBE', mesh=cube.meshes['CUBE_MESH'])
+    n = cube.nodes['TOP']
     n.instantiate(c,
                   translation=(1.25, 1, 0),
-                  rotation=(0.18257419, 0.36514837, 0.54772256, 0.73029674),
+                  rotation=Q.from_axis_angle((1, 1, 0), math.radians(30)),
     )
     n.instantiate(c,
                   translation=(-1.25, -1, 0),
-                  rotation=(0.47415988, -0.40342268,  0.73846026,  0.25903472),
+                  rotation=Q.from_axis_angle((1, 1, 0), math.radians(-30)),
                   scale=(0.5, 0.5, 0.5),
     )
+    cube.builder.print_hierarchy()
     g = cube.build()
-    assert len(g.bufferViews) == 1
-    assert len(g.nodes) == 6
+    assert len(g.bufferViews) == 6
+    assert len(g.nodes) == 7
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
 
-
 def test_normal(save):
     b = Builder(index_size=-1)
-    m = b.add_mesh('CUBE_MESH')
+    m = b.create_mesh('CUBE_MESH')
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE1], NORMAL=4   *(_CUBE_NORMAL1,))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE2], NORMAL=4   *(_CUBE_NORMAL2,))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE3], NORMAL=4   *(_CUBE_NORMAL3,))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE4], NORMAL=4   *(_CUBE_NORMAL4,))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE5], NORMAL=4   *(_CUBE_NORMAL5,))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in _CUBE_FACE6], NORMAL=4   *(_CUBE_NORMAL6,))
-    top = b.add_node(name='TOP')
-    cube = top.add_node('CUBE', mesh=m, detached=True)
+    top = b.create_node(name='TOP')
+    cube = top.create_node('CUBE', mesh=m, detached=True)
     top.instantiate(cube)
     g = b.build()
+    save(g)
     size = 2 * 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
-    save(g)
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 12
     assert len(g.accessors) == 12
     assert len(g.nodes) == 3
