@@ -13,7 +13,7 @@ from abc import abstractmethod
 from enum import IntEnum, StrEnum
 from collections.abc import Mapping, Iterable, Sequence
 import math
-from logging import getLogger
+from logging import getLogger, basicConfig, DEBUG
 
 import numpy as np
 import pygltflib as gltf
@@ -21,10 +21,11 @@ import pygltflib as gltf
 from gltf_builder.holder import Holder
 from gltf_builder.quaternion import Quaternion
 import gltf_builder.quaternion as Q
-    
+
+if False:
+    basicConfig(level=DEBUG, format='%(message)s')
 GLTF_LOG = getLogger('gltf_builder')
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
-LOG.setLevel('DEBUG')
 
 class Phase(StrEnum):
     '''
@@ -405,7 +406,7 @@ class Compileable(Generic[T], Protocol):
                 case Phase.BUILD:
                     return self.__compiled
         else:
-            #print(f'Compiling {self} in phase {phase}')
+            LOG.debug('Compiling %s in phase %s', self, phase)
             self.__phases.append(phase)
             match phase:
                 case Phase.COLLECT:
@@ -416,13 +417,17 @@ class Compileable(Generic[T], Protocol):
                     bytelen = self._do_compile(builder, scope, phase)
                     if bytelen is not None:
                         self._len = bytelen
-                        print(f'{self} has length {self._len}')
+                        LOG.debug('%s has length %s', self, self._len)
                         return bytelen
                     return 0
                 case Phase.OFFSETS:
                     self._do_compile(builder, scope, phase)
                     if self.byteOffset >= 0:
-                        print(f'{self} has offset {self.byteOffset}')
+                        if isinstance(self, BAccessor):
+                            LOG.debug('%s has offset %d(+%d)',
+                                      self, self.byteOffset, self._view.byteOffset)
+                        else:
+                            LOG.debug(f'{self} has offset {self.byteOffset}')
                         return self.byteOffset + self._len
                     return -1
                 case Phase.BUILD:
@@ -634,6 +639,7 @@ Sequence of attribute data in various formats. Lists of:
 '''
 
 
+@runtime_checkable
 class BAccessor(Element[gltf.Accessor], Protocol):
     _view: BBufferView
     data: AttributeDataList

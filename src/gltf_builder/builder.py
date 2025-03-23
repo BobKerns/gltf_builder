@@ -14,6 +14,8 @@ import ctypes
 import ctypes.wintypes
 import subprocess
 import getpass
+import logging
+from pathlib import Path
 
 import pygltflib as gltf
 import numpy as np
@@ -28,9 +30,11 @@ from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
     EMPTY_MAP, BBuffer, BufferViewTarget, BPrimitive, Collected, Element,
     BuilderProtocol, ElementType, ComponentType, NameMode, Phase,
-    Compileable,
+    Compileable, GLTF_LOG,
 )
 
+
+LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
 class Builder(BNodeContainer, BuilderProtocol):
     id_counters: dict[str, count]
@@ -142,14 +146,15 @@ class Builder(BNodeContainer, BuilderProtocol):
                                                 key=lambda v: v.byteStride or 4,
                                                 reverse=True)
                 self.__ordered_views = ordered
-                print(f'Collected {len(collected)} items.')
-                def print_collcted(collected: list[Collected], indent: int = 0):
+                LOG.debug('Collected %s items.', len(collected))
+                def log_collcted(collected: list[Collected], indent: int = 0):
                     for item, children in collected:
-                        print('. ' * indent + str(item))
+                        LOG.debug('. ' * indent + str(item))
                         for child in children:
-                            print('. ' * (indent +1) + '=> ' + str(child))
-                        print_collcted(children, indent + 2)
-                print_collcted(collected)
+                            LOG.debug('. ' * (indent +1) + '=> ' + str(child))
+                        log_collcted(children, indent + 2)
+                if LOG.isEnabledFor(logging.DEBUG):
+                    log_collcted(collected)
             case Phase.SIZES:
                 for n in self.nodes:
                     n.compile(self, self, phase)

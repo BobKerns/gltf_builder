@@ -9,7 +9,9 @@ from pathlib import Path
 import test
 
 from gltf_builder import Builder
-from gltf_builder.element import NameMode
+from gltf_builder.element import NameMode, GLTF_LOG
+
+LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
 
 @pytest.fixture
@@ -94,10 +96,9 @@ def save(out_dir):
         g.convert_images(ImageFormat.BUFFERVIEW)
         g.convert_buffers(BufferFormat.DATAURI)
 
-        out = out_dir / out_dir.name
-        print(f'Writing to {out.with_suffix("")} gltf and .glb')
-        g.save_json(out.with_suffix('.gltf'))
-        g.save_binary(out.with_suffix('.glb'))
+        LOG.info('Writing to %s{.gltf,.glb}', out.with_suffix(""))
+        g.save_json(gltf)
+        g.save_binary(glb)
         # Convert back for the tests.
         g.convert_buffers(BufferFormat.BINARYBLOB)
     for f in out_dir.iterdir():
