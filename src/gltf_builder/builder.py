@@ -177,7 +177,14 @@ class Builder(BNodeContainer, BuilderProtocol):
                 for b in self._buffers:
                     b.compile(self, self, phase)
     
-    def build(self) -> gltf.GLTF2:
+    def build(self, /,
+            name_mode: Optional[NameMode]=None,
+            index_size: Optional[int]=None,
+        ) -> gltf.GLTF2:
+        if name_mode is not None:
+            self.name_mode = name_mode
+        if index_size is not None:
+            self.index_size = index_size
         def flatten(node: _Node) -> Iterable[_Node]:
             yield node
             for n in node.children:
