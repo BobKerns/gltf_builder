@@ -1,6 +1,8 @@
 '''
 Test fixtures
 '''
+import re
+
 from pygltflib import BufferFormat, ImageFormat
 import pytest
 
@@ -69,19 +71,34 @@ def out_file(module_out, request) -> Path:
     unlink_tree(file)
     return file
 
+RE_PARAAM = re.compile(r'\[([a-zA-Z0-9_+=@-]*)\]')
 
 @pytest.fixture
-def out_dir(out_file):
+def out_dir(module_out, request):
     '''
     Provide a directory to save test results.
     '''
-    unlink_tree(out_file)
-    out_file.mkdir(exist_ok=True)
-    return out_file
+    name = request.node.name
+    
+    if name.startswith('test_geo_'):
+        name = name[9:]
+    elif name.startswith('test_'):
+        name = name[5:]
+    name = RE_PARAAM.sub('', name)
+    dir: Path = module_out / name
+    dir.mkdir(exist_ok=True)
+    return dir
+
+
+def sanitize(name: str):
+    '''
+    Get the test name with any special characters removed.
+    '''
+    return RE_PARAAM.sub(r'_\1', name)
 
 
 @pytest.fixture
-def save(out_dir):
+def save(out_dir, request):
     '''
 
     Save the result of a test to both a .gltf and .glb file.
@@ -92,7 +109,12 @@ def save(out_dir):
     after you are done accessing the binary blob, or change the format
     back.
     '''
-    def save(g):
+    out = out_dir / sanitize(request.node.name)
+    gltf = out.with_suffix('.gltf')
+    glb = out.with_suffix('.glb')
+    def save(g, **params):
+        if isinstance(g, Builder):
+            g = g.build(**params)
         g.convert_images(ImageFormat.BUFFERVIEW)
         g.convert_buffers(BufferFormat.DATAURI)
 
@@ -101,8 +123,9 @@ def save(out_dir):
         g.save_binary(glb)
         # Convert back for the tests.
         g.convert_buffers(BufferFormat.BINARYBLOB)
-    for f in out_dir.iterdir():
-        unlink_tree(f)
+        return g
+    glb.unlink(missing_ok=True)
+    gltf.unlink(missing_ok=True)
     return save
 
 
