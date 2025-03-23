@@ -90,8 +90,6 @@ class Builder(BNodeContainer, BuilderProtocol):
                      extensions=extensions,
                      detached=detached,
         )
-        if not detached:
-            self.meshes.add(mesh)
         return mesh
     
     def _add_buffer(self,

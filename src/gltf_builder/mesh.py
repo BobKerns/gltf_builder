@@ -62,14 +62,15 @@ class _Mesh(BMesh):
     
     def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
         match phase:
+            case Phase.PRIMITIVES:
+                builder.meshes.add(self)
+                for i, prim in enumerate(self.primitives):
+                    prim.index = i
+                    prim.compile(builder, scope, phase)
             case Phase.COLLECT:
                 builder.meshes.add(self)
                 return [prim.compile(builder, scope, phase)
                         for prim in self.primitives]
-            case Phase.ENUMERATE:
-                for i, prim in enumerate(self.primitives):
-                    prim.index = i
-                    prim.compile(builder, scope, phase)
             case Phase.SIZES:
                 return sum(
                     prim.compile(builder, scope, phase)
