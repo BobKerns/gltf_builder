@@ -3,17 +3,11 @@ The initial objedt that collects the geometry info and compiles it into
 a glTF object.
 '''
 
+import sys
 from collections.abc import Iterable, Mapping
 from typing import Optional, Any
 from itertools import count
 from datetime import datetime
-import os
-import sys
-import pwd
-import ctypes
-import ctypes.wintypes
-import subprocess
-import getpass
 import logging
 from pathlib import Path
 
@@ -36,6 +30,7 @@ from gltf_builder.element import (
     BuilderProtocol, 
     Compileable, GLTF_LOG,
 )
+from gltf_builder.utils import USERNAME, USER
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
@@ -347,47 +342,3 @@ class Builder(BNodeContainer, BuilderProtocol):
             case _:
                 raise ValueError(f'Invalid name mode: {self.name_mode}')
 
-
-def _get_human_name():
-    """Returns the full name of the current user, falling back to the username if necessary."""
-    
-    full_name = None
-
-    if sys.platform.startswith("linux") or sys.platform == "darwin":  # macOS and Linux
-        try:
-            full_name = pwd.getpwuid(os.getuid()).pw_gecos.split(',')[0].strip()
-        except KeyError:
-            pass
-        
-        # Try getent as a fallback
-        if not full_name:
-            try:
-                result = subprocess.check_output(["getent", "passwd", os.getlogin()], text=True)
-                full_name = result.split(":")[4].split(",")[0].strip()
-            except (subprocess.CalledProcessError, IndexError, FileNotFoundError, OSError):
-                pass
-
-    elif sys.platform.startswith("win"):  # Windows
-        try:
-            size = ctypes.wintypes.DWORD(0)
-            ctypes.windll.advapi32.GetUserNameExW(3, None, ctypes.byref(size))  # Get required buffer size
-            buffer = ctypes.create_unicode_buffer(size.value)
-            if ctypes.windll.advapi32.GetUserNameExW(3, buffer, ctypes.byref(size)):
-                full_name = buffer.value.strip()
-        except Exception:
-            pass
-
-    # If full name is not found, fall back to the username
-    if not full_name:
-        full_name = getpass.getuser()
-
-    return full_name
-
-try:
-    USERNAME = getpass.getuser()
-except Exception:
-    USERNAME = ''
-try:
-    USER = _get_human_name()
-except Exception:
-    USER = ''
