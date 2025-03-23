@@ -305,19 +305,6 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
         ...
     
     @abstractmethod
-    def _add_buffer(self,
-                   name: str='') -> 'BBuffer':
-        ...
-    
-    @abstractmethod
-    def _add_view(self,
-                 name: str='',
-                 buffer: Optional['BBuffer']=None,
-                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-            ) -> 'BBufferView':
-        ...
-    
-    @abstractmethod
     def build(self) -> gltf.GLTF2:
         ...
 

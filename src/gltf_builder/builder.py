@@ -28,7 +28,7 @@ from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, BNodeContainer
 from gltf_builder.element import (
-    EMPTY_MAP, BBuffer, BufferViewTarget, BPrimitive, Collected, Element,
+    EMPTY_MAP, BPrimitive, Collected, Element,
     BuilderProtocol, ElementType, ComponentType, NameMode, Phase,
     Compileable, GLTF_LOG,
 )
@@ -95,32 +95,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                      detached=detached,
         )
         return mesh
-    
-    def _add_buffer(self,
-                   name: str='') -> _Buffer:
-        if len(self._buffers) > 0:
-            raise ValueError("Only one buffer is supported by pygltflib.")
-        buffer = _Buffer(name=name, index=len(self._buffers))
-        self._buffers.add(buffer)
-        return buffer
-        
-    def _add_view(self,
-                 name: str='',
-                 buffer: Optional[BBuffer]=None,
-                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-            ) -> _BufferView:
-        buffer = buffer or self._buffers[0]
-        view = _BufferView(name=name, buffer=buffer, target=target)
-        self._views.add(view)
-        return view
-    
-    def _get_view(self, name: str,
-                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-       ) -> _BufferView:
-        if name in self._views:
-            return self._views[name]
-        return self._add_view(name=name, target=target)
-    
+
     def compile(self, phase: Phase):
         match phase:
             case Phase.ENUMERATE:
