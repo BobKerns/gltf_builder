@@ -4,6 +4,7 @@ from gltf_builder.types import (
     Point, Tangent, Normal, Scalar, Vector2, Vector3, Vector4,
     Matrix2, Matrix3, Matrix4, Scale,
     AttributeDataSequence, AttributeDataList, AttributeDataItem,
+    point, scale, vector2, vector3, vector4,
 )
 from gltf_builder.accessor import BAccessor
 from gltf_builder.asset import BAsset, __version__
@@ -33,15 +34,20 @@ __all__ = [
     'NameMode',
     'Normal',
     'Point',
+    'point',
     'PrimitiveMode',
     'Quaternion',
     'dtype',
     'to_matrix',
     'Scalar',
     'Scale',
+    'scale',
     'Tangent',
     'Vector2',
+    'vector2',
     'Vector3',
+    'vector3',
     'Vector4',
+    'vector4',
     '__version__',
 ]
