@@ -27,7 +27,6 @@ class _Accessor(BAccessor):
                  type: ElementType,
                  componentType: int,
                  name: str='',
-                 byteOffset: int=0,
                  normalized: bool=False,
                  max: Optional[list[float]]=None,
                  min: Optional[list[float]]=None,
@@ -43,7 +42,6 @@ class _Accessor(BAccessor):
         self.count = count
         self.type = type
         self.name = name
-        self.byteOffset = byteOffset
         self.componentType = componentType
         self.normalized = normalized
         self.max = max
@@ -74,10 +72,7 @@ class _Accessor(BAccessor):
                 return len(self.data) * self.byteStride
             case Phase.OFFSETS:
                 self._view.compile(builder, scope, phase)
-                self.__memory = (self._view
-                                 ._memory(self.byteOffset, len(self))
-                                 #.cast(self.bufferType))
-                )
+                self.__memory = self._view._memory(self.byteOffset, len(self))
             case Phase.BUILD:
                 data = np.array(self.data, self.dtype)
                 if len(self.data) == 0:
@@ -93,8 +88,7 @@ class _Accessor(BAccessor):
                     max_axis = [float(v) for v in max_axis]
                 else:
                     max_axis = [float(max_axis)] * self.componentCount
-                end = len(self)
-                self.__memory[self.byteOffset:end] = data.tobytes()
+                self.__memory[:] = data.tobytes()
                 return gltf.Accessor(
                     bufferView=self._view.index,
                     count=self.count,
