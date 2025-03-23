@@ -75,7 +75,10 @@ class _BufferView(BBufferView):
                 end = self.byteOffset + len(self)
                 buf_memview = memoryview(self.buffer.buffer) 
                 self.__memory = buf_memview[self.byteOffset:end]
+                offset = 0
                 for acc in self.accessors:
+                    acc.byteOffset = offset
+                    offset +=  len(acc)
                     acc.compile(builder, scope, phase)
                 return end
             case Phase.BUILD:
