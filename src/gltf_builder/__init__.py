@@ -1,6 +1,6 @@
 
 from gltf_builder.types import (
-    PrimitiveMode, ElementType,  ComponentType,
+    PrimitiveMode, ElementType,  ComponentType, NameMode,
     Point, Tangent, Normal, Scalar, Vector2, Vector3, Vector4,
     Matrix2, Matrix3, Matrix4, Scale,
     AttributeDataSequence, AttributeDataList, AttributeDataItem,
@@ -30,6 +30,7 @@ __all__ = [
     'Matrix2',
     'Matrix3',
     'Matrix4',
+    'NameMode',
     'Normal',
     'Point',
     'PrimitiveMode',

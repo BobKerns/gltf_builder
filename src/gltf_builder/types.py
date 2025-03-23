@@ -4,7 +4,7 @@ Simple common types for the gltf_builder module.
 
 from enum import IntEnum, StrEnum
 from collections.abc import Sequence, Mapping
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, Literal
 from types import MappingProxyType
 
 import pygltflib as gltf
@@ -82,6 +82,10 @@ class ComponentType(IntEnum):
     UNSIGNED_SHORT = gltf.UNSIGNED_SHORT
     UNSIGNED_INT = gltf.UNSIGNED_INT
     FLOAT = gltf.FLOAT
+
+
+BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
+
 
 Vector2: TypeAlias = tuple[float, float]
 Vector3: TypeAlias = tuple[float, float, float]

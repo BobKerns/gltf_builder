@@ -11,8 +11,9 @@ from gltf_builder.types import (
     BufferViewTarget, EMPTY_MAP, Phase,
 )
 from gltf_builder.element import (
-    BBuffer, BBufferView, BuilderProtocol, _Scope,
+    BBuffer, BBufferView, _Scope,
 )
+from gltf_builder.protocols import BuilderProtocol
 from gltf_builder.accessor import _Accessor
 from gltf_builder.holder import Holder
 

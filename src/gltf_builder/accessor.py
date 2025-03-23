@@ -11,8 +11,9 @@ from gltf_builder.types import (
     ElementType, Phase, EMPTY_MAP, BufferViewTarget,
     AttributeDataSequence, AttributeDataItem,
 )
+from gltf_builder.protocols  import BuilderProtocol
 from gltf_builder.element import (
-    BAccessor,  BuilderProtocol, BBuffer, _Scope,
+    BAccessor,  BBuffer, _Scope,
 )
 from gltf_builder.utils import decode_dtype, decode_stride, decode_type
 

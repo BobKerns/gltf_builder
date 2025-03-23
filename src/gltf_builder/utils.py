@@ -2,7 +2,6 @@
 Internal utilities for the glTF builder.
 '''
 
-from typing import Literal, TypeAlias
 import os
 import sys
 import pwd
@@ -13,11 +12,9 @@ import getpass
 
 import numpy as np
 
-from gltf_builder.element import (
-    ElementType, ComponentType
+from gltf_builder.types import (
+    ElementType, ComponentType, BufferType,
 )
-
-BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
 
 COMPONENT_SIZES: dict[ComponentType, tuple[int, np.dtype, BufferType]] = {
     ComponentType.BYTE: (1, np.int8, 'b'),

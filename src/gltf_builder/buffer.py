@@ -10,9 +10,9 @@ import pygltflib as gltf
 from gltf_builder.types import (
     Phase, EMPTY_MAP, BufferViewTarget,
 )
+from gltf_builder.protocols import BuilderProtocol
 from gltf_builder.element import (
-    BBuffer, BBufferView,  BuilderProtocol,
-    _Scope,
+    BBuffer, BBufferView, _Scope,
 )
 from gltf_builder.holder import Holder
 from gltf_builder.view import _BufferView

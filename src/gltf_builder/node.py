@@ -13,12 +13,14 @@ from gltf_builder.types import (
     EMPTY_MAP, Matrix4, Phase, Vector3,
 )
 from gltf_builder.element import (
-    Element, BNodeContainerProtocol, BuilderProtocol, _Scope,
-    BNode, BMesh, BPrimitive,
+    Element, _Scope, BNode, BMesh, BPrimitive,
 )
 from gltf_builder.quaternion import Quaternion
 from gltf_builder.mesh import _Mesh 
 from gltf_builder.holder import Holder
+from gltf_builder.protocols import (
+    BNodeContainerProtocol, BuilderProtocol,
+)
 
 
 class BNodeContainer(BNodeContainerProtocol):

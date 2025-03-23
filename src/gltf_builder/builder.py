@@ -25,12 +25,11 @@ from gltf_builder.view import _BufferView
 from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, BNodeContainer
-from gltf_builder.element import (
-    BPrimitive, Collected, Element,
-    BuilderProtocol, 
-    Compileable, GLTF_LOG,
-)
+from gltf_builder.protocols import BuilderProtocol
+from gltf_builder.element import BPrimitive, Element
+from gltf_builder.compile import Compileable, Collected
 from gltf_builder.utils import USERNAME, USER
+from gltf_builder.log import GLTF_LOG
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)

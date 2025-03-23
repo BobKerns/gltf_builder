@@ -11,9 +11,8 @@ from gltf_builder.types import (
     Phase, PrimitiveMode, EMPTY_MAP,
     Point, Vector3, Vector4,
 )
-from gltf_builder.element import (
-    BuilderProtocol, BMesh, _Scope,
-)
+from gltf_builder.protocols import BuilderProtocol
+from gltf_builder.element import BMesh, _Scope
 from gltf_builder.primitives import _Primitive
 
 

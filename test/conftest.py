@@ -10,8 +10,8 @@ from pathlib import Path
 
 import test
 
-from gltf_builder import Builder
-from gltf_builder.element import NameMode, GLTF_LOG
+from gltf_builder import Builder, NameMode
+from gltf_builder.element import GLTF_LOG
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
