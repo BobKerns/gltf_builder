@@ -82,7 +82,7 @@ def test_cube(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 6
+    assert len(g.bufferViews) == 1
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -106,7 +106,7 @@ def test_faces(save):
     g = b.build()
     save(g)
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 7
     size = 6 * 3 * 4 * 4 + 1 * 4 * 6
     assert len(g.binary_blob()) == size
@@ -128,7 +128,7 @@ def test_faces2(save):
     g = b.build()
     save(g)
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 7
     size = 6 * 3 * 4 * 4 + 4 * 4 * 6
     assert len(g.binary_blob()) == size
@@ -141,7 +141,7 @@ def test_cube8(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 1 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -154,7 +154,7 @@ def test_cube16(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 2 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -167,7 +167,7 @@ def test_cube0(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 1 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -180,7 +180,7 @@ def test_cube32(cube):
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 2
     assert len(g.nodes) == 2
     size = 6 * 3 * 4 * 4 + 4 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -195,7 +195,7 @@ def test_instances_mesh(cube):
     n2.translation = (1.25, 0, 0)
     assert len(n.children) == 2
     g = cube.build()
-    assert len(g.bufferViews) == 6
+    assert len(g.bufferViews) == 1
     assert len(g.nodes) == 3
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -216,7 +216,7 @@ def test_instances(cube):
     )
     cube.builder.print_hierarchy()
     g = cube.build()
-    assert len(g.bufferViews) == 6
+    assert len(g.bufferViews) == 1
     assert len(g.nodes) == 7
     size = 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -237,6 +237,6 @@ def test_normal(save):
     save(g)
     size = 2 * 6 * 3 * 4 * 4 + 0 * 4 * 6
     assert len(g.binary_blob()) ==  size
-    assert len(g.bufferViews) == 12
+    assert len(g.bufferViews) == 1
     assert len(g.accessors) == 12
     assert len(g.nodes) == 3

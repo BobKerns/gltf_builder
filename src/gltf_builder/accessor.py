@@ -38,7 +38,7 @@ class _Accessor(BAccessor):
         super().__init__(name, extras, extensions)
         byteStride = decode_stride(type, componentType)
         self.dtype = decode_dtype(type, componentType)
-        self._view = buffer._get_view(target, byteStride, name)
+        self._view = buffer._get_view(target, byteStride)
         self._view._add_accessor(self)
         self.count = count
         self.type = type
