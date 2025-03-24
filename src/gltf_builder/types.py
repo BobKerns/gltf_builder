@@ -233,6 +233,7 @@ Color: TypeAlias = _Color|NP3Vector|Vec3|NP4Vector|Vec4
 Joint: TypeAlias = _Joint|IVec4|NPIVector
 Weight: TypeAlias = _Weight|Vec4|NP4Vector|IVec4|NPIVector
 
+float01: TypeAlias = float|Literal[0,1]
 
 @overload
 def point() -> _Point: ...
@@ -353,6 +354,7 @@ def vector4(x: Optional[float|Point]=None,
         case _:
             raise ValueError('Invalid vector4')        
 
+
 @overload
 def scale() -> _Scale: ...
 @overload
@@ -418,10 +420,10 @@ def color(r: float, g: float, b: float, a: float) -> RGBA: ...
 @overload
 def color(r: float, g: float, b: float) -> RGB:
     ...
-def color(r: Optional[float|0|1|Color]=None,
-         g: Optional[float|0|1]=None,
-         b: Optional[float|0|1]=None,
-         a: Optional[float|0|1]=None,
+def color(r: Optional[float01|Color]=None,
+         g: Optional[float01]=None,
+         b: Optional[float01]=None,
+         a: Optional[float01]=None,
     ) -> RGB|RGBA:
     def clamp(v: float) -> float:
         return max(0.0, min(1.0, float(v)))
@@ -453,10 +455,10 @@ def color(r: Optional[float|0|1|Color]=None,
         
 
 
-def _color(r: Optional[int|float|Color]=None,
-         g: Optional[int|float]=None,
-         b: Optional[int|float]=None,
-         a: Optional[int|float]=None, /,
+def _color(r: Optional[float01]=None,
+         g: Optional[float01]=None,
+         b: Optional[float01]=None,
+         a: Optional[float01]=None, /,
          limit: int = 255,
          rgb: type[RGB8|RGB16] = RGB8,
          rgba: type[RGBA8|RGBA16] = RGBA8,
@@ -507,13 +509,13 @@ def color8(c: RGBA|NP4Vector|Vec4) -> RGBA8: ...
 @overload
 def color8(c: Color, /) -> RGB8|RGBA8: ...
 @overload
-def color8(r: int, g: int, b: int, a: int) -> RGBA8: ...
+def color8(r: float01, g: float01, b: float01, a: float01) -> RGBA8: ...
 @overload
-def color8(r: int, g: int, b: int) -> RGB8: ...
-def color8(r: Optional[float|0|1|Color]=None,
-         g: Optional[float|0|1]=None,
-         b: Optional[float|0|1]=None,
-         a: Optional[float|0|1]=None,
+def color8(r: float01, g: float01, b: float01) -> RGB8: ...
+def color8(r: Optional[float01|Color]=None,
+         g: Optional[float01]=None,
+         b: Optional[float01]=None,
+         a: Optional[float01]=None,
     ) -> RGB8|RGBA8:
     return _color(r, g, b, a,
                   limit=255,
@@ -531,13 +533,13 @@ def color16(c: RGBA|NP4Vector|Vec4) -> RGBA16: ...
 @overload
 def color16(c: Color, /) -> RGB16|RGBA16: ...
 @overload
-def color16(r: int, g: int, b: int, a: int) -> RGBA16: ...
+def color16(r: float01, g: float01, b: float01, a: float01) -> RGBA16: ...
 @overload
-def color16(r: int, g: int, b: int) -> RGB16: ...
-def color16(r: Optional[float|0|1|Color]=None,
-         g: Optional[float|0|1]=None,
-         b: Optional[float|0|1]=None,
-         a: Optional[float|0|1]=None,
+def color16(r: float01, g: float01, b: float01) -> RGB16: ...
+def color16(r: Optional[float|Literal[0,1]|Color]=None,
+         g: Optional[float01]=None,
+         b: Optional[float01]=None,
+         a: Optional[float01]=None,
     ) -> RGB16|RGBA16:
     return _color(r, g, b, a,
                   limit=65535,
