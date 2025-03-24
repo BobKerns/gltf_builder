@@ -54,6 +54,9 @@ class Phase(StrEnum):
     
 
 class PrimitiveMode(IntEnum):
+    '''
+    The glTF primitive modes.
+    '''
     POINTS = gltf.POINTS
     LINES = gltf.LINES
     LINE_LOOP = gltf.LINE_LOOP
@@ -63,10 +66,16 @@ class PrimitiveMode(IntEnum):
     TRIANGLE_FAN = gltf.TRIANGLE_FAN
     
 class BufferViewTarget(IntEnum):
+    '''
+    The glTF target for a buffer view.
+    '''
     ARRAY_BUFFER = gltf.ARRAY_BUFFER
     ELEMENT_ARRAY_BUFFER = gltf.ELEMENT_ARRAY_BUFFER
     
 class ElementType(StrEnum):
+    '''
+    glTF element types—the composite group of values that live in the accessors.
+    '''
     SCALAR = "SCALAR"
     VEC2 = "VEC2"
     VEC3 = "VEC3"
@@ -76,6 +85,9 @@ class ElementType(StrEnum):
     MAT4 = "MAT4"
     
 class ComponentType(IntEnum):
+    '''
+    glTF component types—the size of the values that live in the elements.
+    '''
     BYTE = gltf.BYTE
     UNSIGNED_BYTE = gltf.UNSIGNED_BYTE
     SHORT = gltf.SHORT
@@ -85,59 +97,128 @@ class ComponentType(IntEnum):
 
 
 BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
+'''
+Type code for casting a memoryview of a buffer.
+'''
 
-
-
-class _Vector2(NamedTuple):
+class _Floats2(NamedTuple):
+    '''
+    A tuple of two floats following the x,y,z,w naming convention.
+    '''
     x: float
     y: float
 
-
-class _Vector3(NamedTuple):
-    x: float
-    y: float
+class _Floats3(_Floats2):
+    '''
+    A tuple of three floats following the x,y,z,w naming convention.
+    '''
     z: float
 
-
-class _Vector4(NamedTuple):
-    x: float
-    y: float
-    z: float
+class _Floats4(_Floats3):
+    '''
+    A tuple of four floats following the x,y,z,w naming convention.
+    '''
     w: float
 
+class _Vector2(_Floats2):
+    '''
+    A 2D vector, x and y.
+    '''
+    pass
 
-class _Point(NamedTuple):
-    x: float
-    y: float
-    z: float
+
+class _Vector3(_Floats3):
+    '''
+    A 3D vector, x, y, and z.
+    '''
+    pass
 
 
-class _Scale(NamedTuple):
-    x: float
-    y: float
-    z: float
+class _Vector4(_Floats4):
+    '''
+    A 4D vector, x, y, z, and w.
+    '''
+    pass
 
-class _Tangent(_Vector4):
+
+class _Point(_Floats3):
+    '''
+    A point in 3D space. Required for any `Vertex`.
+    '''
+    pass
+
+
+class _Scale(_Floats3):
+    '''
+    Scale factors for a 3D object.
+    '''
+    pass
+
+class _Tangent(_Floats4):
+    '''
+    A tangent vector. The w value is -1 or 1, indicating the direction of the bitangent.
+    '''
     w: Literal[-1, 1]
 
-class _Uv(NamedTuple):
+class _Uvf(NamedTuple):
+    '''
+    A 2D texture coordinate (in U and V) in floating point.
+    '''
     u: float
     v: float
 
+class _UvX(NamedTuple):
+    '''
+    A 2D texture coordinate (in U and V) in normalied ints.
+    '''
+    u: int
+    v: int
+
+class _Uv8(_UvX):
+    '''
+    A 2D texture coordinate (in U and V) in 8-bit integers.
+    '''
+    pass
+
+
+class _Uv16(_UvX):
+    '''
+    A 2D texture coordinate (in U and V) in 16-bit integers.
+    '''
+    pass
+
+_Uv: TypeAlias = _Uvf|_Uv8|_Uv16
+'''
+A 2D texture coordinate (in U and V) in floating point, 8-bit, or 16-bit integers.
+'''
 
 class _RGBF(NamedTuple):
+    '''
+    A RGB color with floating point values between 0.0 and 1.0, inclusive.
+    '''
     r: float
     g: float
     b: float
 
 class _RGBAF(_RGBF):
+    '''
+    A RGBA color with floating point values between 0.0 and 1.0, inclusive.
+    '''
     a: float
 
 class RGB(_RGBF):
+    '''
+    A RGB color with floating point values between 0.0 and 1.0, inclusive.
+    '''
     pass
 
 class RGBA(_RGBAF):
+    '''
+    A RGBA color with floating point values between 0.0 and 1.0, inclusive.
+    '''
     pass
+
+
 class _RGBI(NamedTuple):
     r: int
     g: int
@@ -147,15 +228,27 @@ class _RGBAI(_RGBI):
     a: int
 
 class RGB8(_RGBI):
+    '''
+    An RGB color with 8-bit integer values between 0 and 255, inclusive.
+    '''
     pass
 
 class RGBA8(_RGBAI):
+    '''
+    An RGAB color with 8-bit integer values between 0 and 255, inclusive.
+    '''
     pass
 
 class RGB16(_RGBI):
+    '''
+    An RGB color with 16-bit integer values between 0 and 255, inclusive.
+    '''
     pass
 
 class RGBA16(_RGBAI):
+    '''
+    An RGBA color with 16-bit integer values between 0 and 255, inclusive.
+    '''
     pass
 
 _Colorf: TypeAlias = RGB|RGBA
@@ -164,38 +257,70 @@ _Color16: TypeAlias = RGB16|RGBA16
 _Color: TypeAlias = _Colorf|_Color8|_Color16
 
 class _Joint(NamedTuple):
+    '''
+    A tuple of four integers representing a joint index.
+    '''
     j1: int
     j2: int
     j3: int
     j4: int
 
+class _Joint8(_Joint):
+    '''
+    A tuple of four 8-bit integers representing a joint index
+    '''
+    pass
+
+class _Joint16(_Joint):
+    '''
+    A tuple of four 16-bit integers representing a joint index.
+    '''
+    pass
+
 class _Weightf(NamedTuple):
+    '''
+    A tuple of four floats representing a morph target weight.
+    '''
     w1: float
     w2: float
     w3: float
     w4: float
 
-
-class _Weight8(NamedTuple):
+class _WeightX(NamedTuple):
+    '''
+    A tuple of four floats representing a morph target weight.
+    '''
     w1: int
     w2: int
     w3: int
     w4: int
 
+class _Weight8(_WeightX):
+    '''
+    A tuple of four 8-bit ints representing a morph target weight.
+    '''
+    pass
 
-class _Weight16(NamedTuple):
-    w1: int
-    w2: int
-    w3: int
-    w4: int
+class _Weight16(_WeightX):
+    '''
+    A tuple of four 16-bit ints representing a morph target weight.
+    '''
+    pass
 
 _Weight: TypeAlias = _Weightf|_Weight8|_Weight16
+'''
+A tuple of four floats or integers representing a morph target weight.
+'''
 
-NP2Vector: TypeAlias = np.ndarray[tuple[Literal[2]], float]
-NP3Vector: TypeAlias = np.ndarray[tuple[Literal[3]], float]
-NP4Vector: TypeAlias = np.ndarray[tuple[Literal[4]], float]
+NP2Vector: TypeAlias = np.ndarray[tuple[Literal[2]], np.float32]
+NP3Vector: TypeAlias = np.ndarray[tuple[Literal[3]], np.float32]
+NP4Vector: TypeAlias = np.ndarray[tuple[Literal[4]], np.float32]
 
-NPIVector: TypeAlias = np.ndarray[tuple[Literal[4]], int]
+NPIVector32: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint32]
+NPIVector16: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint16]
+NPIVector8: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint8]
+NPIVector16s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int16]
+NPIVector8s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int8]
 
 Vec2: TypeAlias = tuple[float, float]
 Vec3: TypeAlias = tuple[float, float, float]
@@ -227,13 +352,19 @@ Scalar: TypeAlias = float
 Point: TypeAlias = Vector3|_Point
 Tangent: TypeAlias = Vector4|_Tangent
 Uv: TypeAlias = Vector2|_Uv
+'''
+A texture coordinate object
+'''
 Normal: TypeAlias = Vector3
 Scale: TypeAlias = Vector3|Scalar|_Scale
 Color: TypeAlias = _Color|NP3Vector|Vec3|NP4Vector|Vec4
-Joint: TypeAlias = _Joint|IVec4|NPIVector
-Weight: TypeAlias = _Weight|Vec4|NP4Vector|IVec4|NPIVector
+Joint: TypeAlias = _Joint|IVec4|NPIVector8|NPIVector16
+Weight: TypeAlias = _Weight|Vec4|NP4Vector|IVec4|NPIVector8|NPIVector16
 
 float01: TypeAlias = float|Literal[0,1]
+'''
+A float value between 0 and 1, or the literals 0 or 1.
+'''
 
 @overload
 def point() -> _Point: ...
@@ -244,6 +375,20 @@ def point(x: float, y: float, z: float) -> _Point: ...
 def point(x: Optional[float|Point]=None,
         y: Optional[float]=None,
         z: Optional[float]=None) -> _Point:
+    '''
+    Validate and return a canonicalized point object.
+    Only the type is canonicalized, not the values.
+
+    Parameters
+    ----------
+        x: The x value of the point, or a point object of some type.
+        y: The y value of the point.
+        z: The z value of the point. 
+
+    Returns
+    -------
+        A `_P{oint` object (a `NamedTuple`)
+    '''
     match x:
         case None:
             return _Point(0.0, 0.0, 0.0)
@@ -267,6 +412,18 @@ def uv(v: Uv, /) -> _Uv: ...
 def uv(x: float, y: float) -> _Uv: ...
 def uv(x: Optional[float|Point]=None,
             y: Optional[float]=None) -> _Uv:
+    '''
+    Return a canonicalized Uv texture coordinate object.
+
+    Parameters
+    ----------
+        x: The x value of the texture coordinate, or a Uv object of some type.
+        y: The y value of the texture coordinate.
+
+    Returns
+    -------
+        A `_Uv` object (a `NamedTuple`)
+    '''
     match x:
         case None:
             return _Uv(0.0, 0.0)
@@ -352,7 +509,7 @@ def vector4(x: Optional[float|Point]=None,
         case float():
             return _Vector4(float(x), float(y), float(z), float(w))
         case _:
-            raise ValueError('Invalid vector4')        
+            raise ValueError('Invalid vector4')
 
 
 @overload

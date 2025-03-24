@@ -9,7 +9,7 @@ from typing import (
 )
 from pathlib import Path
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     Phase, EMPTY_MAP, ElementType, ComponentType, BufferViewTarget
 )
 from gltf_builder.holder import Holder

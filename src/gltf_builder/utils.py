@@ -12,7 +12,7 @@ import getpass
 
 import numpy as np
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     ElementType, ComponentType, BufferType,
 )
 

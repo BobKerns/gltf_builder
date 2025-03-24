@@ -9,7 +9,7 @@ from typing import Optional, Any
 
 import pygltflib as gltf
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     EMPTY_MAP, Matrix4, Phase, Vector3,
 )
 from gltf_builder.element import (

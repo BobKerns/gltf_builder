@@ -7,7 +7,7 @@ from collections.abc import Mapping, Iterable
 
 import pygltflib as gltf
 import numpy as np
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     ElementType, Phase, EMPTY_MAP, BufferViewTarget,
     AttributeDataSequence, AttributeDataItem,
 )

@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 import pygltflib as gltf
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     Phase, PrimitiveMode, EMPTY_MAP,
     Point, Vector3, Vector4,
 )

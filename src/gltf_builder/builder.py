@@ -14,7 +14,7 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
      NameMode, Phase, EMPTY_MAP,
      ElementType, ComponentType,
 )

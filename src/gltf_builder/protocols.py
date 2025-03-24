@@ -11,7 +11,7 @@ import math
 import pygltflib as gltf
 
 from gltf_builder.holder import Holder
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     ElementType, ComponentType, NameMode, EMPTY_MAP,
     Vector3, Matrix4
 )

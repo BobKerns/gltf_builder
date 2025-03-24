@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional
 
 #import numpy as np
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
  #   ElementType, ComponentType, BufferType,
     _Point, _Vector3, _Tangent, _Uv, _Color, _Joint, _Weight
 )

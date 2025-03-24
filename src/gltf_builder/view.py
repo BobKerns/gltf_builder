@@ -7,7 +7,7 @@ from collections.abc import Mapping
 
 import pygltflib as gltf
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     BufferViewTarget, EMPTY_MAP, Phase,
 )
 from gltf_builder.element import (

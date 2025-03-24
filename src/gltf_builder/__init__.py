@@ -1,5 +1,5 @@
 
-from gltf_builder.types import (
+from gltf_builder.core_types import (
     PrimitiveMode, ElementType,  ComponentType, NameMode,
     Point, Tangent, Normal, Scalar, Vector2, Vector3, Vector4,
     Matrix2, Matrix3, Matrix4, Scale, Uv,

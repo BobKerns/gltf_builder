@@ -7,7 +7,7 @@ from collections.abc import Mapping, Iterator
 from contextlib import contextmanager
 from typing import Any
 
-from gltf_builder.types import NameMode, EMPTY_MAP, PrimitiveMode
+from gltf_builder.core_types import NameMode, EMPTY_MAP, PrimitiveMode
 from gltf_builder.builder import Builder
 from gltf_builder.element import BNode
 
