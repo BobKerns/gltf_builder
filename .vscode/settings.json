@@ -11,6 +11,11 @@
     },
     "hide-files.files": [],
     "cSpell.words": [
+        "advapi",
+        "gecos",
+        "getent",
+        "getlogin",
+        "getuid",
         "gltf",
         "numpy",
         "venv"
