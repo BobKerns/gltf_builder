@@ -3,6 +3,7 @@
 ## Release 0.2.0
 
 * Major changes to underlying compilation protocol to enable more control over optimizations. Compilation now proceeds over a series of phases, that collect the objects used, enumerate them, calculate sizes, allocate space in the buffer(s), and finally produce the final structure.
+* Add functions for constructing attribute types, such as color, joins, weights, etc. Handles ranges and normalization
 * Disallow multiple buffers, as the underlying `pygltflib` library does not fully support them.
 * Avoid repeatedly copying data, by writing data directly into the buffer once sizing and allocation is complete.
 * Various renamings, for clarity and for public/private distinction.
