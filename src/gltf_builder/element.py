@@ -16,8 +16,10 @@ import pygltflib as gltf
 from gltf_builder.holder import Holder
 from gltf_builder.quaternion import Quaternion
 from gltf_builder.core_types import (
-    PrimitiveMode, BufferViewTarget, ElementType,
-    Vector3, Vector4, Matrix4, Point, EMPTY_MAP,
+    PrimitiveMode, BufferViewTarget, ElementType, EMPTY_MAP,
+)
+from gltf_builder.attribute_types import (
+    Vector3, Vector4, Matrix4, Point,
     AttributeDataItem, AttributeDataList, AttributeDataSequence,
 )
 from gltf_builder.compile import Compileable, T, _Scope

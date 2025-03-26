@@ -9,6 +9,8 @@ import pygltflib as gltf
 import numpy as np
 from gltf_builder.core_types import (
     ElementType, Phase, EMPTY_MAP, BufferViewTarget,
+)
+from gltf_builder.attribute_types import (
     AttributeDataSequence, AttributeDataItem,
 )
 from gltf_builder.protocols  import BuilderProtocol

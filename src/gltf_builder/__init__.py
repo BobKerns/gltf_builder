@@ -1,11 +1,14 @@
 
 from gltf_builder.core_types import (
     PrimitiveMode, ElementType,  ComponentType, NameMode,
+)
+from gltf_builder.attribute_types import (
     Point, Tangent, Normal, Scalar, Vector, Vector2, Vector3, Vector4, VectorLike,
     Matrix2, Matrix3, Matrix4, Scale, Uv,
     Color, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
-    AttributeDataSequence, AttributeDataList, AttributeDataItem,
     point, scale, vector2, vector3, vector4, tangent, uv,
+    AttributeDataSequence, AttributeDataList, AttributeDataItem,
+
 )
 from gltf_builder.accessor import BAccessor
 from gltf_builder.asset import BAsset, __version__

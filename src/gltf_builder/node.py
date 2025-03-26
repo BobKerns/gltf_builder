@@ -9,8 +9,9 @@ from typing import Optional, Any
 
 import pygltflib as gltf
 
-from gltf_builder.core_types import (
-    EMPTY_MAP, Matrix4, Phase, Vector3,
+from gltf_builder.core_types import Phase, EMPTY_MAP
+from gltf_builder.attribute_types import (
+    Matrix4, Vector3,
 )
 from gltf_builder.element import (
     Element, _Scope, BNode, BMesh, BPrimitive,

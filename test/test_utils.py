@@ -11,7 +11,7 @@ from pytest import approx
 
 from gltf_builder.utils import distribute_ints, distribute_floats, normalize, map_range
 
-from gltf_builder.core_types import (
+from gltf_builder.attribute_types import (
     _Vector2, _Vector3, _Vector4, _Tangent, EPSILON,
 )
 

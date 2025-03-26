@@ -13,6 +13,8 @@ import pygltflib as gltf
 from gltf_builder.holder import Holder
 from gltf_builder.core_types import (
     ElementType, ComponentType, NameMode, EMPTY_MAP,
+)
+from gltf_builder.attribute_types import (
     Vector3, Matrix4
 )
 from gltf_builder.quaternion import Quaternion

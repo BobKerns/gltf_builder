@@ -9,6 +9,8 @@ import pygltflib as gltf
 
 from gltf_builder.core_types import (
     Phase, PrimitiveMode, EMPTY_MAP,
+)
+from gltf_builder.attribute_types import (
     Point, Vector3, Vector4,
 )
 from gltf_builder.protocols import BuilderProtocol

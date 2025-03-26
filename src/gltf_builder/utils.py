@@ -17,6 +17,8 @@ import numpy as np
 
 from gltf_builder.core_types import (
     ElementType, ComponentType, BufferType,
+)
+from gltf_builder.attribute_types import (
     Vector, Vector4, Vector3, Vector2, _Vector, _Vector4, _Vector3, _Vector2, VectorLike,
     _Tangent,
 )
