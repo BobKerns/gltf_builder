@@ -2,10 +2,18 @@
 Test cases for functions in the utils module.
 '''
 
+from math import sqrt
+
+import numpy as np
+
 import pytest
 from pytest import approx
 
-from gltf_builder.utils import distribute_ints, distribute_floats
+from gltf_builder.utils import distribute_ints, distribute_floats, normalize, map_range
+
+from gltf_builder.core_types import (
+    _Vector2, _Vector3, _Vector4, _Tangent, EPSILON,
+)
 
 
 @pytest.mark.parametrize('lower, upper, values, expected', [
@@ -20,7 +28,7 @@ from gltf_builder.utils import distribute_ints, distribute_floats
     (0, 1, (1, 3, 4), (0.125, 0.375, 0.5)),
     (1, 2, (2, 4, 5), (1.125, 1.375, 1.5)),
 ])
-def test_normalize_floats(lower, upper, values, expected):
+def test_distribute_floats(lower, upper, values, expected):
     assert lower < upper, f'BAD TEST: {lower} < {upper}'
     assert len(values) == len(expected), f'BAD TEST: {len(values)} ≠ {len(expected)}'
     expected_sum = sum((v - lower) for v in (expected or (upper,)))
@@ -55,7 +63,7 @@ def test_normalize_floats(lower, upper, values, expected):
     (10, 65545, (20, 30, 40), (10933, 21855, 32777)),
 
 ])
-def test_normalize_ints(lower, upper,
+def test_distribute_ints(lower, upper,
                         values,
                         expected):
     assert lower < upper, f'BAD TEST: {lower} < {upper}'
@@ -74,3 +82,53 @@ def test_normalize_ints(lower, upper,
     total = sum(v - lower for v in r)
     assert total == upper - lower, "total is wrong"
     assert r == expected
+
+
+@pytest.mark.parametrize('input,vtype,expected', [
+    ((1, 1), _Vector2, (sqrt(2)/2, sqrt(2)/2)),
+    ((1, 0), _Vector2, (1.0, 0.0)),
+    ((0, 1), _Vector2, (0.0, 1.0)),
+    ((0, 0), _Vector2, (0, 0)),
+    (_Vector2(1, 1), _Vector2, (sqrt(2)/2, sqrt(2)/2)),
+    (np.array((1, 1), np.float32), _Vector2, (sqrt(2)/2, sqrt(2)/2)),
+    ((1, 1, 1), _Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
+    (_Vector3(1, 1, 1), _Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
+    (np.array((1, 1, 1), np.float32), _Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
+    ((1, 1, 1, 1), _Vector4, (0.5, 0.5, 0.5, 0.5)),
+    (_Vector4(1, 1, 1, 1), _Vector4, (0.5, 0.5, 0.5, 0.5)),
+    (_Tangent(1, 1, 1, 1), _Tangent, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3, 1.0)),
+    (np.array((1, 1, 1, 1), np.float32), _Vector4, (0.5, 0.5, 0.5, 0.5)),
+])
+def test_normalize(input, vtype, expected):
+    r = normalize(input)
+    assert type(r) is vtype
+    assert r == approx(expected)
+    if r.length > EPSILON:
+        assert r.length == approx(1.0)
+
+
+@pytest.mark.parametrize('input,from_range,to_range,expected', [
+    (0, (0, 1), (0, 1), 0),
+    (0, (0, 1), (0, 2), 0),
+    (0.5, (0, 1), (0, 2), 1),
+    (0.25, (0, 1), (0, 2), 0),
+    (0, (0, 1), (1, 2), 1),
+    (0.25, (0, 1), (1.0, 2.0), 1.25),
+    (0.25, (0, 1), (2.0, 1.0), 1.75),
+    (0, (0, 1), (0.0, 1.0), 0.0),
+    (0, (0, 1), (0.0, 2.0), 0.0),
+    (0, (0, 1), (1.0, 2.0), 1.0),
+    (0.0, (0.0, 1.0), (0, 255), 0),
+    (0.5, (0.0, 1.0), (0, 255), 128),
+    (1.0, (0.0, 1.0), (0, 255), 255),
+    (0.0, (0.0, 1.0), (0, 65535), 0),
+    (0.5, (0.0, 1.0), (0, 65535), 32768),
+    (1.0, (0.0, 1.0), (0, 65535), 65535),
+])
+def test_map_range(input, from_range, to_range, expected):
+    r = map_range(input,
+                  from_range=from_range,
+                  to_range=to_range,
+                )
+    assert r == approx(expected)
+    assert type(r) is type(expected)

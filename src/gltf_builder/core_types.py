@@ -6,9 +6,20 @@ from enum import IntEnum, StrEnum
 from collections.abc import Sequence, Mapping
 from typing import Any, NamedTuple, Optional, TypeAlias, Literal, overload
 from types import MappingProxyType
+from math import sqrt
 
 import pygltflib as gltf
 import numpy as np
+
+
+EPSILON = 1e-12
+'''
+A small value for floating point comparisons.
+'''
+EPSILON2 = EPSILON * EPSILON
+'''
+The square of `EPSILON` for efficient near-zero length tests.
+'''
 
 class Phase(StrEnum):
     '''
@@ -108,66 +119,198 @@ class _Floats2(NamedTuple):
     x: float
     y: float
 
-class _Floats3(_Floats2):
+class _Floats3(NamedTuple):
     '''
     A tuple of three floats following the x,y,z,w naming convention.
     '''
+    x: float
+    y: float
     z: float
 
-class _Floats4(_Floats3):
+class _Floats4(NamedTuple):
     '''
     A tuple of four floats following the x,y,z,w naming convention.
     '''
+    x: float
+    y: float
+    z: float
     w: float
 
-class _Vector2(_Floats2):
+
+class VectorLike(NamedTuple):
+    '''
+    Types that directly support vector operations such as length, addition, and dot products.
+    '''
+    def __bool__(self) -> bool:
+        return sum(v*v for v in self) > EPSILON*EPSILON
+    
+    @property
+    def length(self):
+        return sqrt(sum(v*v for v in self))
+    
+    def __add__(self, other: 'VectorLike') -> 'VectorLike':
+        return type(self)(*(a+b for a,b in zip(self, other)))
+    
+    def __sub__(self, other: 'VectorLike') -> 'VectorLike':
+        return type(self)(*(a-b for a,b in zip(self, other)))
+    
+    def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
+        match other:
+            case float():
+                return type(self)(*(a*other for a in self))
+            case VectorLike() if len(self) == len(other):
+               return sum(a*b for a,b in zip(self, other))
+            case _:
+                raise ValueError('Invalid vector multiplication')
+
+    def __rmul__(self, other: float) -> 'VectorLike':
+        return type(self)(*(a*other for a in self))
+
+    def __truediv__(self, other: float) -> 'VectorLike':
+        return type(self)(*(a/other for a in self))
+    
+    def dot(self, other: 'VectorLike') -> float:
+        return sum(a*b for a,b in zip(self, other))
+
+
+class PointLike(NamedTuple):
+    def distance(self, other: 'PointLike') -> float:
+        return sqrt(sum((a-b)**2 for a,b in zip(self, other)))
+
+
+class _Vector2(_Floats2, VectorLike):
     '''
     A 2D vector, x and y.
     '''
-    pass
+    x: float
+    y: float
 
 
-class _Vector3(_Floats3):
+class _CrossProduct(NamedTuple):
+    '''
+    A cross product of two vectors.
+    '''
+    x: float
+    y: float
+    z: float
+
+class _Vector3(_Floats3, VectorLike):
     '''
     A 3D vector, x, y, and z.
     '''
-    pass
+    x: float
+    y: float
+    z: float
 
 
-class _Vector4(_Floats4):
+    def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
+        match other:
+            case float():
+                return type(self)(*(a*other for a in self))
+            case VectorLike() if len(self) == len(other):
+               return self.x * other.x + self.y * other.y + self.z * other.z
+            case _Tangent():
+               return self.x * other.x + self.y * other.y + self.z * other.z
+            case _:
+                raise ValueError('Invalid vector multiplication')
+    
+    def cross(self, other: 'Vector3') -> 'Vector3':
+        '''
+        Return the cross product of this vector and another.
+        '''
+        return _Vector3(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x
+        )
+    
+    __matmul__ = cross
+
+class _Vector4(_Floats4, VectorLike):
     '''
     A 4D vector, x, y, z, and w.
     '''
-    pass
+    x: float
+    y: float
+    z: float
+    w: float
 
 
-class _Point(_Floats3):
+class _Point(_Floats3, PointLike):
     '''
     A point in 3D space. Required for any `Vertex`.
     '''
-    pass
+    x: float
+    y: float
+    z: float
 
 
 class _Scale(_Floats3):
     '''
     Scale factors for a 3D object.
     '''
-    pass
+    x: float
+    y: float
+    z: float
 
-class _Tangent(_Floats4):
+class _Tangent(_Floats4, VectorLike):
     '''
     A tangent vector. The w value is -1 or 1, indicating the direction of the bitangent.
     '''
+    x: float
+    y: float
+    z: float
     w: Literal[-1, 1]
 
-class _Uvf(NamedTuple):
+    def __bool__(self) -> bool:
+        '''
+        Ignore w, which is always -1 0r 1
+        '''
+        x, y, z, _ = self
+        return (x*x + y+y + z*z) > EPSILON*EPSILON
+    
+    def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
+        match other:
+            case float():
+                return type(self)(*(a*other for a in self))
+            case VectorLike() if len(self) == len(other):
+               return self.x * other.x + self.y * other.y + self.z * other.z
+            case _Tangent():
+                return self.x * other.x + self.y * other.y + self.z * other.z
+            case _:
+                raise ValueError('Invalid vector multiplication')
+    
+    @property
+    def length(self):
+        x, y, z, _ = self
+        return sqrt(x*x + y*y + z*z)
+    
+    def cross(self, other: 'Vector3'|'_Tangent') -> 'Vector3':
+        '''
+        Return the cross product of this vector and another. The cross product involving
+        tangent is not tangent.
+        '''
+        match other:
+            case _Tangent():
+                sign = 1 if self.w == other.w else -1
+            case _:
+                sign = 1
+        return  _Vector3(
+            sign * (self.y * other.z - self.z * other.y),
+            sign(self.z * other.x - self.x * other.z),
+            sign(self.x * other.y - self.y * other.x)
+        )
+    
+    __matmul__ = cross
+
+class _Uvf(VectorLike, PointLike):
     '''
     A 2D texture coordinate (in U and V) in floating point.
     '''
     u: float
     v: float
 
-class _UvX(NamedTuple):
+class _UvX(VectorLike, PointLike):
     '''
     A 2D texture coordinate (in U and V) in normalied ints.
     '''
@@ -332,6 +475,9 @@ Vector2: TypeAlias = Vec2|_Vector2|NP2Vector
 Vector3: TypeAlias = Vec3|_Vector3|NP3Vector
 Vector4: TypeAlias = Vec4|_Vector4|NP4Vector
 
+_Vector: TypeAlias = _Vector2|_Vector3|_Vector4
+Vector: TypeAlias = Vector2|Vector3|Vector4
+
 Matrix2: TypeAlias = tuple[
     float, float,
     float, float,
@@ -360,6 +506,30 @@ Scale: TypeAlias = Vector3|Scalar|_Scale
 Color: TypeAlias = _Color|NP3Vector|Vec3|NP4Vector|Vec4
 Joint: TypeAlias = _Joint|IVec4|NPIVector8|NPIVector16
 Weight: TypeAlias = _Weight|Vec4|NP4Vector|IVec4|NPIVector8|NPIVector16
+
+AttributeDataItem: TypeAlias = (
+    Point
+    |Normal
+    |Uv
+    |Tangent
+    |Color
+    |Joint
+    |Weight
+    |Vector2
+    |Vector3
+    |Vector4
+    |tuple[int, ...]
+    |tuple[float, ...]
+    |np.ndarray[tuple[int, ...], np.float32]
+    |np.ndarray[tuple[int, ...], np.uint8]
+    |np.ndarray[tuple[int, ...], np.uint16]
+    |np.ndarray[tuple[int, ...], np.uint32]
+    |np.ndarray[tuple[int, ...], np.int8]
+    |np.ndarray[tuple[int, ...], np.int16]
+)
+'''
+Valid types for an attribute data item.
+'''
 
 float01: TypeAlias = float|Literal[0,1]
 '''
@@ -762,7 +932,7 @@ def weight(x: Optional[float|int]=None,
     match x:
         case None:
             return _Weightf(0.0, 0.0, 0.0, 0.0)
-        case _Weight():
+        case _Weightf():
             return x
         case x, y, z, w :
             return _Weightf(*normalize(x, y, z, w))
@@ -853,7 +1023,7 @@ def weight16(x: Optional[float|int]=None,
     match x:
         case None:
             return _Weight16(0, 0, 0, 0)
-        case _Weight():
+        case _Weight16():
             return x
         case x, y, z, w:
             return _Weight16(*normalize(x, y, z, w))

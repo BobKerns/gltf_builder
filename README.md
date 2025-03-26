@@ -109,6 +109,12 @@ fred = [n for n in builder if n.name == 'Fred']
 
 Adjusting the `name_mode` allows for greater flexibility and control over the naming conventions used in your GLTF files.
 
+## Vector types, colors, etc.
+
+This includes types and functions for creating vectors, colors, etc. These are useful for providing attribute values, but are not essential.
+
+Using the provided functions gives error and range checking, and may inform the library of the intended data type to use. However, suitable tuples and numpy arrays may be used.
+
 
 ## Testing
 

@@ -11,12 +11,16 @@ import ctypes.wintypes
 import subprocess
 import getpass
 from itertools import chain, repeat
+from typing import  overload
 
 import numpy as np
 
 from gltf_builder.core_types import (
     ElementType, ComponentType, BufferType,
+    Vector, Vector4, Vector3, Vector2, _Vector, _Vector4, _Vector3, _Vector2, VectorLike,
+    _Tangent,
 )
+
 
 COMPONENT_SIZES: dict[ComponentType, tuple[int, np.dtype, BufferType]] = {
     ComponentType.BYTE: (1, np.int8, 'b'),
@@ -98,7 +102,7 @@ def distribute_floats(*values: float,
     if c == 0:
         return ()
     total = sum(float(v) - lower for v in values)
-    if abs(total) < 0.0000001:
+    if abs(total) < 0.00001:
         return tuple(d / c + lower for _ in values)
     return tuple(d * (v - lower) / total + lower for v in values)
 
@@ -121,7 +125,7 @@ def distribute_ints(*values: int|float, lower: int=0, upper: int=255) -> tuple[i
     delta = upper - lower
     total = sum(float(v) - lower for v in values)
     d = float(delta)
-    if abs(total) < 0.0000001:
+    if abs(total) < 0.000001:
         r = (round(d / c),) * c
     else:
         r = tuple(floor(d * ((v - lower) / total)) for v in values)
@@ -134,6 +138,85 @@ def distribute_ints(*values: int|float, lower: int=0, upper: int=255) -> tuple[i
     else:
         return tuple(lower + v for v in r)
     return tuple(a + b + lower for a, b in zip(r, f))
+
+
+
+@overload
+def normalize(vec: Vector2) -> _Vector2: ...
+@overload
+def normalize(vec: Vector3) -> _Vector3: ...
+@overload
+def normalize(vec: Vector4) -> _Vector4: ...
+def normalize(vec: Vector) -> _Vector:
+    '''
+    Normalize the vector to unit length.
+    '''
+    match vec:
+        case _Tangent():
+            tlen = vec.length
+            return _Tangent(vec.x/tlen, vec.y/tlen, vec.z/tlen, vec.w)
+        case VectorLike():
+            cls = type(vec)
+        case tuple() if type(vec) is not tuple:
+            # A NamedTuple
+            raise ValueError(f'{type(vec).name} is not a vector-like value.')
+    match len(vec):
+        case 2:
+            cls = _Vector2
+        case 3:
+            cls = _Vector3
+        case 4:
+            cls = _Vector4
+        case _:
+            raise ValueError(f'Unsupported vector length: {len(vec)}')
+
+    length = sum(v*v for v in vec) ** 0.5
+    if length < 0.0000001:
+        return cls(*repeat(0.0, len(vec)))
+    return cls(*(v / length for v in vec))
+
+
+@overload
+def map_range(value: int,
+              from_range: tuple[int, int],
+              to_range: tuple[int, int],
+              ) -> int: ...
+@overload
+def map_range(value: int,
+              from_range: tuple[int, int],
+              to_range: tuple[float, float],
+              ) -> float: ...
+@overload
+def map_range(value: float,
+              from_range: tuple[float, float],
+              to_range: tuple[int, int],
+              ) -> int: ...
+@overload
+def map_range(value: float,
+              from_range: tuple[float, float],
+              to_range: tuple[float, float],
+              ) -> float: ...
+def map_range(value: float|int,
+              from_range: tuple[float, float]|tuple[int, int],
+              to_range: tuple[float, float]|tuple[int, int],
+              ) -> float|int:
+    '''
+    Map a value from one range to another. The value is clamped to the input range.
+
+    If the to_range is ints, the result will be an int, otherwise a float.
+    '''
+    from_min, from_max = from_range
+    to_min, to_max = to_range
+    from_delta = from_max - from_min
+    to_delta = to_max - to_min
+    if from_delta == 0:
+        return to_min
+    value = max(from_min, min(from_max, value))
+    new_value = (float(value - from_min) / from_delta) * to_delta + to_min
+    if isinstance(to_min, int) and isinstance(to_max, int):
+        return round(new_value)
+    return new_value
+
 
 def _get_human_name():
     """Returns the full name of the current user, falling back to the username if necessary."""
@@ -170,10 +253,19 @@ def _get_human_name():
 
     return full_name
 
+USERNAME: str
+'''
+The current user's login name, included by default in the glTF `Asset` metadata.
+'''
 try:
     USERNAME = getpass.getuser()
 except Exception:
     USERNAME = ''
+
+USER: str
+'''
+The current user's full name, included by default in the glTF `Asset` metadata.
+'''
 try:
     USER = _get_human_name()
 except Exception:
