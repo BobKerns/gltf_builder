@@ -804,23 +804,39 @@ def joints(weights: dict[int, int|float]) -> tuple[tuple[_Joint, ...], tuple['We
     '''
     Validate and return a tuple of joint objects, in groups of four.
     '''
-
+    ...
 
 @overload
-def joint(ids: tuple[int,...]|np.ndarray[tuple[int],int]) -> tuple[_Joint]: ...
+def joint(ids: tuple[int,...]|np.ndarray[tuple[int],int], /,
+        size: int=0,
+        ) -> tuple[_Joint]: ...
 @overload
-def joint(*ids: int) -> tuple[_Joint,...]: ...
-def joins(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int]) -> tuple[_Joint, ...]:
+def joint(*ids: int,
+          size: int=0) -> tuple[_Joint,...]: ...
+def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
+          size: int=0) -> tuple[_Joint, ...]:
     '''
     Validate and return a tuple of joint objects, in groups of four.
+
+    Parameters
+    ----------
+        ids: A tuple of joint indices, or a numpy array of joint indices.
+        size: The byte size of the joint indices. 0 for unspecified, 1 for 8-bit, 2 for 16.
     '''
+    jtype, lim, np_dtype = [
+        (_Joint, 65535, (np.uint8, np.uint16,),),
+        (_Joint8, 255, (np.uint8,),),
+        (_Joint16, 65535, (np.uint8, np.uint16,)),
+    ][size]
     match ids:
-        case _Joint(),:
+        case (_Joint(),) if isinstance(ids[0], jtype):
             return ids[0]
-        case tuple(), if all(isinstance(i, int) for i in ids):
-            return tuple(_Joint(*(chunk for chunk in chunk4i(ids))))
-        case np.ndarray(), if ids[0].dtype in (np.uint8, np.uint16):
-            return tuple(_Joint(*(chunk for chunk in chunk4i(ids))))
+        case tuple() if all(isinstance(i, int) and i <= lim for i in ids):
+            return tuple(jtype(*chunk) for chunk in chunk4i(ids))
+        case (tuple(),) if all(isinstance(i, int) and i <= lim for i in ids[0]):
+            return tuple(jtype(*chunk) for chunk in chunk4i(ids))
+        case (np.ndarray(),) if ids[0].dtype in np_dtype:
+            return tuple(jtype(*chunk) for chunk in chunk4i(ids))
         case _:
             raise ValueError('Invalid joints')    
 

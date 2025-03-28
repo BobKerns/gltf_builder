@@ -11,12 +11,13 @@ import pytest
 from pytest import approx
 
 from gltf_builder.attribute_types import (
-    vector2, vector3, vector4, tangent, scale, point, uv, color,
+    vector2, vector3, vector4, tangent, scale, point, uv, color, joint,
     weight, weight8, weight16,
     RGB, RGBA,
     _Vector2, _Vector3, _Vector4,
     _Weightf, _Weight8, _Weight16,
     _Tangent, _Scale, _Point, _Uvf,
+    _Joint, _Joint8, _Joint16,
     EPSILON,
 )
 
@@ -152,6 +153,29 @@ def test_tangent(data):
     assert tuple(r) == approx(tuple(expected))
     assert type(r) is _Tangent
     assert all(isinstance(v, float) for v in r)
+
+@pytest.mark.parametrize('size', [0, 1, 2])
+@pytest.mark.parametrize('data', [
+    (1,),
+    (1, 2,),
+    (1, 2, 3,),
+    (1, 2, 3, 4,),
+    (1, 2, 3, 4, 5,),
+    (1, 2, 3, 4, 5, 6,),
+    (1, 2, 3, 4, 5, 6, 7,),
+])
+def test_joint(data, size):
+    '''
+    Test the joint type constructor.
+    '''
+    jtype = [_Joint, _Joint8, _Joint16][size]
+    def extend(d):
+        return d + (0,) * (4 - len(d))
+    expected = [jtype(*extend(data[i*4:i*4+4])) for i in range((len(data)+3)//4)]
+    r = joint(*data, size=size)
+    for v, e in zip(r, expected):
+        assert type(v) is jtype
+        assert tuple(v) == approx(tuple(e))
 
 @pytest.mark.parametrize('data, size, expected', [
     ((0.4, 0.3, 0.2, 0.1), 0, ((0.4, 0.3, 0.2, 0.1),)),
