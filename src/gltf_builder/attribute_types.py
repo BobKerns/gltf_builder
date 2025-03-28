@@ -1,5 +1,7 @@
 '''
-Types describing attribute values.
+Types describing attribute values, as well as node properties such as scale.
+
+For example, node translation uses a Vector3 for translation.
 '''
 
 from typing import NamedTuple, TypeAlias, Literal, overload, Optional, Any
@@ -80,6 +82,9 @@ class VectorLike(NamedTuple):
 
 
 class PointLike(NamedTuple):
+    '''
+    Pointlike quantities have meaningful scalar distances
+    '''
     def distance(self, other: 'PointLike') -> float:
         return sqrt(sum((a-b)**2 for a,b in zip(self, other)))
 
@@ -92,24 +97,25 @@ class _Vector2(_Floats2, VectorLike):
     y: float
 
 
-class _CrossProduct(NamedTuple):
-    '''
-    A cross product of two vectors.
-    '''
-    x: float
-    y: float
-    z: float
-
 class _Vector3(_Floats3, VectorLike):
     '''
-    A 3D vector, x, y, and z.
+    A 3D vector, x, y, and z. 3D vectors support cross products.
     '''
     x: float
     y: float
     z: float
 
+    def __bool__(self) -> bool:
+        '''
+        A near-zero length vector is considered false.
+        '''
+        x, y, z = self
+        return (x*x + y*y + z*z) > EPSILON2
 
     def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
+        '''
+        Dot product, or scalar multiplication.
+        '''
         match other:
             case float():
                 return type(self)(*(a*other for a in self))
@@ -119,6 +125,7 @@ class _Vector3(_Floats3, VectorLike):
                return self.x * other.x + self.y * other.y + self.z * other.z
             case _:
                 raise ValueError('Invalid vector multiplication')
+
     
     def cross(self, other: 'Vector3') -> 'Vector3':
         '''
@@ -131,6 +138,7 @@ class _Vector3(_Floats3, VectorLike):
         )
     
     __matmul__ = cross
+
 
 class _Vector4(_Floats4, VectorLike):
     '''
@@ -153,11 +161,12 @@ class _Point(_Floats3, PointLike):
 
 class _Scale(_Floats3):
     '''
-    Scale factors for a 3D object.
+    Scale factors for a 3D object node.
     '''
     x: float
     y: float
     z: float
+
 
 class _Tangent(_Floats4, VectorLike):
     '''
@@ -241,7 +250,7 @@ _Uv: TypeAlias = _Uvf|_Uv8|_Uv16
 A 2D texture coordinate (in U and V) in floating point, 8-bit, or 16-bit integers.
 '''
 
-class _RGBF(NamedTuple):
+class RGB(NamedTuple):
     '''
     A RGB color with floating point values between 0.0 and 1.0, inclusive.
     '''
@@ -249,23 +258,14 @@ class _RGBF(NamedTuple):
     g: float
     b: float
 
-class _RGBAF(_RGBF):
+class RGBA(NamedTuple):
     '''
     A RGBA color with floating point values between 0.0 and 1.0, inclusive.
     '''
+    r: float
+    g: float
+    b: float
     a: float
-
-class RGB(_RGBF):
-    '''
-    A RGB color with floating point values between 0.0 and 1.0, inclusive.
-    '''
-    pass
-
-class RGBA(_RGBAF):
-    '''
-    A RGBA color with floating point values between 0.0 and 1.0, inclusive.
-    '''
-    pass
 
 
 class _RGBI(NamedTuple):
@@ -512,7 +512,7 @@ def uv(u: Optional[float|Point]=None,
         case float()|int(), float()|int():
             return _Uv(float(u), float(v))
         case _:
-            raise ValueError('Invalid vector2')     
+            raise ValueError('Invalid uv')     
 
 
 @overload
@@ -600,7 +600,11 @@ def scale(x: Optional[float|Point]=None,
     match x, y, z:
         case None, None, None:
             return _Scale(1.0, 1.0, 1.0)
-        case float(), None, None if y is None and z is None:
+        case float()|int(), None, None if y is None and z is None:
+            x = float(x)
+            return _Scale(x, x, x)
+        case (float()|int(),), None, None if y is None and z is None:
+            x = float(x[0])
             return _Scale(x, x, x)
         case _Scale(), None, None:
             return x
@@ -661,6 +665,11 @@ def color(r: Optional[float01|Color]=None,
     def clamp(v: float) -> float:
         return max(0.0, min(1.0, float(v)))
     match r, g, b, a:
+        case float()|int(), float()|int(), float()|int(), None:
+            return RGB(clamp(r), clamp(g), clamp(b))
+        case float()|int(), float()|int(), float()|int(), float()|int():
+            return RGBA(clamp(r), clamp(g), clamp(b), clamp(a))
+
         case None, None, None, None:
             return RGB(0.0, 0.0, 0.0)
         case RGB(), None, None, None:
@@ -791,53 +800,35 @@ def rgb16(r: int, g: int, b: int) -> RGB8:
     return RGB8(clamp(r), clamp(g), clamp(b))
 
 
+def joints(weights: dict[int, int|float]) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
+    '''
+    Validate and return a tuple of joint objects, in groups of four.
+    '''
+
+
 @overload
-def joint() -> _Joint: ...
+def joint(ids: tuple[int,...]|np.ndarray[tuple[int],int]) -> tuple[_Joint]: ...
 @overload
-def joint(v: Joint, /) -> _Joint: ...
-@overload
-def joint(x: int) -> _Joint: ...
-@overload
-def joint(x: int, y: int) -> _Joint: ...
-@overload
-def joint(x: int, y: int, z: int) -> _Joint: ...
-@overload
-def joint(x: int, y: int, z: int, w: int) -> _Joint: ...
-def joint(x: Optional[int|tuple[int]|tuple[int,int]|tuple[int,int,int]|tuple[int,int,int,int]]=None,
-        y: Optional[int]=None,
-        z: Optional[int]=None,
-        w: Optional[int]=None
-    ) -> _Joint:
-    match x, y, z, w:
-        case _Joint(), None, None, None:
-            return x
-        case tuple():
-            match x:
-                case (int(), int()|None, int()|None, int()|None):
-                    return _Joint(int(x), int(x[1] or 0), int(x[2] or 0), int(x[3] or 0))
-                case (int(), int()|None, int()|None):
-                    return _Joint(int(x), int(x[1] or 0), int(x[2] or 0), 0)
-                case (int(), int()|None, int()|None):
-                    return _Joint(int(x), int(x[1] or 0), 0, 0)
-                case (int(),):
-                    return _Joint(int(x[0]), 0, 0, 0)
-        case np.ndarray(), None, None, None if x.shape == (4,):
-            return _Joint(int(x[0]), int(x[1]), int(x[2]), int(x[3]))
-        case np.ndarray(), None, None, None if x.shape == (43):
-            return _Joint(int(x[0]), int(x[1]), int(x[2]), 0)
-        case np.ndarray(), None, None, None if x.shape == (2,):
-            return _Joint(int(x[0]), int(x[1]), 0, 0)
-        case np.ndarray(), None, None, None if x.shape == (1,):
-            return _Joint(int(x[0]), 0, 0, 0)
-        case float(), float()|None, float()|None, float()|None:
-            return _Joint(int(x), int(y or 0), int(z or 0), int(w or 0))
+def joint(*ids: int) -> tuple[_Joint,...]: ...
+def joins(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int]) -> tuple[_Joint, ...]:
+    '''
+    Validate and return a tuple of joint objects, in groups of four.
+    '''
+    match ids:
+        case _Joint(),:
+            return ids[0]
+        case tuple(), if all(isinstance(i, int) for i in ids):
+            return tuple(_Joint(*(chunk for chunk in chunk4i(ids))))
+        case np.ndarray(), if ids[0].dtype in (np.uint8, np.uint16):
+            return tuple(_Joint(*(chunk for chunk in chunk4i(ids))))
         case _:
-            raise ValueError('Invalid vector4')    
+            raise ValueError('Invalid joints')    
 
 
 def chunk4(values: Iterable[float|int|None]) -> Iterable[tuple[float, float, float, float]]:
     '''
-    Chunk an iterable of values into groups of 4.
+    Chunk an iterable of float values into groups of 4. The last chuunk will be
+    extended with 0s if it is less than 4 values.
     '''
     count = len(values) // 4
     more = len(values) % 4
@@ -876,7 +867,8 @@ def chunk4(values: Iterable[float|int|None]) -> Iterable[tuple[float, float, flo
 
 def chunk4i(values: Iterable[int|None]) -> Iterable[tuple[int, int, int, int]]:
     '''
-    Chunk an iterable of values into groups of 4.
+    Chunk an iterable of int values into groups of 4. The last group  will be
+    extended with 0s if it is less than 4 values.
     '''
     count = len(values) // 4
     more = len(values) % 4
@@ -920,6 +912,10 @@ def weight(v: Weight, /) -> tuple[_Weightf, ...]: ...
 @overload
 def weight(*args: float01|None) -> tuple[_Weightf, ...]: ...
 def weight(*args: float01|None) -> tuple[_Weightf, ...]:
+    '''
+    Validate and return a set of canonicalized weight objects based on float32 weights.
+    The weights are normalized to sum to 1.0.
+    '''
     def reweigh(values: tuple[float|int|None]|np.ndarray) -> tuple[_Weightf, ...]:
         if isinstance(values, np.ndarray):
             total = values.sum()
@@ -934,11 +930,13 @@ def weight(*args: float01|None) -> tuple[_Weightf, ...]:
     match args:
         case (_Weightf(), *more) if all(isinstance(v, _Weightf) for v in more):
             return args
-        case tuple(values) if all(v is None or isinstance(v, (float, int)) for v in values):
+        case ()|((),):
+            raise ValueError('Invalid weight')
+        case tuple(values) if len(values) > 0 and all(v is None or isinstance(v, (float, int)) for v in values):
             return reweigh(values)
-        case (tuple(values),) if all(v is None or isinstance(v, (float, int)) for v in values):
+        case (tuple(values),) if len(values) > 0 and all(v is None or isinstance(v, (float, int)) for v in values):
             return reweigh(values)
-        case (np.ndarray(),) if args[0].dtype == np.float32:
+        case (np.ndarray(),) if len(args[0]) > 0 and args[0].dtype == np.float32:
             return reweigh(values[0])
         case _:
             raise ValueError('Invalid weight') 
@@ -992,17 +990,19 @@ def _weighti(args: tuple[float|int|None],
                 results[i] += adj
         return tuple(fn(*chunk) for chunk in chunk4i(results))
     match args:
+        case ()|((),):
+            raise ValueError('Invalid weight, zero-length')
         case tuple(values) if all(isinstance(v, _Weight8) for v in values) and limit == 255:
             return args
         case tuple(values) if all(isinstance(v, _Weight16) for v in values) and limit == 65535:
             return args
         # We don't permit interconverting between integer formats because of loss of precision.
         # Converting to an integer format is a one-way ticket.
-        case tuple(values) if all(v is None or isinstance(v, (float, int)) for v in values):
+        case tuple(values) if len(values) > 0 and  all(v is None or isinstance(v, (float, int)) for v in values):
             return reweigh(values)
-        case (tuple(values),) if all(v is None or isinstance(v, (float, int)) for v in values):
+        case (tuple(values),) if len(values) > 0 and all(v is None or isinstance(v, (float, int)) for v in values):
             return reweigh(values)
-        case (np.ndarray(),) if args[0].dtype == np.dtype(np.float32):
+        case (np.ndarray(),) if len(args[0]) > 0 and args[0].dtype == np.dtype(np.float32):
             return reweigh(values[0])
         case _:
             raise ValueError('Invalid weight') 
