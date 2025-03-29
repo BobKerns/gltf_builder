@@ -3,17 +3,20 @@ Tests for type constructors and types in attribute_types.py.
 '''
 
 from collections.abc import Callable
-from typing import Any
+from typing import Literal, Any
+from inspect import signature
+
 
 import numpy as np
 
 import pytest
 from pytest import approx
 
+from gltf_builder.core_types import ByteSize
 from gltf_builder.attribute_types import (
-    vector2, vector3, vector4, tangent, scale, point, uv, color, joint,
+    vector2, vector3, vector4, tangent, scale, point, uv, joint,
     weight, weight8, weight16,
-    RGB, RGBA,
+    color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
     _Vector2, _Vector3, _Vector4,
     _Weightf, _Weight8, _Weight16,
     _Tangent, _Scale, _Point, _Uvf,
@@ -57,6 +60,7 @@ def case_numpy(cnst: Callable[..., Any], data: tuple,):
 def validator(request):
     '''
     Validator for types and constructor functions.
+
     '''
     tcase = request.param
     def validator(
@@ -67,21 +71,96 @@ def validator(request):
             ndata: int,
             data: tuple,
             exc: type[Exception] | None,
-    ):        
+            size: ByteSize|Literal['inf']=4,
+            to_int: bool=False,
+    ):
+        '''
+        Validate the type constructor against the supplied data.
+        The data is passed to the constructor and the result is compare
+        to the expected type and value.
+
+        The expected data is constructed by one of the following functions:
+        - case_tuple: The data is passed as a tuple to the constructor.
+        - case_obj: The data is passed as an object of type _t_.
+        - case_numpy: The data is passed as a numpy array to the constructor.
+
+        If the constructor in cnst takes a _size_ keyword argument, it is passed.
+
+        An exception is expected if ndata is outside the range of
+        min_data and max_data, or if exc is supplied.
+        
+        Parameters
+        ----------
+        t : type
+            The expected type of the result.
+        cnst : Callable[..., Any]
+            The constructor function to test.
+        min_data : int
+            The minimum number of data elements accepted by the constructor.
+        max_data : int
+            The maximum number of data elements accepted by the constructor.
+        ndata : int
+            The number of data elements to pass to the constructor.
+        data : tuple
+            The data to pass to the constructor.
+        exc : type[Exception] | None
+            The expected exception type, or None if no exception is expected.
+        size : ByteSize|Literal['inf'], optional keyword argument
+            The size of the data in bytes, by default 4.
+            The values are:
+            - 1: 1 byte integer
+            - 2: 2 bytes integer
+            - 4: 4 bytes float32 between 0 and 1
+            - 'inf': unlimited range float
+        to_int : bool, optional keyword argument
+            If True, the data is converted to int, by default False.
+            This is used for the color types, where the data is
+            converted to int in the range of 0 to 255 or 0 to 65535, based
+            on the _size_ parameter.
+        '''
+        match size:
+            case 1:
+                def elt_type(x):
+                    return round(x*255)
+            case 2:
+                def elt_type(x):
+                    return round(x*65535)
+            case 4|'inf':
+                elt_type = float
+            case _:
+                raise ValueError(f"Invalid size: {size}")
+        kwargs = {}
+        if signature(cnst).parameters.get('size') is not None:
+            kwargs['size'] = size
         if isinstance(exc, type) and issubclass(exc, Exception):
             with pytest.raises((exc, TypeError)):
-                r = cnst(*data)
-            return
-        if 0 < len(data) < min_data or len(data) > max_data:
-            with pytest.raises((ValueError, TypeError)):
-                r = cnst(*data)
+                r = cnst(*data, **kwargs)
             return
         data = data[0:ndata]
-        r = cnst(*data)
-        expected = tcase(t, [float(n) for n in data])
+        if 0 < len(data) < min_data or len(data) > max_data:
+            with pytest.raises((ValueError, TypeError)):
+                r = cnst(*data, **kwargs)
+            return
+        expected = tcase(t, [elt_type(n) for n in data][0:ndata])
+        if to_int:
+            data = tuple(elt_type(n) for n in data)
+        r = cnst(*data, **kwargs)
         assert tuple(r) == approx(tuple(expected))
         assert type(r) is t
-        assert all(isinstance(v, float) for v in r)
+        match size:
+            case 1:
+                assert all(isinstance(v, int) for v in r)
+                assert all(0 <= v <= 255 for v in r)
+            case 2:
+                assert all(isinstance(v, int) for v in r)
+                assert all(0 <= v <= 65535 for v in r)
+            case 4:
+                assert all(isinstance(v, float) for v in r)
+                assert all(0 <= v <= 1.0 for v in r)
+            case 'inf':
+                assert all(isinstance(v, float) for v in r)
+            case _:
+                raise ValueError(f"Invalid size: {size}")
     return validator
     
 
@@ -113,11 +192,15 @@ def test_type_constructors(
     '''
     Test the type constructors.
     '''
-    validator(t, cnst, ndata, ndata, ndata, data, exc)
+    validator(t, cnst, ndata, ndata, ndata, data, exc, size='inf')
 
-@pytest.mark.parametrize('cnst, min_data, max_data, ndata, t', [
-    (color, 3, 4, 3, RGB),
-    (color, 3, 4, 4, RGBA),
+@pytest.mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
+    (color, 3, 4, 3, RGB, 4, False),
+    (color, 3, 4, 4, RGBA, 4, False),
+    (rgb8, 3, 4, 3, RGB8, 1, True),
+    (rgb8, 3, 4, 4, RGBA8, 1, True),
+    (rgb16, 3, 4, 3, RGB16, 2, True),
+    (rgb16, 3, 4, 4, RGBA16, 2, True),
 ])
 # Data and expected exceptions.
 @pytest.mark.parametrize('data, exc', [
@@ -134,8 +217,13 @@ def test_color(
                 cnst,
                 data,
                 exc,
+                size,
+                to_int,
             ):
-    validator(t, cnst, min_data, max_data, ndata, data, exc)
+    validator(t, cnst, min_data, max_data, ndata, data, exc,
+               size=size,
+               to_int=to_int,
+            )
 
 
 @pytest.mark.parametrize('data', [
@@ -174,7 +262,7 @@ def test_joint(data, size):
     expected = [jtype(*extend(data[i*4:i*4+4])) for i in range((len(data)+3)//4)]
     r = joint(*data, size=size)
     for v, e in zip(r, expected):
-        assert type(v) is jtype
+        assert isinstance(v, jtype)
         assert tuple(v) == approx(tuple(e))
 
 @pytest.mark.parametrize('data, size, expected', [

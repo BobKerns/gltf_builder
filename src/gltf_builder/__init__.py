@@ -1,5 +1,6 @@
 
 from gltf_builder.core_types import (
+    ByteSize, ByteSizeAuto,
     PrimitiveMode, ElementType,  ComponentType, NameMode,
 )
 from gltf_builder.attribute_types import (
@@ -31,8 +32,10 @@ __all__ = [
     'BAsset',
     'BMesh',
     'BNode',
-    'Builder',
     'BPrimitive',
+    'Builder',
+    'ByteSize',
+    'ByteSizeAuto',
     'Color',
     'color',
     'ComponentType',

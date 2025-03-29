@@ -11,6 +11,8 @@ from itertools import islice
 
 import numpy as np
 
+from gltf_builder.core_types import ByteSize, ByteSizeAuto
+
 EPSILON = 1e-12
 '''
 A small value for floating point comparisons.
@@ -218,14 +220,14 @@ class _Tangent(_Floats4, VectorLike):
     
     __matmul__ = cross
 
-class _Uvf(VectorLike, PointLike):
+class _Uvf(_Floats2, PointLike):
     '''
     A 2D texture coordinate (in U and V) in floating point.
     '''
     u: float
     v: float
 
-class _UvX(VectorLike, PointLike):
+class _UvX( PointLike):
     '''
     A 2D texture coordinate (in U and V) in normalied ints.
     '''
@@ -273,7 +275,10 @@ class _RGBI(NamedTuple):
     g: int
     b: int
 
-class _RGBAI(_RGBI):
+class _RGBAI(NamedTuple):
+    r: int
+    g: int
+    b: int
     a: int
 
 class RGB8(_RGBI):
@@ -292,13 +297,11 @@ class RGB16(_RGBI):
     '''
     An RGB color with 16-bit integer values between 0 and 255, inclusive.
     '''
-    pass
 
 class RGBA16(_RGBAI):
     '''
     An RGBA color with 16-bit integer values between 0 and 255, inclusive.
     '''
-    pass
 
 _Colorf: TypeAlias = RGB|RGBA
 _Color8: TypeAlias = RGB8|RGBA8
@@ -365,11 +368,23 @@ NP2Vector: TypeAlias = np.ndarray[tuple[Literal[2]], np.float32]
 NP3Vector: TypeAlias = np.ndarray[tuple[Literal[3]], np.float32]
 NP4Vector: TypeAlias = np.ndarray[tuple[Literal[4]], np.float32]
 
-NPIVector32: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint32]
-NPIVector16: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint16]
-NPIVector8: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint8]
-NPIVector16s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int16]
-NPIVector8s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int8]
+NP4IVector32: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint32]
+NP4IVector16: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint16]
+NP4IVector8: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint8]
+NP4IVector16s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int16]
+NP4IVector8s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int8]
+
+NP3IVector32: TypeAlias = np.ndarray[tuple[Literal[3]], np.uint32]
+NP3IVector16: TypeAlias = np.ndarray[tuple[Literal[3]], np.uint16]
+NP3IVector8: TypeAlias = np.ndarray[tuple[Literal[3]], np.uint8]
+NP3IVector16s: TypeAlias = np.ndarray[tuple[Literal[3]], np.int16]
+NP3IVector8s: TypeAlias = np.ndarray[tuple[Literal[3]], np.int8]
+
+NP2IVector32: TypeAlias = np.ndarray[tuple[Literal[2]], np.uint32]
+NP2IVector16: TypeAlias = np.ndarray[tuple[Literal[2]], np.uint16]
+NP2IVector8: TypeAlias = np.ndarray[tuple[Literal[2]], np.uint8]
+NP2IVector16s: TypeAlias = np.ndarray[tuple[Literal[2]], np.int16]
+NP2IVector8s: TypeAlias = np.ndarray[tuple[Literal[2]], np.int8]
 
 Vec2: TypeAlias = tuple[float, float]
 Vec3: TypeAlias = tuple[float, float, float]
@@ -410,8 +425,8 @@ A texture coordinate object
 Normal: TypeAlias = Vector3
 Scale: TypeAlias = Vector3|Scalar|_Scale
 Color: TypeAlias = _Color|NP3Vector|Vec3|NP4Vector|Vec4
-Joint: TypeAlias = _Joint|IVec4|NPIVector8|NPIVector16
-Weight: TypeAlias = _Weight|Vec4|NP4Vector|IVec4|NPIVector8|NPIVector16
+Joint: TypeAlias = _Joint|IVec4|NP4IVector8|NP4IVector16
+Weight: TypeAlias = _Weight|Vec4|NP4Vector|IVec4|NP4IVector8|NP4IVector16
 
 AttributeDataItem: TypeAlias = (
     Point
@@ -487,7 +502,8 @@ def uv(v: Uv, /) -> _Uv: ...
 @overload
 def uv(u: float, v: float) -> _Uv: ...
 def uv(u: Optional[float|Point]=None,
-        v: Optional[float]=None) -> _Uv:
+        v: Optional[float]=None,
+        size: ByteSizeAuto=4) -> _Uv:
     '''
     Return a canonicalized Uv texture coordinate object.
 
@@ -495,22 +511,38 @@ def uv(u: Optional[float|Point]=None,
     ----------
         u: The x value of the texture coordinate, or a Uv object of some type.
         v: The y value of the texture coordinate.
+        size: The size of the texture coordinate. 4 is the default, and
+            indicates a floating point value. 8 or 16 indicate an integer
+            value. 0 indicates auto-detect.
 
     Returns
     -------
         A `_Uv` object (a `NamedTuple`)
     '''
+    match size:
+        case 0:
+            _uv, c = _UvX, float
+        case 1:
+            _uv, c  = _Uv8, round
+        case 2:
+            _uv, c = _Uv16, round
+        case 4|'inf':
+            _uv, c = _Uvf, float
+        case _:
+            raise ValueError(f'Invalid size for uv = {size}')
     match u, v:
         case None, None:
-            return _Uv(0.0, 0.0)
-        case _Uv(), None:
-            return u
+            return _uv(c(0.0), c(0.0))
+        case _Uvf()|_Uv8()|_Uv16()|_UvX(), None:
+            if type(uv) is _uv:
+               return uv
+            return _uv(c(u.u), c(u.v))
         case (float()|int(), float()|int()), None:
-            return _Uv(float(u[0]), float(u[1]))
+            return _uv(c(u[0]), c(u[1]))
         case np.ndarray(), None if u.shape == (2,):
-            return _Uv(float(u[0]), float(u[1]))
+            return _uv(c(u[0]), c(u[1]))
         case float()|int(), float()|int():
-            return _Uv(float(u), float(v))
+            return _uv(c(u), c(v))
         case _:
             raise ValueError('Invalid uv')     
 
@@ -651,153 +683,108 @@ def color(c: RGB|NP3Vector|Vec3) -> RGB: ...
 @overload
 def color(c: RGBA|NP4Vector|Vec4) -> RGBA: ...
 @overload
-def color(c: Color, /) -> RGB|RGBA: ...
+def color(c: RGB8|NP3IVector8) -> RGB8: ...
+@overload
+def color(c: RGBA8|NP4IVector8) -> RGBA8: ...
+@overload
+def color(c: RGB8|NP3IVector16) -> RGB16: ...
+@overload
+def color(c: RGBA8|NP4IVector16) -> RGBA16: ...
+@overload
+def color(c: Color, /) ->  Color: ...
 @overload
 def color(r: float, g: float, b: float, a: float) -> RGBA: ...
 @overload
-def color(r: float, g: float, b: float) -> RGB:
-    ...
+def color(r: float, g: float, b: float) -> RGB: ...
+@overload
+def color(c: Color, /, size: Literal[8]) ->  RGB|RGBA: ...
+@overload
+def color(r: float, g: float, b: float, a: float, size: Literal[8]) -> RGBA8: ...
+@overload
+def color(r: float, g: float, b: float, size: Literal[8]) -> RGB8: ...
+@overload
+def color(c: Color, /, size: Literal[16]) ->  RGB16|RGBA16: ...
+@overload
+def color(r: float, g: float, b: float, a: float, size: Literal[16]) -> RGBA16: ...
+@overload
+def color(r: float, g: float, b: float, size: Literal[16]) -> RGB16: ...
+@overload
+def color(c: Color, /, size: Literal[32]) ->  RGB|RGBA: ...
+@overload
+def color(r: float, g: float, b: float, a: float, size: Literal[32]) -> RGBA: ...
+@overload
+def color(r: float, g: float, b: float, size: Literal[32]) -> RGB: ...
 def color(r: Optional[float01|Color]=None,
          g: Optional[float01]=None,
          b: Optional[float01]=None,
          a: Optional[float01]=None,
-    ) -> RGB|RGBA:
-    def clamp(v: float) -> float:
-        return max(0.0, min(1.0, float(v)))
-    match r, g, b, a:
-        case float()|int(), float()|int(), float()|int(), None:
-            return RGB(clamp(r), clamp(g), clamp(b))
-        case float()|int(), float()|int(), float()|int(), float()|int():
-            return RGBA(clamp(r), clamp(g), clamp(b), clamp(a))
-
-        case None, None, None, None:
-            return RGB(0.0, 0.0, 0.0)
-        case RGB(), None, None, None:
-            return r
-        case RGBA(), None, None, None:
-            return r
-        case RGB8(), None, None, None:
-            return RGB(clamp(r.r / 255), clamp(r.g / 255), clamp(r.b / 255))
-        case RGBA8(), None, None, None:
-            return RGBA(clamp(r.r / 255), clamp(r.g / 255), clamp(r.b / 255), clamp(r.a / 255))
-        case RGB16(), None, None, None:
-            return RGB(clamp(r.r / 65535), clamp(r.g / 65535), clamp(r.b / 65535))
-        case RGBA16(), None, None, None:
-            return RGBA(clamp(r.r / 65535), clamp(r.g / 65535), clamp(r.b / 65535), clamp(r.a / 65535))
-        case (r, g, b), None, None, None:
-            return RGB(clamp(r), clamp(g), clamp(b))
-        case (r, g, b, a), None, None, None:
-            return RGBA(clamp(r), clamp(g), clamp(b), clamp(a))
-        case np.ndarray(), None, None, None, if r.shape == (3,):
-            return RGB(clamp(r[0]), clamp(r[1]), clamp(r[2]))
-        case np.ndarray(), None, None, None if r.shape == (4,):
-            return RGBA(clamp(r[0]), clamp(r[1]), clamp(r[2]), clamp(r[3]))
-        case _:
-            raise ValueError('Invalid color')
-        
-
-def _color(r: Optional[float01]=None,
-         g: Optional[float01]=None,
-         b: Optional[float01]=None,
-         a: Optional[float01]=None, /,
-         limit: int = 255,
-         rgb: type[RGB8|RGB16] = RGB8,
-         rgba: type[RGBA8|RGBA16] = RGBA8,
-    ) -> RGB8|RGBA8|RGB16|RGBA16:
+         size: ByteSize=4,
+    ) -> RGB|RGBA|RGB8|RGBA8|RGB16|RGBA16:
+    limit, rgb, rgba = {
+        1: (255, RGB8, RGBA8),
+        2: (65535, RGB16, RGBA16),
+        4: (1.0, RGB, RGBA),
+    }[size]
     def scale(v: float) -> int:
         return int(max(0, min(limit, round(v * limit))))
+    def clamp(v: float) -> float:
+        return max(0.0, min(1.0, float(v)))
+    rescale = clamp if size == 4 else scale
     match r, g, b, a:
         case None, None, None, None:
             return rgb(0, 0, 0)
         case (r, g, b), None, None, None:
-            return rgb(scale(r), scale(g), scale(b))
+            return rgb(rescale(r), rescale(g), rescale(b))
         case (r, g, b, a), None, None, None:
-            return rgba(scale(r), scale(g), scale(b), scale(a))
+            return rgba(rescale(r), rescale(g), rescale(b), rescale(a))
         case rgb()|rgba(), None, None, None:
             return r
         case RGB()|RGBA(), None, None, None:
-            return rgb(scale(r.r), scale(r.g), scale(r.b))
+            return rgb(rescale(r.r), rescale(r.g), rescale(r.b))
         case RGB8()|RGBA8(), None, None, None:
-            return _color(r.r / 255, r.g / 255, r.b / 255, r.a / 255,
+            return color(r.r / 255, r.g / 255, r.b / 255, r.a / 255,
                           limit=limit,
                           rgb=rgb,
                           rgba=rgba,
                           )
         case RGB16()|RGBA16(), None, None, None:
-            return _color(r.r / 65535, r.g / 65535, r.b / 65535, r.a / 65535,
+            return color(r.r / 65535, r.g / 65535, r.b / 65535, r.a / 65535,
                           limit=limit,
                           rgb=rgb,
                           rgba=rgba,
                           )
         case float()|0|1, float()|0|1, float()|0|1, float()|0|1:
-            return rgba(scale(r), scale(g), scale(b), scale(a))
-        case float()|0|1, float()|0|1, float()|0|1:
-            return rgb(scale(r), scale(g), scale(b))
+            return rgba(rescale(r), rescale(g), rescale(b), rescale(a))
+        case float()|0|1, float()|0|1, float()|0|1, None:
+            return rgb(rescale(r), rescale(g), rescale(b))
         case np.ndarray(), None, None, None if r.shape == (3,):
-            return rgb(scale(r[0]), scale(r[1]), scale(r[2]))
+            return rgb(rescale(r[0]), rescale(r[1]), rescale(r[2]))
         case np.ndarray(), None, None, None if r.shape == (4,):
-            return rgb(scale(r[0]), scale(r[1]), scale(r[2]), scale(r[3]))
+            return rgb(rescale(r[0]), rescale(r[1]), rescale(r[2]), rescale(r[3]))
         case _:
             raise ValueError('Invalid color')
 
 
-@overload
-def color8() -> RGB8: ...
-@overload
-def color8(c: RGB|NP3Vector|Vec3) -> RGB8: ...
-@overload
-def color8(c: RGBA|NP4Vector|Vec4) -> RGBA8: ...
-@overload
-def color8(c: Color, /) -> RGB8|RGBA8: ...
-@overload
-def color8(r: float01, g: float01, b: float01, a: float01) -> RGBA8: ...
-@overload
-def color8(r: float01, g: float01, b: float01) -> RGB8: ...
-def color8(r: Optional[float01|Color]=None,
-         g: Optional[float01]=None,
-         b: Optional[float01]=None,
-         a: Optional[float01]=None,
-    ) -> RGB8|RGBA8:
-    return _color(r, g, b, a,
-                  limit=255,
-                  rgb=RGB8,
-                  rgba=RGBA8,
-                  )
-
-
-@overload
-def color16() -> RGB16: ...
-@overload
-def color16(c: RGB|NP3Vector|Vec3) -> RGB16: ...
-@overload
-def color16(c: RGBA|NP4Vector|Vec4) -> RGBA16: ...
-@overload
-def color16(c: Color, /) -> RGB16|RGBA16: ...
-@overload
-def color16(r: float01, g: float01, b: float01, a: float01) -> RGBA16: ...
-@overload
-def color16(r: float01, g: float01, b: float01) -> RGB16: ...
-def color16(r: Optional[float|Literal[0,1]|Color]=None,
-         g: Optional[float01]=None,
-         b: Optional[float01]=None,
-         a: Optional[float01]=None,
-    ) -> RGB16|RGBA16:
-    return _color(r, g, b, a,
-                  limit=65535,
-                  rgb=RGB16,
-                  rgba=RGBA16,
-                  )
-
-def rgb8(r: int, g: int, b: int) -> RGB8:
+def rgb8(r: int, g: int, b: int, a: Optional[int]=None) -> RGB8:
+    '''
+    Create a RGB8 or RGBA8 color object directly from 8-bit integer values.
+    '''
     def clamp(v: int) -> int:
         return max(0, min(255, v))
-    return RGB8(clamp(r), clamp(g), clamp(b))
+    if a is None:
+        return RGB8(clamp(r), clamp(g), clamp(b))
+    return RGBA8(clamp(r), clamp(g), clamp(b), clamp(a))
 
 
-def rgb16(r: int, g: int, b: int) -> RGB8:
+def rgb16(r: int, g: int, b: int, a: Optional[int]=None) -> RGB16:
+    '''
+    Create a RGB16 or RGBA16 color object directly from 16-bit integer values.
+    '''
     def clamp(v: int) -> int:
         return max(0, min(65536, v))
-    return RGB8(clamp(r), clamp(g), clamp(b))
+    if a is None:
+        return RGB16(clamp(r), clamp(g), clamp(b))
+    return RGBA16(clamp(r), clamp(g), clamp(b), clamp(a))
 
 
 def joints(weights: dict[int, int|float]) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
@@ -812,9 +799,9 @@ def joint(ids: tuple[int,...]|np.ndarray[tuple[int],int], /,
         ) -> tuple[_Joint]: ...
 @overload
 def joint(*ids: int,
-          size: int=0) -> tuple[_Joint,...]: ...
+          size: ByteSizeAuto=0) -> tuple[_Joint,...]: ...
 def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
-          size: int=0) -> tuple[_Joint, ...]:
+          size: ByteSizeAuto=0) -> tuple[_Joint, ...]:
     '''
     Validate and return a tuple of joint objects, in groups of four.
 
@@ -823,8 +810,13 @@ def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
         ids: A tuple of joint indices, or a numpy array of joint indices.
         size: The byte size of the joint indices. 0 for unspecified, 1 for 8-bit, 2 for 16.
     '''
+    if size == 0:
+        if all(v <= 255 for v in ids):
+            size = 1
+        else:
+            size = 2
     jtype, lim, np_dtype = [
-        (_Joint, 65535, (np.uint8, np.uint16,),),
+        None,
         (_Joint8, 255, (np.uint8,),),
         (_Joint16, 65535, (np.uint8, np.uint16,)),
     ][size]

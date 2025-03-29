@@ -9,6 +9,26 @@ from types import MappingProxyType
 
 import pygltflib as gltf
 
+ByteSize: TypeAlias = Literal[1, 2, 4]
+'''
+The size of the data in bytes for the glTF file. This is used to determine
+the size of the data in the accessors and views for the glTF file.
+The values are:
+- 1: 1 byte integer
+- 2: 2 bytes integer
+- 4: 4 bytes float32
+'''
+ByteSizeAuto: TypeAlias = Literal[0, 1, 2, 4]
+'''
+The size of the data in bytes for the glTF file. This is used to determine
+the size of the data in the accessors and views for the glTF file.
+The values are:
+- 0: Auto-detect the size of the data
+- 1: 1 byte integer
+- 2: 2 bytes integer
+- 4: 4 bytes integer
+'''
+
 
 EMPTY_MAP: Mapping[str, Any] = MappingProxyType({})
 
