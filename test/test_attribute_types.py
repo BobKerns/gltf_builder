@@ -3,7 +3,7 @@ Tests for type constructors and types in attribute_types.py.
 '''
 
 from collections.abc import Callable
-from typing import Literal, Any
+from typing import Optional, Literal, Any
 from inspect import signature
 
 
@@ -19,7 +19,7 @@ from gltf_builder.attribute_types import (
     color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
     _Vector2, _Vector3, _Vector4,
     _Weightf, _Weight8, _Weight16,
-    _Tangent, _Scale, _Point, _Uvf,
+    _Tangent, _Scale, _Point, _Uvf, _Uv16, _Uv8,
     _Joint, _Joint8, _Joint16,
     EPSILON,
 )
@@ -37,32 +37,76 @@ def case_obj(cnst: Callable[..., Any], data: tuple,):
     '''
     return cnst(*data)
 
+def tuple_of(c: Callable[[Callable[..., Any]], Callable[..., Any]],
+             size: Optional[ByteSize]=None):
+    '''
+    Test a type constructor with a tuple of data.
+    '''
+    def tupleobj(cnst: Callable[..., Any], data: tuple, /,
+            size: Optional[ByteSize]=size):
+        kwargs = {}
+        if size is not None and signature(c).parameters.get('size') is not None:
+            kwargs['size'] = size
+        return (c(cnst, data, **kwargs),)
+    return tupleobj
 
-def case_weight(cnst: Callable[..., Any], data: tuple,):
+
+def case_weight(cnst: Callable[..., Any], data: tuple, /,
+                size: ByteSize):
     '''
     Test a type constructor with a tuple of data.
     '''
     total = sum(data)
+    match size:
+        case 1:
+            def scale(v: float):
+                return round((float(v)/total)*255)
+            zero = 0
+        case 2:
+            def scale(v: float):
+                return round((float(v)/total)*65535)
+            zero = 0
+        case 4:
+            def scale(v):
+                return float(v)/total
+            zero = 0.0
     if abs(total) < EPSILON:
-        return cnst(*(0.0 for _ in data))
-    return cnst(*(float(d)/total for d in data))
+        return cnst(*(zero for _ in data))
+    return cnst(*(scale(d) for d in data))
 
 def case_numpy(cnst: Callable[..., Any], data: tuple,):
     '''
     Test a type constructor with a numpy array.
     '''
-    return np.array(data, np.float32)
+    return (np.array(data, np.float32),)
 
+case_numpy_tuple = tuple_of(case_numpy)
+case_tuple_tuple = tuple_of(case_tuple)
+case_obj_tuple = tuple_of(case_obj)
+case_weight_tuple = tuple_of(case_weight)
 
-# Input cases
-
-@pytest.fixture(params=[case_tuple, case_obj, case_numpy])
-def validator(request):
+def case_uvf(cnst: Callable[..., Any], data: tuple,):
     '''
-    Validator for types and constructor functions.
-
+    Test a type constructor with a _UvF instance.
     '''
-    tcase = request.param
+    return (_Uvf(*(float(d) for d in data)),)
+
+
+def case_uv8(cnst: Callable[..., Any], data: tuple,):
+    '''
+    Test a type constructor with a _UvF instance.
+    '''
+    return (_Uv8(*(round(float(d) * 255) for d in data)),)
+
+
+def case_uv16(cnst: Callable[..., Any], data: tuple,):
+    '''
+    Test a type constructor with a _UvF instance.
+    '''
+    return (_Uv16(*(round(float(d) * 65535) for d in data)),)
+
+
+def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
     def validator(
             t: type,
             cnst: Callable[..., Any],
@@ -73,6 +117,7 @@ def validator(request):
             exc: type[Exception] | None,
             size: ByteSize|Literal['inf']=4,
             to_int: bool=False,
+            epsilon: Optional[float]=None,
     ):
         '''
         Validate the type constructor against the supplied data.
@@ -121,14 +166,31 @@ def validator(request):
         match size:
             case 1:
                 def elt_type(x):
+                    x = min(1.0, max(0.0, float(x)))
                     return round(x*255)
             case 2:
                 def elt_type(x):
+                    x = min(1.0, max(0.0, float(x)))
                     return round(x*65535)
             case 4|'inf':
                 elt_type = float
             case _:
                 raise ValueError(f"Invalid size: {size}")
+        # Override epsilon for cases where the conversion loses resolution.
+        # This is the case for uv8 and uv16, where the conversion to int
+        # loses resolution.
+        match size, tcase:
+            case 2,  tc if tc is case_uv8:
+                epsilon = 65535.0/255
+            case 4|'inf', tc if tc is case_uv16:
+                epsilon = 1.0/65535
+            case 4|'inf', tc if tc is case_uv8:
+                epsilon = 1.0/255
+            case 1|2, tc if tc in (case_numpy, case_numpy_tuple):
+                # Numpy arrays are not exact, so we use a larger epsilon.
+                epsilon = 1.0
+            case 4|'inf', tc if tc in (case_numpy, case_numpy_tuple):
+                epsilon = 2*(float(np.float32(0.3)) - 0.3)
         kwargs = {}
         if signature(cnst).parameters.get('size') is not None:
             kwargs['size'] = size
@@ -141,11 +203,17 @@ def validator(request):
             with pytest.raises((ValueError, TypeError)):
                 r = cnst(*data, **kwargs)
             return
-        expected = tcase(t, [elt_type(n) for n in data][0:ndata])
+        expected = t(*[elt_type(float(n)) for n in data])
+        match expected:
+            case (tuple()|np.ndarray(),):
+                # If the constructor under test was given a tuple w/ data, it is
+                # expected to return it unwrapped.
+                expected = expected[0]
         if to_int:
             data = tuple(elt_type(n) for n in data)
+        data = tcase(t, data)
         r = cnst(*data, **kwargs)
-        assert tuple(r) == approx(tuple(expected))
+        assert tuple(r) == approx(tuple(expected), abs=epsilon)
         assert type(r) is t
         match size:
             case 1:
@@ -162,7 +230,61 @@ def validator(request):
             case _:
                 raise ValueError(f"Invalid size: {size}")
     return validator
+# Input cases
+
+@pytest.fixture(params=[case_tuple,
+                        case_tuple_tuple,
+                        case_obj,
+                        case_obj_tuple,
+                        case_numpy,
+                    ])
+def validator_nested(request):
+    '''
+    Validator for types and constructor functions.
+
+    '''
+    return validator_fn(request.param)
     
+
+
+@pytest.fixture(params=[case_tuple,
+                         case_obj,
+                         ])
+def validator_flat(request):
+    '''
+    Validator for types and constructor functions.
+
+    '''
+    return validator_fn(request.param)
+
+
+    
+@pytest.fixture(params=[case_tuple,
+                         case_uvf,
+                         case_uv8,
+                         case_uv16,
+                         case_numpy,
+                         ])
+def validator_uv(request):
+    '''
+    Validator for types and constructor functions.
+
+    '''
+    return validator_fn(request.param)
+    
+
+SCALED_PARAMS = [
+    ((0.4, 0.3, 0.2, 0.1), None),
+    ((0.0, 0.0, 0.0, 0.0), None),
+    ((0, "foo", 0, 0,), ValueError),
+    ((0, 0, 0, 0, 0), ValueError),
+]
+
+VEC_PARAMS = [
+    ((1.0, 2.0, 3.0, 4.0), None),
+    *SCALED_PARAMS,
+]
+
 
 # Constructors and constructed types, floating point unlimited range.
 @pytest.mark.parametrize('cnst, ndata, t', [
@@ -171,18 +293,11 @@ def validator(request):
     (vector4, 4, _Vector4),
     (scale, 3, _Scale),
     (point, 3, _Point),
-    (uv, 2, _Uvf),
 ])
 # Data and expected exceptions.
-@pytest.mark.parametrize('data, exc', [
-    ((1.0, 2.0, 3.0, 4.0), None),
-    ((0.4, 0.3, 0.2, 0.1), None),
-    ((0.0, 0.0, 0.0, 0.0), None),
-    ((0, "foo", 0, 0,), ValueError),
-    ((0, 0, 0, 0, 0), ValueError),
-])
+@pytest.mark.parametrize('data, exc', VEC_PARAMS)
 def test_type_constructors(
-                        validator,
+                        validator_nested,
                         t ,
                         ndata,
                         cnst,
@@ -192,11 +307,95 @@ def test_type_constructors(
     '''
     Test the type constructors.
     '''
-    validator(t, cnst, ndata, ndata, ndata, data, exc, size='inf')
+    validator_nested(t, cnst, ndata, ndata, ndata, data, exc, size='inf')
+
+
+# Constructors and constructed types, floating point unlimited range.
+@pytest.mark.parametrize('cnst, ndata, t, size', [
+    (uv, 2, _Uvf, 'inf',),
+    (uv, 2, _Uv16, 2,),
+    (uv, 2, _Uv8, 1,),
+])
+# Data and expected exceptions.
+@pytest.mark.parametrize('data, exc', SCALED_PARAMS)
+def test_uv(
+            validator_uv,
+            t ,
+            ndata,
+            cnst,
+            data,
+            exc,
+            size,
+        ):
+    '''
+    Test the type constructors.
+    '''
+    validator_uv(t, cnst, ndata, ndata, ndata, data, exc,
+                size=size,
+        )
+
+
+@pytest.mark.parametrize('cnst, t, vals', [
+    (vector2, _Vector2, (0.0, 0.0)),
+    (vector3, _Vector3, (0.0, 0.0, 0.0)),
+    (vector4, _Vector4, (0.0, 0.0, 0.0, 0.0)),
+    (uv, _Uvf, (0.0, 0.0)),
+    (scale, _Scale, (1.0, 1.0, 1.0)),
+    (point, _Point, (0.0, 0.0, 0.0)),
+])
+def test_emvty(cnst, t, vals):
+    '''
+    Test the empty type constructor.
+    '''
+    r = cnst()
+    assert r == t(*vals)
+    assert isinstance(r, t)
+
 
 @pytest.mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
     (color, 3, 4, 3, RGB, 4, False),
     (color, 3, 4, 4, RGBA, 4, False),
+])
+# Data and expected exceptions.
+@pytest.mark.parametrize('data, exc', [
+    ((1.0, 0.9, 0.3, 0.1), None),
+    ((1, "foo", 1, 1,), ValueError),
+    ((1, 1, 1, 1, 1), ValueError),
+])
+def test_color(
+                validator_nested,
+                t,
+                min_data,
+                max_data,
+                ndata,
+                cnst,
+                data,
+                exc,
+                size,
+                to_int,
+            ):
+    validator_nested(t, cnst, min_data, max_data, ndata, data, exc,
+               size=size,
+               to_int=to_int,
+            )
+
+
+@pytest.mark.parametrize('size', [1, 2, 4])
+def test_empty_color(size):
+    '''
+    Test the empty color type constructor.
+    '''
+    match size:
+        case 1:
+            expected = RGB8(0, 0, 0)
+        case 2:
+            expected = RGB16(0, 0, 0)
+        case 4:
+            expected = RGB(0.0, 0.0, 0.0)
+    r = color(size=size)
+    assert r == expected
+
+@pytest.mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
     (rgb8, 3, 4, 3, RGB8, 1, True),
     (rgb8, 3, 4, 4, RGBA8, 1, True),
     (rgb16, 3, 4, 3, RGB16, 2, True),
@@ -208,8 +407,8 @@ def test_type_constructors(
     ((1, "foo", 1, 1,), ValueError),
     ((1, 1, 1, 1, 1), ValueError),
 ])
-def test_color(
-                validator,
+def test_color_flat(
+                validator_flat,
                 t,
                 min_data,
                 max_data,
@@ -220,7 +419,7 @@ def test_color(
                 size,
                 to_int,
             ):
-    validator(t, cnst, min_data, max_data, ndata, data, exc,
+    validator_flat(t, cnst, min_data, max_data, ndata, data, exc,
                size=size,
                to_int=to_int,
             )
@@ -232,12 +431,20 @@ def test_color(
     (1, 2, 3, -1),
     (0.4, 0.3, 0.2, -1),
 ])
-def test_tangent(data):
+@pytest.mark.parametrize('tcase', [
+    case_tuple,
+    case_tuple_tuple,
+    case_obj,
+    case_obj_tuple,
+    case_numpy,
+])
+def test_tangent(data, tcase):
     '''
     Test the tangent type constructor.
     '''
     expected = _Tangent(*(float(n) for n in data))
-    r = tangent(*data)
+    args = tcase(_Tangent, tuple(float(d) for d in data))
+    r = tangent(*args)
     assert tuple(r) == approx(tuple(expected))
     assert type(r) is _Tangent
     assert all(isinstance(v, float) for v in r)
@@ -266,25 +473,29 @@ def test_joint(data, size):
         assert tuple(v) == approx(tuple(e))
 
 @pytest.mark.parametrize('data, size, expected', [
-    ((0.4, 0.3, 0.2, 0.1), 0, ((0.4, 0.3, 0.2, 0.1),)),
-    ((0.2, 0.2, 0.3, 0.2, 0.1), 0, ((0.2, 0.2, 0.3, 0.2), (0.1, 0.0, 0.0, 0.0))),
-    ((0.1, 0.2, 0.3, 0.2, 0.1, 0.1,), 0, ((0.1, 0.2, 0.3, 0.2), (0.1, 0.1, 0.0, 0.0))),
-    ((1, 2, 3, 4), 0, ((0.1, 0.2, 0.3, 0.4),)),
-    ((0.2, 0, 0, 0), 0, ((1.0, 0, 0, 0),)),
-    ((0.5, 0.25, 0.125, 0.125), 8, ((128, 64, 31, 32),)),
-    ((2, 2, 4, 8), 8, ((31, 32, 64, 128),)),
-    ((0.2, 0, 0, 0), 8, ((255, 0, 0, 0),)),
-    ((0.5, 0.25, 0.125, 0.125), 16, ((32768, 16384, 8191, 8192),)),
-    ((2, 2, 4, 8), 16, ((8191, 8192, 16384, 32768),)),
-    ((0.2, 0, 0, 0), 16, ((65535, 0, 0, 0),)),
-    ((0.2,), 16, ((65535, 0, 0, 0),)),
-    ((), 0, ValueError),
-    ((), 8, ValueError),
-    ((), 16, ValueError),
+    ((0.4, 0.3, 0.2, 0.1), 4, ((0.4, 0.3, 0.2, 0.1),)),
+    ((0.2, 0.2, 0.3, 0.2, 0.1), 4, ((0.2, 0.2, 0.3, 0.2), (0.1, 0.0, 0.0, 0.0))),
+    ((0.1, 0.2, 0.3, 0.2, 0.1, 0.1,), 4, ((0.1, 0.2, 0.3, 0.2), (0.1, 0.1, 0.0, 0.0))),
+    ((1, 2, 3, 4), 4, ((0.1, 0.2, 0.3, 0.4),)),
+    ((0.2, 0, 0, 0), 4, ((1.0, 0, 0, 0),)),
+    ((0.5, 0.25, 0.125, 0.125), 1, ((128, 64, 31, 32),)),
+    ((2, 2, 4, 8), 1, ((31, 32, 64, 128),)),
+    ((0.2, 0, 0, 0), 1, ((255, 0, 0, 0),)),
+    ((0.5, 0.25, 0.125, 0.125), 2, ((32768, 16384, 8191, 8192),)),
+    ((2, 2, 4, 8), 2, ((8191, 8192, 16384, 32768),)),
+    ((0.2, 0, 0, 0), 2, ((65535, 0, 0, 0),)),
+    ((0.2,), 2, ((65535, 0, 0, 0),)),
+    ((0,), 1, ((0, 0, 0, 0),)),
+    ((0,), 2, ((0, 0, 0, 0),)),
+    ((0.0,), 4, ((0.0, 0.0, 0.0, 0.0),)),
+    ((), 4, ValueError),
+    ((), 1, ValueError),
+    ((), 2, ValueError),
 ])
 @pytest.mark.parametrize('tcase, zeropad', [
     (case_tuple, False),
-    (case_weight, True),
+    (case_tuple_tuple, False),
+    (case_weight_tuple, True),
     (case_numpy, False)   
 ])
 def test_weight(tcase,
@@ -295,28 +506,54 @@ def test_weight(tcase,
     '''
     Test the weight type constructor.
     '''
-    c, t = {
-        0: (weight, _Weightf),
-        8: (weight8, _Weight8),
-        16: (weight16, _Weight16),
+    c, t, rnd, lim  = {
+        4: (weight, _Weightf, float, 1.0),
+        1: (weight8, _Weight8, round, 255),
+        2: (weight16, _Weight16, round, 65535),
     }[size]
+    zero = rnd(0)
+    if isinstance(expected, tuple):
+        expected = tuple(tuple(rnd(v) for v in e)
+                         for e in expected)
+    data = [rnd(d * lim) for d in data]
+    kwargs, t_kwargs = {}, {}
+    if signature(tcase).parameters.get('size') is not None:
+        t_kwargs['size'] = size
+    if signature(c).parameters.get('size') is not None:
+        kwargs['size'] = size
     argdata = data
     if zeropad:
         # Zeropad means we pad with zeros and construct the expected data
         # from the input data, and ignore the declared expected data.
         if len(data) != 4:
-            argdata = (*(float(d) for d in data), 0.0, 0.0, 0.0, 0.0)[:4]
-    elif isinstance(expected, type) and issubclass(expected, Exception):
-        arg = tcase(t, argdata)
+            argdata = (*(
+                float(d)
+                for d in data
+                ),
+                zero, zero, zero, zero
+            )[:4]
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        arg = tcase(t, argdata, **t_kwargs)
         with pytest.raises(expected):
-            c(arg)
+            c(arg, **kwargs)
         return
-    arg =  tcase(t, argdata)
-    expected = (arg, ) if zeropad else tuple(t(*e) for e in expected)
-    r = c(arg)
+    arg =  tcase(t, argdata, **t_kwargs)
+    if zeropad:
+        expected = tuple(v
+                        for e in expected
+                        for v in tcase(t, e, **t_kwargs)
+                        )
+    else:
+        expected = tuple(t(*[*e, zero, zero, zero][:4]) for e in expected)
+    r = c(*arg, **kwargs)
     for v, e in zip(r, expected):
         assert type(v) is type(e)
-        assert tuple(v) == approx(tuple(e))
+        for vx, ex in zip(v, e):
+            assert isinstance(vx, (type(ex), np.float32))
+            if isinstance(vx, float):
+                assert vx == approx(ex)
+            else:
+                assert ex-1 <= vx <= ex+1
 
 @pytest.mark.parametrize('data, expected', [
     ((), (1.0, 1.0, 1.0)),

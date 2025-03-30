@@ -2,6 +2,12 @@
 Types describing attribute values, as well as node properties such as scale.
 
 For example, node translation uses a Vector3 for translation.
+
+In general, these functions take 4 types of parameters:
+- The float or integer values of the components of the type.
+- A tuple of float or integer values.
+- A numpy array of float or integer values.
+- An object of the type being created.
 '''
 
 from typing import NamedTuple, TypeAlias, Literal, overload, Optional, Any
@@ -220,32 +226,38 @@ class _Tangent(_Floats4, VectorLike):
     
     __matmul__ = cross
 
-class _Uvf(_Floats2, PointLike):
+class _Uvf_(NamedTuple):
     '''
     A 2D texture coordinate (in U and V) in floating point.
     '''
     u: float
     v: float
 
-class _UvX( PointLike):
+class _Uvf(_Uvf_, PointLike):
+    u: float
+    v: float
+
+class _UvX(NamedTuple):
     '''
     A 2D texture coordinate (in U and V) in normalied ints.
     '''
     u: int
     v: int
 
-class _Uv8(_UvX):
+class _Uv8(_UvX, PointLike):
     '''
     A 2D texture coordinate (in U and V) in 8-bit integers.
     '''
-    pass
+    u: int
+    v: int
 
 
-class _Uv16(_UvX):
+class _Uv16(_UvX, PointLike):
     '''
     A 2D texture coordinate (in U and V) in 16-bit integers.
     '''
-    pass
+    u: int
+    v: int
 
 _Uv: TypeAlias = _Uvf|_Uv8|_Uv16
 '''
@@ -462,10 +474,14 @@ def point() -> _Point: ...
 @overload
 def point(p: Point, /) -> _Point: ...
 @overload
-def point(x: float, y: float, z: float) -> _Point: ...
-def point(x: Optional[float|Point]=None,
-        y: Optional[float]=None,
-        z: Optional[float]=None) -> _Point:
+def point(p: np.ndarray, /) -> _Point: ...
+@overload
+def point(p: tuple[float,float|int,float|int], /) -> _Point: ...
+@overload
+def point(x: float|int, y: float|int, z: float|int) -> _Point: ...
+def point(x: Optional[float|Point|np.ndarray|tuple[float|int,float|int,float|int]]=None,
+        y: Optional[float|int]=None,
+        z: Optional[float|int]=None) -> _Point:
     '''
     Validate and return a canonicalized point object.
     Only the type is canonicalized, not the values.
@@ -480,17 +496,17 @@ def point(x: Optional[float|Point]=None,
     -------
         A `_P{oint` object (a `NamedTuple`)
     '''
-    match x:
-        case None:
+    match x, y, z:
+        case None, None, None:
             return _Point(0.0, 0.0, 0.0)
-        case _Point():
+        case _Point(), None, None:
             return x
-        case x, y, z:
+        case float()|int(), float()|int(), float()|int():
             return _Point(float(x), float(y), float(z))
-        case np.ndarray() if x.shape == (3,):
+        case (float()|int(), float()|int(), float()|int()), None, None:
             return _Point(float(x[0]), float(x[1]), float(x[2]))
-        case float():
-            return _Point(float(x), float(y), float(z))
+        case np.ndarray(), None, None if x.shape == (3,):
+            return _Point(float(x[0]), float(x[1]), float(x[2]))
         case _:
             raise ValueError('Invalid point')
         
@@ -513,36 +529,51 @@ def uv(u: Optional[float|Point]=None,
         v: The y value of the texture coordinate.
         size: The size of the texture coordinate. 4 is the default, and
             indicates a floating point value. 8 or 16 indicate an integer
-            value. 0 indicates auto-detect.
+            value.
 
     Returns
     -------
         A `_Uv` object (a `NamedTuple`)
     '''
     match size:
-        case 0:
-            _uv, c = _UvX, float
         case 1:
-            _uv, c  = _Uv8, round
+            _uv  = _Uv8
+            def scale(v):
+                v = min(1.0, max(0.0, float(v)))
+                return round(v * 255)
         case 2:
-            _uv, c = _Uv16, round
+            _uv  = _Uv16
+            def scale(v):
+                v = min(1.0, max(0.0, float(v)))
+                return round(v * 65535)
         case 4|'inf':
-            _uv, c = _Uvf, float
+            _uv = _Uvf
+            def scale(v):
+                return min(1.0, max(0.0, float(v)))
         case _:
             raise ValueError(f'Invalid size for uv = {size}')
+    def unscale(v):
+        match v:
+            case _Uvf():
+                return v
+            case _Uv8():
+                return _Uvf(float(v.u) / 255, float(v.v) / 255)
+            case _Uv16():
+                return _Uvf(float(v.u) / 65535, float(v.v) / 65535)
     match u, v:
         case None, None:
-            return _uv(c(0.0), c(0.0))
+            return _uv(scale(0.0), scale(0.0))
         case _Uvf()|_Uv8()|_Uv16()|_UvX(), None:
-            if type(uv) is _uv:
-               return uv
-            return _uv(c(u.u), c(u.v))
+            if type(u) is _uv:
+               return u
+            u = unscale(u)
+            return _uv(scale(u.u), scale(u.v))
         case (float()|int(), float()|int()), None:
-            return _uv(c(u[0]), c(u[1]))
+            return _uv(scale(u[0]), scale(u[1]))
         case np.ndarray(), None if u.shape == (2,):
-            return _uv(c(u[0]), c(u[1]))
+            return _uv(scale(u[0]), scale(u[1]))
         case float()|int(), float()|int():
-            return _uv(c(u), c(v))
+            return _uv(scale(u), scale(v))
         case _:
             raise ValueError('Invalid uv')     
 
@@ -635,9 +666,6 @@ def scale(x: Optional[float|Point]=None,
         case float()|int(), None, None if y is None and z is None:
             x = float(x)
             return _Scale(x, x, x)
-        case (float()|int(),), None, None if y is None and z is None:
-            x = float(x[0])
-            return _Scale(x, x, x)
         case _Scale(), None, None:
             return x
         case (float()|int(), float()|int(), float()|int()), None, None:
@@ -665,7 +693,7 @@ def tangent(x: float|Tangent,
         ) -> _Tangent:
     w = w or 1
     match x, y, z, w:
-        case _Tangent(), None, None, None:
+        case _Tangent(), None, None, -1|1:
             return x
         case (float()|int(), float()|int(), float()|int(), float()|int()), None, None, -1|1:
             return _Tangent(float(x[0]), float(x[1]), float(x[2]), float(x[3]))
@@ -733,10 +761,10 @@ def color(r: Optional[float01|Color]=None,
     match r, g, b, a:
         case None, None, None, None:
             return rgb(0, 0, 0)
-        case (r, g, b), None, None, None:
-            return rgb(rescale(r), rescale(g), rescale(b))
-        case (r, g, b, a), None, None, None:
-            return rgba(rescale(r), rescale(g), rescale(b), rescale(a))
+        case (xr, xg, xb), None, None, None:
+            return rgb(rescale(xr), rescale(xg), rescale(xb))
+        case (xr, xg, xb, xa), None, None, None:
+            return rgba(rescale(xr), rescale(xg), rescale(xb), rescale(xa))
         case rgb()|rgba(), None, None, None:
             return r
         case RGB()|RGBA(), None, None, None:
@@ -753,14 +781,14 @@ def color(r: Optional[float01|Color]=None,
                           rgb=rgb,
                           rgba=rgba,
                           )
+        case np.ndarray(), None, None, None if r.shape == (4,):
+            return rgba(rescale(r[0]), rescale(r[1]), rescale(r[2]), rescale(r[3]))
+        case np.ndarray(), None, None, None if r.shape == (3,):
+            return rgb(rescale(r[0]), rescale(r[1]), rescale(r[2]))
         case float()|0|1, float()|0|1, float()|0|1, float()|0|1:
             return rgba(rescale(r), rescale(g), rescale(b), rescale(a))
         case float()|0|1, float()|0|1, float()|0|1, None:
             return rgb(rescale(r), rescale(g), rescale(b))
-        case np.ndarray(), None, None, None if r.shape == (3,):
-            return rgb(rescale(r[0]), rescale(r[1]), rescale(r[2]))
-        case np.ndarray(), None, None, None if r.shape == (4,):
-            return rgb(rescale(r[0]), rescale(r[1]), rescale(r[2]), rescale(r[3]))
         case _:
             raise ValueError('Invalid color')
 
@@ -933,7 +961,7 @@ def weight(*args: float01|None) -> tuple[_Weightf, ...]:
                 for v in values
             )
         if abs(total) < EPSILON:
-            return (0.0,) * len(args)
+            return (_Weightf(0.0, 0.0, 0.0, 0.0,),)
         return tuple(_Weightf(*(c/total for c in chunk)) for chunk in chunk4(values))
     match args:
         case (_Weightf(), *more) if all(isinstance(v, _Weightf) for v in more):
@@ -981,7 +1009,7 @@ def _weighti(args: tuple[float|int|None],
         else:
             total = sum(v or 0 for v in values)
         if abs(total) < EPSILON:
-            return (0,) * len(args)
+            return (fn(0, 0, 0, 0),)
         results = [
             _map_range((v or 0)/total, limit)
             for v in values
