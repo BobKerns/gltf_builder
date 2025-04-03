@@ -10,7 +10,7 @@ In general, these functions take 4 types of parameters:
 - An object of the type being created.
 '''
 
-from typing import NamedTuple, TypeAlias, Literal, overload, Optional, Any, Self
+from typing import NamedTuple, TypeAlias, Literal, TypeVar, overload, Optional, Any, Self
 from math import sqrt
 from collections.abc import Generator, Iterable, Callable, Sequence
 from itertools import islice
@@ -803,11 +803,12 @@ def rgb16(r: int, g: int, b: int, a: Optional[int]=None) -> RGB16:
     return RGBA16(clamp(r), clamp(g), clamp(b), clamp(a))
 
 
-def joints(weights: dict[int, int|float]) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
+def joints(weights: dict[int, int|float],
+           size: int=0) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
     '''
-    Validate and return a tuple of joint objects, in groups of four.
+    Validate and return tuples of joint objects and weight objects, in groups of four.
     '''
-    ...
+    return joint(*weights.keys(), size=0), weight(list(weights.values()), size=size)
 
 @overload
 def joint(ids: tuple[int,...]|np.ndarray[tuple[int],int], /,
@@ -952,15 +953,44 @@ def chunk4i(values: Iterable[int|None], num_values: Optional[int]=None) -> Itera
                 int(next(viter) or 0),
                 0,
             )
-
+ 
+W  = TypeVar('W', bound=Weight)
 
 @overload
-def weight() -> tuple: ...
-@overload
-def weight(v: Weight, /) -> tuple[_Weightf, ...]: ...
+def weight(v: W, /) -> tuple[W, ...]: ...
 @overload
 def weight(*args: float01|None) -> tuple[_Weightf, ...]: ...
-def weight(*args: float01|None) -> tuple[_Weightf, ...]:
+@overload
+def weight(*args: int|None, size: Literal[1]) -> tuple[_Weight8, ...]: ...
+@overload
+def weight(*args: int|None, size: Literal[16]) -> tuple[_Weight16, ...]: ...
+def weight(*args: float01|None, size: Literal[0, 1, 2, 4]=0) -> tuple[_Weightf, ...]:
+    '''
+    Validate and return a set of canonicalized weight objects. These will be interpreted
+    according to the _size_ parameter. Each weight object will hold weights for up to 4
+    joints.
+
+    size=0
+    size=4
+        32-bit floating numbers normalized between 0.0 and 1.0, inclusive. They will be
+        reweighted to sum to 1.0
+    size=1
+        8-bit integers normalized and weighted to sum to 255
+    size=2
+        16-bit integers normalized and weighted to sum to 65535
+    '''
+    match size:
+        case 0|4:
+            return _weightf(args)
+        case 1:
+            return _weighti(args, 255, _Weight8)
+        case 2:
+            return _weighti(args, 65535, _Weight16)
+        case _:
+            raise ValueError(f'Invalid {size=}')
+
+
+def _weightf(args: float01|None):
     '''
     Validate and return a set of canonicalized weight objects based on float32 weights.
     The weights are normalized to sum to 1.0.
@@ -981,12 +1011,18 @@ def weight(*args: float01|None) -> tuple[_Weightf, ...]:
             return args
         case ()|((),):
             raise ValueError('Invalid weight')
-        case tuple(values) if len(values) > 0 and all(v is None or isinstance(v, (float, int)) for v in values):
-            return reweigh(values)
-        case (tuple(values),) if len(values) > 0 and all(v is None or isinstance(v, (float, int)) for v in values):
-            return reweigh(values)
-        case (np.ndarray(),) if len(args[0]) > 0 and args[0].dtype == np.float32:
-            return reweigh(values[0])
+        case _ if len(args) > 0 and all(v is None or isinstance(v, (float, int)) for v in args):
+            return reweigh(args)
+        case _ if all(v is None or isinstance(v, (float, int))
+                    for a in args
+                    for v in a
+                ):
+            return reweigh([v for a in args for v in a])
+        case _ if all(
+                        isinstance(a, np.ndarray) and a.dtype == np.float32
+                        for a in args
+                    ):
+            return reweigh(args[0])
         case _:
             raise ValueError('Invalid weight') 
 
@@ -1102,10 +1138,12 @@ def find_dtype(values: Iterable[int]) -> np.dtype:
         raise TypeError('values must be an iterable')
     dt = np.uint8
     for v in values:
+        if isinstance(v, float):
+            return np.float32
         try:
             v = int(v)
         except TypeError:
-            raise ValueError("Values ust be convertable to int")
+            raise ValueError("Values must be convertable to int")
         if v < 0:
             raise ValueError('values must be non-negative')
         if v > 255:

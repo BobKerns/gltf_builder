@@ -16,7 +16,7 @@ from pytest import approx
 
 from gltf_builder.core_types import ByteSize
 from gltf_builder.attribute_types import (
-    vector2, vector3, vector4, tangent, scale, point, uv, joint,
+    joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
     weight, weight8, weight16,
     color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
     _Vector2, _Vector3, _Vector4,
@@ -587,6 +587,18 @@ def test_weight(tcase,
                 assert vx == approx(ex)
             else:
                 assert ex-1 <= vx <= ex+1
+
+
+@pytest.mark.parametrize('data, kwargs, expected',[
+    ({1: 0.3}, {}, ((_Joint8(1, 0, 0, 0),), (_Weightf(1.0, 0.0, 0.0, 0.0),))),
+    ({1: 0.3}, {'size': 0}, ((_Joint8(1, 0, 0, 0),), (_Weightf(1.0, 0.0, 0.0, 0.0),))),
+    ({1: 0.3}, {'size': 1}, ((_Joint8(1, 0, 0, 0),), (_Weight8(255, 0.0, 0.0, 0.0),))),
+    ({1: 0.3}, {'size': 2}, ((_Joint8(1, 0, 0, 0),), (_Weight16(65535, 0.0, 0.0, 0.0),))),
+])
+def test_joints_weights(data, kwargs, expected):
+    result = joints(data, **kwargs)
+    assert result == expected
+
 
 @pytest.mark.parametrize('data, expected', [
     ((), (1.0, 1.0, 1.0)),
