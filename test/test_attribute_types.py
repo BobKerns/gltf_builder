@@ -589,15 +589,72 @@ def test_weight(tcase,
                 assert ex-1 <= vx <= ex+1
 
 
-@pytest.mark.parametrize('data, kwargs, expected',[
-    ({1: 0.3}, {}, ((_Joint8(1, 0, 0, 0),), (_Weightf(1.0, 0.0, 0.0, 0.0),))),
-    ({1: 0.3}, {'size': 0}, ((_Joint8(1, 0, 0, 0),), (_Weightf(1.0, 0.0, 0.0, 0.0),))),
-    ({1: 0.3}, {'size': 1}, ((_Joint8(1, 0, 0, 0),), (_Weight8(255, 0.0, 0.0, 0.0),))),
-    ({1: 0.3}, {'size': 2}, ((_Joint8(1, 0, 0, 0),), (_Weight16(65535, 0.0, 0.0, 0.0),))),
+@pytest.mark.parametrize('precision, weight', [
+    (0, _Weightf),
+    (1, _Weight8),
+    (2, _Weight16),
+    (4, _Weightf),
 ])
-def test_joints_weights(data, kwargs, expected):
-    result = joints(data, **kwargs)
-    assert result == expected
+
+@pytest.mark.parametrize('size, joint', [
+    (0, None),
+    (1, _Joint8),
+    (2, _Joint16),
+])
+@pytest.mark.parametrize('data, e_weights',[
+    ({1: 0.3}, ((1.0, 0.0, 0.0, 0.0),)),
+    ({1: 0.3}, (((1.0, 0.0, 0.0, 0.0),))),
+    ({1: 0.3}, (((1.0, 0.0, 0.0, 0.0),))),
+    ({1: 0.3}, (((255, 0.0, 0.0, 0.0),))),
+    ({1: 0.3}, (((65535, 0.0, 0.0, 0.0),))),
+    ({127: 0.3},  (((65535, 0.0, 0.0, 0.0),))),
+    ({128: 0.3},  (((65535, 0.0, 0.0, 0.0),))),
+    ({65535: 0.3},  (((65535, 0.0, 0.0, 0.0),))),
+    ({65536: 0.3},  (((65536, 0.0, 0.0, 0.0),))),
+])
+def test_joints_weights(data, e_weights, size, joint, precision, weight):
+    kwargs = {
+        "size": size,
+        "precision": precision,
+    }
+    e_joints = tuple(data.keys())
+    # Handle out-of-range joint indexes.
+    match size:
+        case 1 if any(v > 255 for v in e_joints):
+            with pytest.raises(ValueError):
+                joints(data, **kwargs)
+            return
+        case 0|2 if any(v > 65535 for v in e_joints):
+            with pytest.raises(ValueError):
+                joints(data, **kwargs)
+            return
+    if joint is None:
+        if all(v <= 255 for v in e_joints):
+            joint = _Joint8
+        else:
+            joint = _Joint16
+    def subst(v: int|float):
+        match v, precision:
+            case 0|0.0, 0|4:
+                return 0.0
+            case 0|0.0, 1|2:
+                return 0
+            case _, 1:
+                return 255
+            case _, 2:
+                return 65535
+            case _, 0|4:
+                return 1.0
+            case _, _:
+                raise ValueError(f"Invalid test data {v=} {precision=}")
+    pe_joints = tuple(joint(*(*v, 0, 0, 0, 0)[:4])
+                      for i in range((len(e_joints) + 3) // 4)
+                      for v in (e_joints[i*4:i*4+4],)
+                      )
+    pe_weights = tuple(weight(*(subst(v) for v in w)) for w in e_weights)
+    r_joints, r_weights = joints(data, **kwargs)
+    assert r_joints == pe_joints
+    assert r_weights == pe_weights
 
 
 @pytest.mark.parametrize('data, expected', [

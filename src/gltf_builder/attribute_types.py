@@ -803,12 +803,19 @@ def rgb16(r: int, g: int, b: int, a: Optional[int]=None) -> RGB16:
     return RGBA16(clamp(r), clamp(g), clamp(b), clamp(a))
 
 
-def joints(weights: dict[int, int|float],
-           size: int=0) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
+def joints(weights: dict[int, int|float], /,
+           size: Literal[0, 1, 2]=0,
+           precision: Literal[0, 1, 2, 4]=0) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
     '''
     Validate and return tuples of joint objects and weight objects, in groups of four.
     '''
-    return joint(*weights.keys(), size=0), weight(list(weights.values()), size=size)
+    return joint(*weights.keys(), size=size), weight(list(weights.values()), precision=precision)
+
+JOINT_RANGES = [
+        None,
+        (_Joint8, 255, (np.uint8, np.uint16),),
+        (_Joint16, 65535, (np.uint8, np.uint16,)),
+    ]
 
 @overload
 def joint(ids: tuple[int,...]|np.ndarray[tuple[int],int], /,
@@ -837,11 +844,7 @@ def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
                 size = 1 if all(i.dtype == np.uint8 for i in ids) else 2
             case _:
                 raise ValueError('Invalid joints')
-    jtype, lim, np_dtype = [
-        None,
-        (_Joint8, 255, (np.uint8, np.uint16),),
-        (_Joint16, 65535, (np.uint8, np.uint16,)),
-    ][size]
+    jtype, lim, np_dtype = JOINT_RANGES[size]
     match ids:
         case (_Joint(),) if isinstance(ids[0], jtype):
             return ids
@@ -961,25 +964,25 @@ def weight(v: W, /) -> tuple[W, ...]: ...
 @overload
 def weight(*args: float01|None) -> tuple[_Weightf, ...]: ...
 @overload
-def weight(*args: int|None, size: Literal[1]) -> tuple[_Weight8, ...]: ...
+def weight(*args: int|None, precision: Literal[1]) -> tuple[_Weight8, ...]: ...
 @overload
-def weight(*args: int|None, size: Literal[16]) -> tuple[_Weight16, ...]: ...
-def weight(*args: float01|None, size: Literal[0, 1, 2, 4]=0) -> tuple[_Weightf, ...]:
+def weight(*args: int|None, precision: Literal[16]) -> tuple[_Weight16, ...]: ...
+def weight(*args: float01|None, precision: Literal[0, 1, 2, 4]=0) -> tuple[_Weightf, ...]:
     '''
     Validate and return a set of canonicalized weight objects. These will be interpreted
-    according to the _size_ parameter. Each weight object will hold weights for up to 4
+    according to the _precision_ parameter. Each weight object will hold weights for up to 4
     joints.
 
-    size=0
-    size=4
+    precision=0
+    precision=4
         32-bit floating numbers normalized between 0.0 and 1.0, inclusive. They will be
         reweighted to sum to 1.0
-    size=1
+    precision=1
         8-bit integers normalized and weighted to sum to 255
-    size=2
+    precision=2
         16-bit integers normalized and weighted to sum to 65535
     '''
-    match size:
+    match precision:
         case 0|4:
             return _weightf(args)
         case 1:
@@ -987,7 +990,7 @@ def weight(*args: float01|None, size: Literal[0, 1, 2, 4]=0) -> tuple[_Weightf, 
         case 2:
             return _weighti(args, 65535, _Weight16)
         case _:
-            raise ValueError(f'Invalid {size=}')
+            raise ValueError(f'Invalid {precision=}')
 
 
 def _weightf(args: float01|None):

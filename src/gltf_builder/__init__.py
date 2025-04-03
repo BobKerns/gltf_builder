@@ -7,7 +7,7 @@ from gltf_builder.attribute_types import (
     Point, Tangent, Normal, Scalar, Vector, Vector2, Vector3, Vector4, VectorLike,
     Matrix2, Matrix3, Matrix4, Scale, Uv,
     Color, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
-    point, scale, vector2, vector3, vector4, tangent, uv, joint, weight,
+    point, scale, vector2, vector3, vector4, tangent, uv, joint, joints, weight,
     AttributeDataSequence, AttributeDataList, AttributeDataItem,
 
 )
@@ -43,6 +43,7 @@ __all__ = [
     'distribute_ints',
     'ElementType',
     'joint',
+    'joints',
     'map_range',
     'Matrix2',
     'Matrix3',
