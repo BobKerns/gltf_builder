@@ -3,8 +3,9 @@ Tests for type constructors and types in attribute_types.py.
 '''
 
 from collections.abc import Callable
-from typing import Optional, Literal, Any
+from typing import Optional, Literal, Any, Sequence
 from inspect import signature
+from math import sqrt, cos, pi
 
 
 import numpy as np
@@ -459,14 +460,32 @@ def test_tangent(data, tcase):
     (1, 2, 3, 4, 5, 6,),
     (1, 2, 3, 4, 5, 6, 7,),
 ])
-def test_joint(data, size):
+@pytest.mark.parametrize('tcase', [
+    case_tuple,
+    case_tuple_tuple,
+    case_obj,
+    case_obj_tuple,
+    case_numpy,
+    case_numpy_tuple,
+])
+def test_joint(tcase, data, size):
     '''
     Test the joint type constructor.
     '''
     jtype = [_Joint, _Joint8, _Joint16][size]
     def extend(d):
         return d + (0,) * (4 - len(d))
-    expected = [jtype(*extend(data[i*4:i*4+4])) for i in range((len(data)+3)//4)]
+    if isinstance(data[0], Sequence):
+        expected = [
+            jtype(*extend(d[i*4:i*4+4]))
+            for d in data
+            for i in range((len(d)+3)//4)
+        ]
+    else:
+        expected = [
+            jtype(*extend(data[i*4:i*4+4]))
+            for i in range((len(data)+3)//4)
+        ]
     r = joint(*data, size=size)
     for v, e in zip(r, expected):
         assert isinstance(v, jtype)
@@ -576,3 +595,89 @@ def test_scale(data, expected):
     assert tuple(r) == approx(tuple(expected))
     assert type(r) is _Scale
     assert all(isinstance(v, float) for v in r)
+
+
+@pytest.mark.parametrize('fn, n', [
+    (point, 3),
+    (uv, 2),
+])
+@pytest.mark.parametrize('p1, p2', [
+    ((0, 0, 0), (0, 0, 0),),
+    ((0, 0, 0), (1, 0, 0),),
+    ((0, 0, 0), (0, 1, 0),),
+    ((0, 0, 0), (0, 0, 1),),
+    ((0, 0, 0), (0, 1, 1),),
+    ((1, 1, 1), (2, 2, 2),),
+    ((-1, -1, -1), (2, -2, -2),),
+    ((-1.5, -1.5, -1.5), (2.5, -2.5, -2.5),),
+    ((-1.5, -1.5, -1.5), (-2.5, -2.5, -2.5),),
+    ((0, 0, 0), (1, 1, 1),),
+])
+def test_distance(fn, n, p1, p2):
+    '''
+    Test the distance function.
+    '''
+    p1 = p1[:n]
+    p2 = p2[:n]
+    p1 = fn(p1)
+    p2 = fn(p2)
+    # Use the constructed values to allow for scaling or clamping.
+    d = sqrt(sum((a-b)*(a-b) for a,b in zip(p1, p2)))
+    assert p1 - p2 == approx(d)
+    assert p2 - p1 == approx(d)
+
+@pytest.mark.parametrize('v1, v2, r', [
+    ((1, 1, 1), (1, 1, 1), 3),
+    ((0, 0, 1), (0, 0, 1), 1),
+    ((1, 0, 0), (0, 1, 0), 0),
+    ((1, 0, 0), (1, 1, 0), sqrt(2)*cos(pi/4)),
+])
+def test_dot(v1, v2, r):
+    '''
+    Test the dot product function.
+    '''
+    v1 = vector3(v1)
+    v2 = vector3(v2)
+    assert v1.dot(v2) == approx(r)
+    assert v2.dot(v1) == approx(r)
+    assert v1 * v2 == approx(r)
+    assert v2 * v1 == approx(r)
+
+@pytest.mark.parametrize('v1, v2, expect', [
+    ((1, 1, 1), (1, 1, 1), (0, 0, 0)),
+    ((0, 0, 1), (0, 0, 1), (0, 0, 0)),
+    ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+    ((1, 0, 0), (1, 1, 0), (0, 0, 1)),
+])
+def test_cross(v1, v2, expect):
+    '''
+    Test the cross product function.
+    '''
+    v1 = vector3(v1)
+    v2 = vector3(v2)
+    expect = vector3(expect)
+    r = v1 @ v2
+    rr = v2 @ v1
+    assert tuple(r) == approx(tuple(expect))
+    assert tuple(rr) == approx(tuple(-expect))
+
+@pytest.mark.parametrize('fn, n, extra', [
+    (vector2, 2, ()),
+    (vector3, 3, ()),
+    (vector4, 4, ()),
+    (tangent, 3, (1,)),
+    (tangent, 3, (-1,)),
+])
+@pytest.mark.parametrize('data, expect', [
+    ((0, 0, 0, 0), False),
+    ((1e-13, 1e-13, 1e-13, 1e-13), False),
+    ((0.1, 0.1, 0.1, 0.1), True),
+])
+def test_bool(fn, n, extra, expect, data):
+    '''
+    Test the bool function.
+    '''
+    data = data[:n] + extra
+    v = fn(data)
+    assert bool(v) == expect
+    assert bool(-v) == expect

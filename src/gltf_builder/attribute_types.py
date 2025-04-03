@@ -10,7 +10,7 @@ In general, these functions take 4 types of parameters:
 - An object of the type being created.
 '''
 
-from typing import NamedTuple, TypeAlias, Literal, overload, Optional, Any
+from typing import NamedTuple, TypeAlias, Literal, overload, Optional, Any, Self
 from math import sqrt
 from collections.abc import Iterable, Callable, Sequence
 from itertools import islice
@@ -58,19 +58,27 @@ class VectorLike(NamedTuple):
     Types that directly support vector operations such as length, addition, and dot products.
     '''
     def __bool__(self) -> bool:
-        return sum(v*v for v in self) > EPSILON*EPSILON
+        return sum(v*v for v in self) >= EPSILON2
     
     @property
     def length(self):
         return sqrt(sum(v*v for v in self))
     
-    def __add__(self, other: 'VectorLike') -> 'VectorLike':
+    def __add__(self, other: Self) -> Self:
+        if type(self) is not type(other):
+            raise ValueError('Invalid vector addition')
         return type(self)(*(a+b for a,b in zip(self, other)))
     
-    def __sub__(self, other: 'VectorLike') -> 'VectorLike':
-        return type(self)(*(a-b for a,b in zip(self, other)))
+    def __sub__(self, other: Self) -> Self:
+        if type(self) is not type(other):
+            raise ValueError('Invalid vector subtraction')
+        return type(self)(*(a-b for a,b in zip(self, other)))   
+
+                                                                                                                                                                                                                                                                                                                                                                                                                        
+    def __neg__(self) -> Self:
+        return type(self)(*(-a for a in self))
     
-    def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
+    def __mul__(self, other: float|Self) -> Self:
         match other:
             case float():
                 return type(self)(*(a*other for a in self))
@@ -79,8 +87,8 @@ class VectorLike(NamedTuple):
             case _:
                 raise ValueError('Invalid vector multiplication')
 
-    def __rmul__(self, other: float) -> 'VectorLike':
-        return type(self)(*(a*other for a in self))
+    def __rmul__(self, other: float|Self) -> Self:
+        return self.__mul__(other)
 
     def __truediv__(self, other: float) -> 'VectorLike':
         return type(self)(*(a/other for a in self))
@@ -93,7 +101,9 @@ class PointLike(NamedTuple):
     '''
     Pointlike quantities have meaningful scalar distances
     '''
-    def distance(self, other: 'PointLike') -> float:
+    def __sub__(self, other: Self) -> float:
+        if type(self) is not type(other):
+            raise ValueError('Invalid point subtraction')
         return sqrt(sum((a-b)**2 for a,b in zip(self, other)))
 
 
@@ -112,30 +122,8 @@ class _Vector3(_Floats3, VectorLike):
     x: float
     y: float
     z: float
-
-    def __bool__(self) -> bool:
-        '''
-        A near-zero length vector is considered false.
-        '''
-        x, y, z = self
-        return (x*x + y*y + z*z) > EPSILON2
-
-    def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
-        '''
-        Dot product, or scalar multiplication.
-        '''
-        match other:
-            case float():
-                return type(self)(*(a*other for a in self))
-            case VectorLike() if len(self) == len(other):
-               return self.x * other.x + self.y * other.y + self.z * other.z
-            case _Tangent():
-               return self.x * other.x + self.y * other.y + self.z * other.z
-            case _:
-                raise ValueError('Invalid vector multiplication')
-
     
-    def cross(self, other: 'Vector3') -> 'Vector3':
+    def cross(self, other: Self) -> Self:
         '''
         Return the cross product of this vector and another.
         '''
@@ -190,7 +178,7 @@ class _Tangent(_Floats4, VectorLike):
         Ignore w, which is always -1 0r 1
         '''
         x, y, z, _ = self
-        return (x*x + y+y + z*z) > EPSILON*EPSILON
+        return (x*x + y*y + z*z) > EPSILON*EPSILON
     
     def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
         match other:
@@ -839,10 +827,20 @@ def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
         size: The byte size of the joint indices. 0 for unspecified, 1 for 8-bit, 2 for 16.
     '''
     if size == 0:
-        if all(v <= 255 for v in ids):
-            size = 1
+        if not isinstance(ids[0], Sequence):
+            if all(v <= 255 for v in ids):
+                    size = 1
+            else:
+                size = 2
         else:
-            size = 2
+            if all(
+                v <= 255 
+                for s in ids
+                for v in s
+            ):
+                size = 1
+            else:
+                size = 2
     jtype, lim, np_dtype = [
         None,
         (_Joint8, 255, (np.uint8,),),
@@ -854,9 +852,9 @@ def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
         case tuple() if all(isinstance(i, int) and i <= lim for i in ids):
             return tuple(jtype(*chunk) for chunk in chunk4i(ids))
         case (tuple(),) if all(isinstance(i, int) and i <= lim for i in ids[0]):
-            return tuple(jtype(*chunk) for chunk in chunk4i(ids))
+            return tuple(jtype(*chunk) for chunk in chunk4i(ids[0]))
         case (np.ndarray(),) if ids[0].dtype in np_dtype:
-            return tuple(jtype(*chunk) for chunk in chunk4i(ids))
+            return tuple(jtype(*chunk) for chunk in chunk4i(ids[0]))
         case _:
             raise ValueError('Invalid joints')    
 
