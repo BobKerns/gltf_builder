@@ -12,7 +12,7 @@ In general, these functions take 4 types of parameters:
 
 from typing import NamedTuple, TypeAlias, Literal, overload, Optional, Any, Self
 from math import sqrt
-from collections.abc import Iterable, Callable, Sequence
+from collections.abc import Generator, Iterable, Callable, Sequence
 from itertools import islice
 
 import numpy as np
@@ -827,114 +827,129 @@ def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
         size: The byte size of the joint indices. 0 for unspecified, 1 for 8-bit, 2 for 16.
     '''
     if size == 0:
-        if not isinstance(ids[0], Sequence):
-            if all(v <= 255 for v in ids):
-                    size = 1
-            else:
-                size = 2
-        else:
-            if all(
-                v <= 255 
-                for s in ids
-                for v in s
-            ):
-                size = 1
-            else:
-                size = 2
+        match ids:
+            case _ if all(isinstance(i, int) for i in ids):
+                size = 1 if all(i <= 255 for i in ids) else 2
+            case _ if all(isinstance(i, Sequence) for i in ids):
+                size = 1 if all(v <= 255 for s in ids for v in s) else 2
+            case _  if all(isinstance(i, np.ndarray) for i in ids):
+                size = 1 if all(i.dtype == np.uint8 for i in ids) else 2
+            case _:
+                raise ValueError('Invalid joints')
     jtype, lim, np_dtype = [
         None,
-        (_Joint8, 255, (np.uint8,),),
+        (_Joint8, 255, (np.uint8, np.uint16),),
         (_Joint16, 65535, (np.uint8, np.uint16,)),
     ][size]
     match ids:
         case (_Joint(),) if isinstance(ids[0], jtype):
-            return ids[0]
+            return ids
         case tuple() if all(isinstance(i, int) and i <= lim for i in ids):
             return tuple(jtype(*chunk) for chunk in chunk4i(ids))
-        case (tuple(),) if all(isinstance(i, int) and i <= lim for i in ids[0]):
-            return tuple(jtype(*chunk) for chunk in chunk4i(ids[0]))
-        case (np.ndarray(),) if ids[0].dtype in np_dtype:
-            return tuple(jtype(*chunk) for chunk in chunk4i(ids[0]))
+        case (tuple(), *_) if all(
+                isinstance(i, int) and i <= lim
+                for d in ids
+                for i in d
+            ):
+            num_values = sum(len(a) for a in ids)
+            flat = (i for a in ids for i in a)
+            return tuple(jtype(*chunk)
+                         for chunk in chunk4i(ids[0], num_values=num_values)
+                        )
+        case _ if all(
+                    isinstance(i, np.ndarray) and i.dtype in np_dtype
+                    for i in ids
+                ):
+            num_values = sum(len(a) for a in ids)
+            flat = (i for a in ids for i in a)
+            return tuple(jtype(*chunk)
+                         for chunk in chunk4i(flat, num_values=num_values)
+                        )
         case _:
             raise ValueError('Invalid joints')    
 
 
-def chunk4(values: Iterable[float|int|None]) -> Iterable[tuple[float, float, float, float]]:
+def chunk4(values: Iterable[float|int|None],
+           num_values: Optional[int]=None) -> Iterable[tuple[float, float, float, float]]:
     '''
     Chunk an iterable of float values into groups of 4. The last chuunk will be
     extended with 0s if it is less than 4 values.
     '''
-    count = len(values) // 4
-    more = len(values) % 4
+    num_values = num_values or len(values)
+    count = num_values // 4
+    more = num_values % 4
+    viter = iter(values)
     for i in range(count):
         yield (
-            float(values[i*4] or 0.0),
-            float(values[i*4+1] or 0.0),
-            float(values[i*4+2] or 0.0),
-            float(values[i*4+3] or 0.0),
+            float(next(viter) or 0.0),
+            float(next(viter) or 0.0),
+            float(next(viter) or 0.0),
+            float(next(viter) or 0.0),
         )
     match more:
         case 0:
             return
         case 1:
             yield (
-                float(values[-1] or 0.0),
+                float(next(viter) or 0.0),
                 0.0,
                 0.0,
                 0.0,
             )
         case 2:
             yield (
-                float(values[-2] or 0.0),
-                float(values[-1] or 0.0),
+                float(next(viter) or 0.0),
+                float(next(viter) or 0.0),
                 0.0,
                 0.0,
             )
         case 3:
             yield (
-                float(values[-3] or 0.0),
-                float(values[-2] or 0.0),
-                float(values[-1] or 0.0),
+                float(next(viter) or 0.0),
+                float(next(viter) or 0.0),
+                float(next(viter) or 0.0),
                 0.0,
             )
 
 
-def chunk4i(values: Iterable[int|None]) -> Iterable[tuple[int, int, int, int]]:
+def chunk4i(values: Iterable[int|None], num_values: Optional[int]=None) -> Iterable[tuple[int, int, int, int]]:
     '''
     Chunk an iterable of int values into groups of 4. The last group  will be
     extended with 0s if it is less than 4 values.
     '''
-    count = len(values) // 4
-    more = len(values) % 4
+    num_values = num_values or len(values)
+    count = num_values // 4
+    more = num_values % 4
+    viter = iter(values)
     for i in range(count):
         yield (
-            int(values[i*4] or 0),
-            int(values[i*4+1] or 0),
-            int(values[i*4+2] or 0),
-            int(values[i*4+3] or 0),
+            int(next(viter) or 0),
+            int(next(viter) or 0),
+            int(next(viter) or 0),
+            int(next(viter) or 0),
         )
     match more:
         case 0:
             return
         case 1:
             yield (
-                int(values[-1] or 0),
+                int(next(viter) or 0),
                 0,
                 0,
                 0,
             )
         case 2:
             yield (
-                int(values[-2] or 0),
-                int(values[-1] or 0),
+                int(next(viter) or 0),
+                int(next(viter) or 0),
                 0,
                 0,
             )
         case 3:
             yield (
-                int(values[-3] or 0),
-                int(values[-2] or 0),
-                int(values[-1] or 0),
+                int(next(viter) or 0),
+                int(next(viter) or 0),
+                int(next(viter) or 0),
                 0,
             )
 
@@ -998,48 +1013,77 @@ def weight16(*args: int|float|None) -> tuple[_Weight16, ...]:
     return _weighti(args, 65535, _Weight16)
 
 
-def _weighti(args: tuple[float|int|None],
+def _weighti(args: tuple[np.ndarray|float|int|None],
              limit: int,
              fn: Callable[[tuple[int, int, int, int]], Any]) -> tuple[Any, ...]:
-    def reweigh(values: tuple[float|int|None]|np.ndarray) -> tuple[Any, ...]:
-        if isinstance(values, np.ndarray):
-            total = values.sum()
-        else:
-            total = sum(v or 0 for v in values)
-        if abs(total) < EPSILON:
-            return (fn(0, 0, 0, 0),)
-        results = [
-            _map_range((v or 0)/total, limit)
-            for v in values
-        ]
-        s = sum(results)
-        delta = limit - s
-        if delta > 0:
-            adj = 1
-        elif delta < 0:
-            adj = -1
-        if delta != 0:
-            errs = sorted(((i, abs(float(r)/limit - v)) for i, (r,v) in enumerate(zip(results, values))), key=lambda a: a[1])
-            for i, _ in islice(errs, 0, abs(delta)):
-                results[i] += adj
-        return tuple(fn(*chunk) for chunk in chunk4i(results))
     match args:
         case ()|((),):
             raise ValueError('Invalid weight, zero-length')
-        case tuple(values) if all(isinstance(v, _Weight8) for v in values) and limit == 255:
+        case _ if (limit == 255
+                    and all(
+                        isinstance(v, _Weight8)
+                        for v in args
+                    )
+                ):
             return args
-        case tuple(values) if all(isinstance(v, _Weight16) for v in values) and limit == 65535:
+        case _ if (limit == 65535
+                    and all(
+                        isinstance(v, _Weight16)
+                        for v in args
+                    )
+                ):
             return args
-        # We don't permit interconverting between integer formats because of loss of precision.
-        # Converting to an integer format is a one-way ticket.
-        case tuple(values) if len(values) > 0 and  all(v is None or isinstance(v, (float, int)) for v in values):
-            return reweigh(values)
-        case (tuple(values),) if len(values) > 0 and all(v is None or isinstance(v, (float, int)) for v in values):
-            return reweigh(values)
-        case (np.ndarray(),) if len(args[0]) > 0 and args[0].dtype == np.dtype(np.float32):
-            return reweigh(values[0])
-        case _:
-            raise ValueError('Invalid weight') 
+        case _ if all(
+                        isinstance(v, int)
+                        for v in args
+                    ):
+            dt = find_dtype(args)
+            values = np.fromiter(args, dtype=dt)
+        case _ if all(isinstance(v, np.ndarray) for v in args):
+            dt = find_dtype(v for a in args for v in a)
+            values = np.fromiter((v for a in args for v in a), dt)
+        case _ if all(isinstance(v, Iterable) for v in args):
+            dt = find_dtype(v for a in args for v in a)
+            values = np.fromiter((v for a in args for v in a), dtype=dt)
+        case _ if (
+                    len(args) > 0
+                    and all(isinstance(v, Sequence) for v in args)
+                    and all(
+                            v is None or isinstance(v, int)
+                            for v in args[0]
+                        )
+                ):
+            dt = find_dtype(v for a in args for v in a)
+            viter = (
+                    v or 0
+                    for a in args
+                    for v in a
+                )
+            values = np.fromiter(viter, dtype=dt)
+
+    total = values.sum()
+    if abs(total) < EPSILON:
+        return (fn(0, 0, 0, 0),)
+    results = np.zeros(len(values), dtype=values.dtype)
+    for i in range(len(values)):
+        results[i] = _map_range(values[i]/total, limit)
+    s = results.sum()
+    delta = limit - int(s)
+    if delta > 0:
+        adj = 1
+    elif delta < 0:
+        adj = -1
+    if delta != 0:
+        errs = sorted(
+            (
+                (i, abs(float(r)/limit - v))
+                for i, (r,v) in enumerate(zip(results, values))
+                if results[i] != 0
+            ),
+            key=lambda a: a[1])
+        for i, _ in islice(errs, 0, abs(delta)):
+            results[i] = int(results[i]) + adj
+    return tuple(fn(*chunk) for chunk in chunk4i(results, num_values=len(results)))
 
 
 def _map_range(value: float|int, limit: int) -> int:
@@ -1048,6 +1092,27 @@ def _map_range(value: float|int, limit: int) -> int:
     '''
     value = max(0.0, min(1.0, value))
     return round(float(value) * limit)
+
+
+def find_dtype(values: Iterable[int]) -> np.dtype:
+    '''
+    Find the smallest numpy dtype that can hold the values.
+    '''
+    if not isinstance(values, (Iterable, Generator)):
+        raise TypeError('values must be an iterable')
+    dt = np.uint8
+    for v in values:
+        try:
+            v = int(v)
+        except TypeError:
+            raise ValueError("Values ust be convertable to int")
+        if v < 0:
+            raise ValueError('values must be non-negative')
+        if v > 255:
+            dt = np.uint16
+        if v > 65535:
+            return np.uint32
+    return dt
 
 
 AttributeDataItem: TypeAlias = int|float|tuple[int, ...]|tuple[float, ...]|np.ndarray[tuple[int, ...], Any] 

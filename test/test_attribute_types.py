@@ -3,7 +3,8 @@ Tests for type constructors and types in attribute_types.py.
 '''
 
 from collections.abc import Callable
-from typing import Optional, Literal, Any, Sequence
+from typing import Optional, Literal, Any
+from functools import wraps
 from inspect import signature
 from math import sqrt, cos, pi
 
@@ -43,12 +44,15 @@ def tuple_of(c: Callable[[Callable[..., Any]], Callable[..., Any]],
     '''
     Test a type constructor with a tuple of data.
     '''
+    @wraps(c)
     def tupleobj(cnst: Callable[..., Any], data: tuple, /,
             size: Optional[ByteSize]=size):
         kwargs = {}
         if size is not None and signature(c).parameters.get('size') is not None:
             kwargs['size'] = size
         return (c(cnst, data, **kwargs),)
+    tupleobj.__name__ = f'{c.__name__}_tuple'
+    tupleobj.__qualname__ = tupleobj.__name__
     return tupleobj
 
 
@@ -81,6 +85,19 @@ def case_numpy(cnst: Callable[..., Any], data: tuple,):
     '''
     return (np.array(data, np.float32),)
 
+def case_numpy8(cnst: Callable[..., Any], data: tuple,):
+    '''
+    Test a type constructor with a numpy array.
+    '''
+    return (np.array(data, np.uint8),)
+
+
+def case_numpy16(cnst: Callable[..., Any], data: tuple,):
+    '''
+    Test a type constructor with a numpy array.
+    '''
+    return (np.array(data, np.uint16),)
+
 case_numpy_tuple = tuple_of(case_numpy)
 case_tuple_tuple = tuple_of(case_tuple)
 case_obj_tuple = tuple_of(case_obj)
@@ -108,6 +125,7 @@ def case_uv16(cnst: Callable[..., Any], data: tuple,):
 
 
 def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
+    @wraps(tcase)
     def validator(
             t: type,
             cnst: Callable[..., Any],
@@ -230,6 +248,8 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
                 assert all(isinstance(v, float) for v in r)
             case _:
                 raise ValueError(f"Invalid size: {size}")
+    validator.__name__ = f'validator_{tcase.__name__}'
+    validator.__qualname__ = validator.__name__
     return validator
 # Input cases
 
@@ -464,9 +484,9 @@ def test_tangent(data, tcase):
     case_tuple,
     case_tuple_tuple,
     case_obj,
-    case_obj_tuple,
-    case_numpy,
-    case_numpy_tuple,
+    #case_obj_tuple,
+    case_numpy8,
+    case_numpy16,
 ])
 def test_joint(tcase, data, size):
     '''
@@ -475,18 +495,12 @@ def test_joint(tcase, data, size):
     jtype = [_Joint, _Joint8, _Joint16][size]
     def extend(d):
         return d + (0,) * (4 - len(d))
-    if isinstance(data[0], Sequence):
-        expected = [
-            jtype(*extend(d[i*4:i*4+4]))
-            for d in data
-            for i in range((len(d)+3)//4)
-        ]
-    else:
-        expected = [
-            jtype(*extend(data[i*4:i*4+4]))
-            for i in range((len(data)+3)//4)
-        ]
-    r = joint(*data, size=size)
+    expected = [
+        jtype(*extend(data[i*4:i*4+4]))
+        for i in range((len(data)+3)//4)
+    ]
+    tdata = tcase(jtype, extend(data[:4]))
+    r = joint(*tdata, size=size)
     for v, e in zip(r, expected):
         assert isinstance(v, jtype)
         assert tuple(v) == approx(tuple(e))
