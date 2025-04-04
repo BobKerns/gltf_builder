@@ -6,11 +6,11 @@ from typing import TypeAlias
 
 import numpy as np
 
-from gltf_builder.attribute_types import _Point, _Vector3
+import gltf_builder.attribute_types as at
 
 
 class _Matrix:
-    def __init__(self, data):
+    def __init__(self, data: tuple|np.ndarray):
         if isinstance(data, np.ndarray):
             arr = data.copy()
         else:
@@ -19,50 +19,55 @@ class _Matrix:
             raise ValueError("Matrix must have 16 elements.")
         self._data = arr.reshape((4, 4))
 
-    def __matmul__(self, other):
-        if isinstance(other, Matrix):
-            return Matrix(np.matmul(self._data, other._data))
+    def __matmul__(self, other: '_Matrix|at._Vector3|at._Point'):
+        if isinstance(other, _Matrix):
+            return _Matrix(np.matmul(self._data, other._data))
 
-        if isinstance(other, _Vector3):
+        if isinstance(other, at._Vector3):
             v4 = np.array([other.x, other.y, other.z, 0], dtype=np.float32)
             result = self._data @ v4
-            return _Vector3(*result[:3])
+            return at.vector3(*result[:3])
 
-        if isinstance(other, _Point):
+        if isinstance(other, at._Point):
             v4 = np.array([other.x, other.y, other.z, 1], dtype=np.float32)
             result = self._data @ v4
-            return _Point(*result[:3])
+            return at.point(*result[:3])
 
         return NotImplemented
 
-    def __mul__(self, scalar):
+    def __mul__(self, scalar: float|int) -> '_Matrix':
         if not isinstance(scalar, (int, float)):
             return NotImplemented
-        return Matrix(self._data * scalar)
+        return matrix(self._data * scalar)
 
-    def __rmul__(self, scalar):
+    def __rmul__(self, scalar: float|int):
         return self.__mul__(scalar)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         return self._data[idx]
 
     def __eq__(self, other):
-        if not isinstance(other, Matrix):
+        if not isinstance(other, _Matrix):
             return False
         return np.allclose(self._data, other._data, rtol=1e-5, atol=1e-8)
 
     def __repr__(self):
         return f"Matrix({self._data.tolist()})"
 
-    def as_array(self):
+    def as_array(self) -> np.ndarray[tuple[int, int], np.float32]:
+        '''
+        Acess the underlying numpy array.
+        '''
         return self._data
 
     def copy(self):
-        return Matrix(self._data.copy())
+        # Our matrices are immutable, so copying is not needed.
+        return self
 
     @classmethod
     def identity(cls):
         return cls(np.identity(4, dtype=np.float32))
+    
 
 
 Matrix: TypeAlias = (
@@ -86,6 +91,12 @@ This includes:
     - tuple[tuple[float] * 4] * 4
 '''
 
+
+IDENTITY: Matrix = _Matrix.identity()
+'''
+The identity matrix for 3D transformations.
+This is a 4x4 matrix with ones on the diagonal and zeros elsewhere.
+'''
 
 def matrix(m: Matrix) -> _Matrix:
     '''

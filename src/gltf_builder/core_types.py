@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 
 import pygltflib as gltf
+import numpy as np
 
 ByteSize: TypeAlias = Literal[1, 2, 4]
 '''
@@ -146,3 +147,6 @@ class NameMode(StrEnum):
     '''
     Do not use names.
     '''
+
+
+Number: TypeAlias = int | float | np.float32

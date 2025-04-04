@@ -17,7 +17,7 @@ from itertools import islice
 
 import numpy as np
 
-from gltf_builder.core_types import ByteSize, ByteSizeAuto
+from gltf_builder.core_types import ByteSize, ByteSizeAuto, Number
 
 EPSILON = 1e-12
 '''
@@ -489,9 +489,9 @@ def point(x: Optional[float|Point|np.ndarray|tuple[float|int,float|int,float|int
             return _Point(0.0, 0.0, 0.0)
         case _Point(), None, None:
             return x
-        case float()|int(), float()|int(), float()|int():
+        case float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32():
             return _Point(float(x), float(y), float(z))
-        case (float()|int(), float()|int(), float()|int()), None, None:
+        case (float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32()), None, None:
             return _Point(float(x[0]), float(x[1]), float(x[2]))
         case np.ndarray(), None, None if x.shape == (3,):
             return _Point(float(x[0]), float(x[1]), float(x[2]))
@@ -594,20 +594,20 @@ def vector3() -> _Vector3: ...
 @overload
 def vector3(v: Vector3, /) -> _Vector3: ...
 @overload
-def vector3(x: float, y: float, z: float) -> _Vector3: ...
-def vector3(x: Optional[float|Point]=None,
-            y: Optional[float]=None,
-            z: Optional[float]=None) -> _Vector3:
+def vector3(x: Number, y: Number, z: Number) -> _Vector3: ...
+def vector3(x: Optional[Number|Point]=None,
+            y: Optional[Number]=None,
+            z: Optional[Number]=None) -> _Vector3:
     match x, y, z:
         case None, None, None:
             return _Vector3(0.0, 0.0, 0.0)
         case _Vector3(), None, None:
             return x
-        case (float()|int(), float()|int(), float()|int()), None, None:
+        case (float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32()), None, None:
             return _Vector3(float(x[0]), float(x[1]), float(x[2]))
         case np.ndarray(), None, None if x.shape == (3,):
             return _Vector3(float(x[0]), float(x[1]), float(x[2]))
-        case float()|int(), float()|int(), float()|int():
+        case float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32():
             return _Vector3(float(x), float(y), float(z))
         case _:
             raise ValueError('Invalid vector3')   
