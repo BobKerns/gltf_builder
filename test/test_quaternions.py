@@ -7,14 +7,19 @@ quaternion conversion to matrix, and quaternion interpolation.
 
 import math
 
+import numpy as np
+import pytest
+from pytest import approx, mark
+
 import gltf_builder.quaternion as Q
 from gltf_builder.quaternion import (
-    I, IDENTITY, J, K, MINUS_ONE, quaternion,
+    I, IDENTITY, J, K, MINUS_ONE, quaternion, _Quaternion,
 )
-from gltf_builder.attribute_types import vector3
-
-import pytest
-from pytest import approx
+from gltf_builder.attribute_types import (
+    vector3, scale,
+    _Vector3, _Scale,
+)
+from gltf_builder.matrix import matrix
 
 
 
@@ -122,3 +127,107 @@ def test_q_norm():
     assert normalized_q.x == approx(q.x / norm)
     assert normalized_q.y == approx(q.y / norm)
     assert normalized_q.z == approx(q.z / norm)
+
+
+@mark.parametrize("matrix_input, expected_translation, expected_rotation, expected_scale", [
+    # Translation only
+    (
+        np.array([
+            [1, 0, 0, 5],
+            [0, 1, 0, 6],
+            [0, 0, 1, 7],
+            [0, 0, 0, 1]
+        ]),
+        vector3(5, 6, 7),
+        quaternion(0, 0, 0, 1),
+        scale(1, 1, 1)
+    ),
+
+    # Scaling only
+    (
+        np.array([
+            [2, 0, 0, 0],
+            [0, 3, 0, 0],
+            [0, 0, 4, 0],
+            [0, 0, 0, 1]
+        ]),
+        vector3(0, 0, 0),
+        quaternion(0, 0, 0, 1),
+        scale(2, 3, 4)
+    ),
+
+    # Rotation only: 90° around Z
+    (
+        np.array([
+            [0, -1, 0, 0],
+            [1,  0, 0, 0],
+            [0,  0, 1, 0],
+            [0,  0, 0, 1]
+        ]),
+        vector3(0, 0, 0),
+        quaternion(0, 0, np.sqrt(0.5), np.sqrt(0.5)),
+        scale(1, 1, 1)
+    ),
+
+    # Rotation only: 180° around Y
+    (
+        np.array([
+            [-1,  0, 0, 0],
+            [ 0,  1, 0, 0],
+            [ 0,  0, -1, 0],
+            [ 0,  0,  0, 1]
+        ]),
+        vector3(0, 0, 0),
+        quaternion(0, 1, 0, 0),
+        scale(1, 1, 1)
+    ),
+
+    # Composed case: translation + uniform scale + identity rotation
+    (
+        np.array([
+            [2, 0, 0, 9],
+            [0, 2, 0, 8],
+            [0, 0, 2, 7],
+            [0, 0, 0, 1]
+        ]),
+        vector3(9, 8, 7),
+        quaternion(0, 0, 0, 1),
+        scale(2, 2, 2)
+    ),
+
+    # Composed case: rotation (90° Z) + translation
+    (
+        np.array([
+            [0, -1, 0, 3],
+            [1,  0, 0, 4],
+            [0,  0, 1, 5],
+            [0,  0, 0, 1]
+        ]),
+        vector3(3, 4, 5),
+        quaternion(0, 0, np.sqrt(0.5), np.sqrt(0.5)),
+        scale(1, 1, 1)
+    ),
+
+    # Composed case: rotation (90° X), uniform scale (3), and translation
+    (
+        np.array([
+            [3, 0,  0, 10],
+            [0, 0, -3, 20],
+            [0, 3,  0, 30],
+            [0, 0,  0, 1]
+        ]),
+        vector3(10, 20, 30),
+        quaternion(np.sqrt(0.5), 0, 0, np.sqrt(0.5)),
+        scale(3, 3, 3)
+    ),
+])
+def test_decompose_trs(matrix_input, expected_translation, expected_rotation, expected_scale):
+    t, r, s = Q.decompose_trs(matrix(matrix_input))
+
+    assert isinstance(t, _Vector3)
+    assert isinstance(r, _Quaternion)
+    assert isinstance(s, _Scale)
+
+    assert t == approx(expected_translation)
+    assert r == approx(expected_rotation)
+    assert s == approx(expected_scale)

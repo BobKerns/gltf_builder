@@ -7,7 +7,11 @@ from typing import NamedTuple, TypeAlias, overload
 
 import numpy as np
 
-from gltf_builder.attribute_types import EPSILON, Vector3, vector3
+from gltf_builder.attribute_types import (
+    EPSILON, Vector3, vector3,
+    _Vector3, _Scale, Scale
+)
+from gltf_builder.matrix import matrix, Matrix
 
 dtype = np.dtype([('x', np.float32),
                        ('y', np.float32),
@@ -203,7 +207,7 @@ def from_euler(yaw: float, pitch: float, roll: float) -> _Quaternion:
     return _Quaternion(qx, qy, qz, w)
 
 
-def to_axis_angle(q: Quaternion) -> tuple[tuple[float, float, float], float]:
+def to_axis_angle(q: Quaternion) -> tuple[Vector3, float]:
     """
     Convert a quaternion (x, y, z, w) to axis-angle representation.
 
@@ -288,13 +292,13 @@ def slerp(q1: Quaternion,
     return _Quaternion(qx, qy, qz, qw)
 
 
-def from_matrix(matrix):
+def from_matrix(m: Matrix):
     """
     Convert a 3x3 or 4x4 rotation matrix to a quaternion (x, y, z, w).
 
     Parameters
     ----------
-    matrix : array-like
+    matrix : Matrix
         A 3x3 or 4x4 rotation matrix. Can be a NumPy array or a sequence of sequences.
 
     Returns
@@ -303,7 +307,7 @@ def from_matrix(matrix):
         A 1D array representing the quaternion (x, y, z, w).
     """
     # Convert input to NumPy array
-    mat = np.array(matrix, dtype=float)
+    mat = matrix(m).as_array()
 
     # Extract the rotation part
     if mat.shape == (4, 4):
@@ -346,7 +350,7 @@ def from_matrix(matrix):
     return _Quaternion(*(q / np.linalg.norm(q)))
 
 
-def to_matrix(quaternion):
+def to_matrix(quaternion) -> Matrix:
     """
     Convert a quaternion (x, y, z, w) to a 3x3 rotation matrix.
 
@@ -374,16 +378,16 @@ def to_matrix(quaternion):
         [2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx)],
         [2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)]
     ])
-    return rot_matrix
+    return matrix(rot_matrix)
 
 
-def decompose_trs(matrix):
+def decompose_trs(m: Matrix) -> tuple[Vector3, Quaternion, Scale]:
     """
     Decompose a 4x4 transformation matrix into translation, rotation (as a quaternion), and scale components.
 
     Parameters
     ----------
-    matrix : array-like
+    m : Matrox
         A 4x4 transformation matrix. Can be a NumPy array or a sequence of sequences.
 
     Returns
@@ -397,7 +401,7 @@ def decompose_trs(matrix):
             Scale factors (sx, sy, sz).
     """
     # Convert input to NumPy array
-    mat = np.array(matrix, dtype=float)
+    mat = matrix(m).as_array()
 
     if mat.shape != (4, 4):
         raise ValueError("Input matrix must be 4x4.")
@@ -439,7 +443,7 @@ def decompose_trs(matrix):
             z = 0.25 * s
 
     rotation_quaternion = _Quaternion(x, y, z, w)
-    return translation, rotation_quaternion, scale
+    return _Vector3(*translation), rotation_quaternion, _Scale(*scale)
 
 
 def multiply(q1: Quaternion, q2: Quaternion):

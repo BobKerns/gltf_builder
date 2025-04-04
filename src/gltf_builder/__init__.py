@@ -20,6 +20,7 @@ from gltf_builder.utils import (
     distribute_floats, distribute_ints, normalize, map_range,
 )
 from gltf_builder.builder import Builder
+from gltf_builder.matrix import matrix, Matrix
 from gltf_builder.quaternion import (
     Quaternion
 )
@@ -45,6 +46,8 @@ __all__ = [
     'joint',
     'joints',
     'map_range',
+    'matrix',
+    'Matrix',
     'Matrix2',
     'Matrix3',
     'Matrix4',
