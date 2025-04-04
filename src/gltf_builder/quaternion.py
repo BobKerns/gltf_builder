@@ -7,10 +7,12 @@ from typing import NamedTuple, TypeAlias, overload
 
 import numpy as np
 
+from gltf_builder.attribute_types import EPSILON, Vector3, vector3
+
 dtype = np.dtype([('x', np.float32),
                        ('y', np.float32),
                        ('z', np.float32),
-                       ('w', np.float32)])
+                       ('w', np.float32),])
 '''
 Numpy dtype for a quaternion.
 '''
@@ -25,6 +27,48 @@ class _Quaternion(NamedTuple):
     y: float
     z: float
     w: float
+
+    def __neg__(self):
+        return _Quaternion(-self.x, -self.y, -self.z, -self.w)
+    
+    def __mul__(self, other):
+        if isinstance(other, _Quaternion):
+            return multiply(self, other)
+        elif isinstance(other, (int, float)):
+            return _Quaternion(self.x * other,
+                               self.y * other,
+                               self.z * other,
+                               self.w * other)
+        else:
+            raise TypeError(f"Unsupported operand type(s) for *: 'Quaternion' and '{type(other).__name__}'")
+
+    def __rmul__(self, other):
+        if isinstance(other, _Quaternion):
+            return multiply(other, self)
+        if isinstance(other, (int, float)):
+            return _Quaternion(self.x * other,
+                               self.y * other,
+                               self.z * other,
+                               self.w * other)
+        else:
+            raise TypeError(f"Unsupported operand type(s) for *: 'Quaternion' and '{type(other).__name__}'")
+        
+        def __truediv__(self, other):
+            if isinstance(other, (int, float)):
+                return _Quaternion(self.x / other,
+                                   self.y / other,
+                                   self.z / other,
+                                   self.w / other)
+            else:
+                raise TypeError(f"Unsupported operand type(s) for /: 'Quaternion' and '{type(other).__name__}'")
+
+IDENTITY = _Quaternion(0.0, 0.0, 0.0, 1.0)
+MINUS_ONE = _Quaternion(0, 0, 0, -1)
+
+I = _Quaternion(1.0, 0.0, 0.0, 0.0) # noqa
+J = _Quaternion(0.0, 1.0, 0.0, 0.0)
+K = _Quaternion(0.0, 0.0, 1.0, 0.0)
+W = _Quaternion(0.0, 0.0, 0.0, 1.0)
 
 @overload
 def quaternion(qx: _Quaternion|tuple[float, float, float, float]) -> _Quaternion:
@@ -65,9 +109,12 @@ def quaternion(qx: _Quaternion|float,
     return _Quaternion(qx, y, z, w)
 
 
-Quaternion: TypeAlias = _Quaternion|tuple[float, float, float, float]|np.typing.NDArray
+Quaternion: TypeAlias = (
+    _Quaternion|tuple[float, float, float, float]
+    |np.ndarray[tuple[int], np.float32]
+)
 
-def from_axis_angle(axis: tuple[float, float, float], angle: float) -> tuple[float, float, float, float]:
+def from_axis_angle(axis: tuple[float, float, float], angle: float) -> _Quaternion:
     """
     Convert a rotation about an arbitrary axis to a quaternion in (x, y, z, w) order.
 
@@ -80,7 +127,7 @@ def from_axis_angle(axis: tuple[float, float, float], angle: float) -> tuple[flo
 
     Returns
     -------
-    tuple[float, float, float, float]
+    _Quaternion
         A 4-element tuple representing the quaternion (x, y, z, w).
 
     Raises
@@ -107,10 +154,10 @@ def from_axis_angle(axis: tuple[float, float, float], angle: float) -> tuple[flo
     qz = z * sin_half_angle
     w = math.cos(half_angle)
     
-    return (qx, qy, qz, w)
+    return _Quaternion(qx, qy, qz, w)
 
 
-def from_euler(yaw: float, pitch: float, roll: float) -> tuple[float, float, float, float]:
+def from_euler(yaw: float, pitch: float, roll: float) -> _Quaternion:
     """
     Convert Euler angles (yaw, pitch, roll) to a quaternion in (x, y, z, w) order.
 
@@ -125,7 +172,7 @@ def from_euler(yaw: float, pitch: float, roll: float) -> tuple[float, float, flo
 
     Returns
     -------
-    tuple[float, float, float, float]
+    _Quaternion
         A quaternion (x, y, z, w) representing the same rotation.
 
     Notes
@@ -153,16 +200,16 @@ def from_euler(yaw: float, pitch: float, roll: float) -> tuple[float, float, flo
     qz = cr * cp * sy - sr * sp * cy
     w = cr * cp * cy + sr * sp * sy
 
-    return (qx, qy, qz, w)
+    return _Quaternion(qx, qy, qz, w)
 
 
-def to_axis_angle(q: tuple[float, float, float, float]) -> tuple[tuple[float, float, float], float]:
+def to_axis_angle(q: Quaternion) -> tuple[tuple[float, float, float], float]:
     """
     Convert a quaternion (x, y, z, w) to axis-angle representation.
 
     Parameters
     ----------
-    q : tuple[float, float, float, float]
+    q : Quaternion
         The quaternion (x, y, z, w).
 
     Returns
@@ -175,15 +222,15 @@ def to_axis_angle(q: tuple[float, float, float, float]) -> tuple[tuple[float, fl
     sin_half_angle = math.sqrt(x**2 + y**2 + z**2)
 
     if sin_half_angle < 1e-8:  # Avoid division by zero (identity rotation case)
-        return ((1.0, 0.0, 0.0), 0.0)  # Default axis (arbitrary when angle is zero)
+        return (vector3(1.0, 0.0, 0.0), 0.0)  # Default axis (arbitrary when angle is zero)
 
-    axis = (x / sin_half_angle, y / sin_half_angle, z / sin_half_angle)
+    axis = vector3(x / sin_half_angle, y / sin_half_angle, z / sin_half_angle)
     return axis, angle
 
 
-def slerp(q1: tuple[float, float, float, float], 
-        q2: tuple[float, float, float, float], 
-        t: float) -> tuple[float, float, float, float]:
+def slerp(q1: Quaternion, 
+        q2: Quaternion,
+        t: float) -> _Quaternion:
     """
     Perform Spherical Linear Interpolation (SLERP) between two quaternions.
 
@@ -198,7 +245,7 @@ def slerp(q1: tuple[float, float, float, float],
 
     Returns
     -------
-    tuple[float, float, float, float]
+    Quaternion
         The interpolated quaternion (x, y, z, w).
     """
     x1, y1, z1, w1 = q1
@@ -222,7 +269,7 @@ def slerp(q1: tuple[float, float, float, float],
         qz = z1 + t * (z2 - z1)
         qw = w1 + t * (w2 - w1)
         norm = math.sqrt(qx**2 + qy**2 + qz**2 + qw**2)
-        return (qx / norm, qy / norm, qz / norm, qw / norm)
+        return _Quaternion(qx / norm, qy / norm, qz / norm, qw / norm)
 
     theta_0 = math.acos(dot)  # Initial angle
     sin_theta_0 = math.sin(theta_0)
@@ -238,7 +285,7 @@ def slerp(q1: tuple[float, float, float, float],
     qz = s0 * z1 + s1 * z2
     qw = s0 * w1 + s1 * w2
 
-    return (qx, qy, qz, qw)
+    return _Quaternion(qx, qy, qz, qw)
 
 
 def from_matrix(matrix):
@@ -296,7 +343,7 @@ def from_matrix(matrix):
             z = 0.25 * s
 
     q = np.array([x, y, z, w], dtype=dtype)
-    return q / np.linalg.norm(q)
+    return _Quaternion(*(q / np.linalg.norm(q)))
 
 
 def to_matrix(quaternion):
@@ -344,7 +391,7 @@ def decompose_trs(matrix):
     tuple
         - translation : np.ndarray of shape (3,)
             Translation vector (tx, ty, tz).
-        - rotation_quaternion : np.ndarray of shape (4,)
+        - rotation_quaternion : Quaternion
             Rotation quaternion (x, y, z, w).
         - scale : np.ndarray of shape (3,)
             Scale factors (sx, sy, sz).
@@ -391,12 +438,11 @@ def decompose_trs(matrix):
             y = (rotation_matrix[1, 2] + rotation_matrix[2, 1]) / s
             z = 0.25 * s
 
-    rotation_quaternion = np.array([x, y, z, w], dtype=dtype)
-
+    rotation_quaternion = _Quaternion(x, y, z, w)
     return translation, rotation_quaternion, scale
 
 
-def multiply(q1, q2):
+def multiply(q1: Quaternion, q2: Quaternion):
     """
     Multiply two quaternions.
 
@@ -409,7 +455,7 @@ def multiply(q1, q2):
 
     Returns
     -------
-    np.ndarray
+    _Quaternion:
         The resulting quaternion (x, y, z, w) from the multiplication.
     """
     x1, y1, z1, w1 = q1
@@ -420,10 +466,10 @@ def multiply(q1, q2):
     z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
     w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
 
-    return np.array([x, y, z, w], dtype=dtype)
+    return _Quaternion(x, y, z, w)
 
 
-def conjugate(q: np.ndarray) -> np.ndarray:
+def conjugate(q: Quaternion) -> _Quaternion:
     """
     Compute the conjugate of a quaternion.
 
@@ -437,11 +483,10 @@ def conjugate(q: np.ndarray) -> np.ndarray:
     np.ndarray
         The conjugate quaternion (-x, -y, -z, w).
     """
-    q = np.array(q, dtype=float)
-    return np.array([-q[0], -q[1], -q[2], q[3]], dtype=dtype)
+    return _Quaternion(-q[0], -q[1], -q[2], q[3])
 
 
-def inverse(q: np.ndarray) -> np.ndarray:
+def inverse(q: Quaternion) -> np.ndarray:
     """
     Compute the inverse of a quaternion.
 
@@ -459,10 +504,10 @@ def inverse(q: np.ndarray) -> np.ndarray:
     norm_sq = np.dot(q, q)  # Equivalent to |q|^2
     if norm_sq == 0:
         raise ValueError("Cannot invert a zero-norm quaternion.")
-    return conjugate(q) / norm_sq
+    return _Quaternion(v / norm_sq for v in conjugate(q))
 
 
-def norm(q: np.ndarray) -> float:
+def norm(q: Quaternion) -> float:
     """
     Compute the norm (magnitude) of a quaternion.
 
@@ -479,7 +524,7 @@ def norm(q: np.ndarray) -> float:
     return np.linalg.norm(q)
 
 
-def normalize(q: np.ndarray) -> np.ndarray:
+def normalize(q: Quaternion) -> np.ndarray:
     """
     Normalize a quaternion to unit length.
 
@@ -494,12 +539,12 @@ def normalize(q: np.ndarray) -> np.ndarray:
         The normalized quaternion.
     """
     n = norm(q)
-    if n == 0:
+    if n < EPSILON:
         raise ValueError("Cannot normalize a zero-norm quaternion.")
-    return q / n
+    return _Quaternion(*(v / n for v in q))
 
 
-def rotate_vector(q: np.ndarray, v: np.ndarray) -> np.ndarray:
+def rotate_vector(q: Quaternion, v: Vector3) -> Vector3:
     """
     Rotate a 3D vector using a quaternion.
 
@@ -518,10 +563,10 @@ def rotate_vector(q: np.ndarray, v: np.ndarray) -> np.ndarray:
     v_quat = np.array([v[0], v[1], v[2], 0.0])
     q_inv = inverse(q)
     v_rot = multiply(multiply(q, v_quat), q_inv)
-    return v_rot[:3]  # Extract rotated vector
+    return vector3(*v_rot[:3])  # Extract rotated vector
 
 
-def log(q: np.ndarray) -> np.ndarray:
+def log(q: Quaternion) -> np.ndarray:
     """
     Compute the logarithm of a unit quaternion.
 
@@ -542,10 +587,10 @@ def log(q: np.ndarray) -> np.ndarray:
 
     if sin_theta > 1e-6:  # Avoid division by zero
         return theta * v / sin_theta
-    return np.zeros(3)  # If theta is zero, log is zero
+    return vector3()  # If theta is zero, log is zero
 
 
-def exp(v: np.ndarray) -> np.ndarray:
+def exp(v: Vector3) -> np.ndarray:
     """
     Compute the exponential map of an axis-angle representation.
 
@@ -559,9 +604,10 @@ def exp(v: np.ndarray) -> np.ndarray:
     np.ndarray
         The corresponding quaternion.
     """
+    v = np.array(v, dtype=np.float32)
     theta = np.linalg.norm(v)
     if theta > 1e-6:
         axis = v / theta
         sin_theta = np.sin(theta)
-        return np.concatenate([axis * sin_theta, [np.cos(theta)]])
-    return np.array([0, 0, 0, 1], dtype=dtype)  # Identity quaternion
+        return _Quaternion(*np.concatenate([axis * sin_theta, [np.cos(theta)]]))
+    return IDENTITY # Identity quaternion
