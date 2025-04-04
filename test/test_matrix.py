@@ -6,10 +6,11 @@ decomposition to translation, rotation, and scale.
 '''
 
 import numpy as np
-from pytest import approx
+from pytest import approx, mark
+
 
 from gltf_builder.matrix import (
-    matrix,
+    matrix, _Matrix,
     IDENTITY,
 )
 from gltf_builder.attribute_types import (
@@ -123,3 +124,72 @@ def test_matrix_rmul():
         (26, 28, 30, 32)
     ))
     assert result == expected
+
+
+@mark.parametrize('input', [
+    (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+    (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0),
+    ((1, 2, 3, 4),
+     (5, 6, 7, 8),
+     (9, 10, 11, 12),
+     (13, 14, 15, 16)),
+    ((1.0, 2.0, 3.0, 4.0),
+     (5.0, 6.0, 7.0, 8.0),
+     (9.0, 10.0, 11.0, 12.0),
+     (13.0, 14.0, 15.0, 16.0)),
+    np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]
+    ], dtype=np.int16),
+    np.array([
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0],
+        [9.0, 10.0, 11.0, 12.0],
+        [13.0, 14.0, 15.0, 16.0]
+    ]),
+    np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]
+    ], dtype=np.float32),
+    np.array([
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0],
+        [9.0, 10.0, 11.0, 12.0],
+        [13.0, 14.0, 15.0, 16.0]
+    ], dtype=np.float32),
+    np.array([
+        1, 2, 3, 4, 5, 6, 7, 8,
+        9, 10, 11, 12, 13, 14, 15, 16
+    ], dtype=np.int16),
+    np.array([
+        1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+        9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0
+    ]),
+    np.array([
+        1, 2, 3, 4, 5, 6, 7, 8,
+        9, 10, 11, 12, 13, 14, 15, 16
+    ], dtype=np.float32),
+    np.array([
+        1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+        9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0
+    ], dtype=np.float32),
+    matrix(((1, 2, 3, 4),
+            (5, 6, 7, 8),
+            (9, 10, 11, 12),
+            (13, 14, 15, 16))),
+])
+def test_constructor(input):
+    m = matrix(input)
+    assert isinstance(m, _Matrix)
+    assert m._data.shape == (4, 4)
+    assert m._data.dtype == np.float32
+    assert m._data.tolist() == [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+    ]

@@ -10,9 +10,14 @@ import gltf_builder.attribute_types as at
 
 
 class _Matrix:
-    def __init__(self, data: tuple|np.ndarray):
+    def __init__(self, data: tuple|np.ndarray, nocopy:bool = False):
         if isinstance(data, np.ndarray):
-            arr = data.copy()
+            if data.dtype != np.float32:
+                arr = data.astype(np.float32)
+            elif nocopy:
+                arr = data
+            else:
+                arr = data.copy()
         else:
            arr = np.array(data, dtype=np.float32)
         if arr.size != 16:
