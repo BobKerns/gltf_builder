@@ -406,32 +406,53 @@ A tuple of four floats or integers representing a morph target weight.
 
 
 NP2Vector: TypeAlias = np.ndarray[tuple[Literal[2]], np.float32]
+'''Numpy float32 representation of a 2D vector.'''
 NP3Vector: TypeAlias = np.ndarray[tuple[Literal[3]], np.float32]
+'''Numpy float32 representation of a 3D vector.'''
 NP4Vector: TypeAlias = np.ndarray[tuple[Literal[4]], np.float32]
+'''Numpy float32 representation of a 4D vector.'''
 
 NP4IVector32: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint32]
+'''Numpy uint32 representation of a 4D vector.'''
 NP4IVector16: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint16]
+'''Numpy uint16 representation of a 4D vector.'''
 NP4IVector8: TypeAlias = np.ndarray[tuple[Literal[4]], np.uint8]
+'''Numpy uint8 representation of a 4D vector.'''
 NP4IVector16s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int16]
+'''Numpy int16 representation of a 4D vector.'''
 NP4IVector8s: TypeAlias = np.ndarray[tuple[Literal[4]], np.int8]
+'''Numpy int8 representation of a 4D vector.'''
 
 NP3IVector32: TypeAlias = np.ndarray[tuple[Literal[3]], np.uint32]
+'''Numpy uint32 representation of a 3D vector.'''
 NP3IVector16: TypeAlias = np.ndarray[tuple[Literal[3]], np.uint16]
+'''Numpy uint16 representation of a 3D vector.'''
 NP3IVector8: TypeAlias = np.ndarray[tuple[Literal[3]], np.uint8]
+'''Numpy uint8 representation of a 3D vector.'''
 NP3IVector16s: TypeAlias = np.ndarray[tuple[Literal[3]], np.int16]
+'''Numpy int16 representation of a 3D vector.'''
 NP3IVector8s: TypeAlias = np.ndarray[tuple[Literal[3]], np.int8]
+'''Numpy int8 representation of a 3D vector.'''
 
 NP2IVector32: TypeAlias = np.ndarray[tuple[Literal[2]], np.uint32]
+'''Numpy uint32 representation of a 2D vector.'''
 NP2IVector16: TypeAlias = np.ndarray[tuple[Literal[2]], np.uint16]
+'''Numpy uint16 representation of a 2D vector.'''
 NP2IVector8: TypeAlias = np.ndarray[tuple[Literal[2]], np.uint8]
+'''Numpy uint8 representation of a 2D vector.'''
 NP2IVector16s: TypeAlias = np.ndarray[tuple[Literal[2]], np.int16]
+'''Numpy int16 representation of a 2D vector.'''
 NP2IVector8s: TypeAlias = np.ndarray[tuple[Literal[2]], np.int8]
+'''Numpy int8 representation of a 2D vector.'''
 
 Vec2: TypeAlias = tuple[float, float]
+'''tuple representation of a 2D vector.'''
 Vec3: TypeAlias = tuple[float, float, float]
+'''tuple representation of a 3D vector.'''
 Vec4: TypeAlias = tuple[float, float, float, float]
 
 IVec4: TypeAlias = tuple[int, int, int, int]
+'''tuple integer representation of a 4D vector.'''
 
 Vector2: TypeAlias = Vec2|_Vector2|NP2Vector
 Vector3: TypeAlias = Vec3|_Vector3|NP3Vector
