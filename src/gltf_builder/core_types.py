@@ -150,3 +150,9 @@ class NameMode(StrEnum):
 
 
 Number: TypeAlias = int | float | np.float32
+
+
+float01: TypeAlias = float|Literal[0,1]|np.float32
+'''
+A float value between 0 and 1, or the literals 0 or 1.
+'''

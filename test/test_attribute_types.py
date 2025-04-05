@@ -326,9 +326,46 @@ def test_type_constructors(
                         exc,
                     ):
     '''
-    Test the type constructors.
+    Test the type constructors
     '''
     validator_nested(t, cnst, ndata, ndata, ndata, data, exc, size='inf')
+
+
+def test_origin():
+    p = point()
+    assert p == _Point(0.0, 0.0, 0.0)
+
+
+@pytest.mark.parametrize('cnst, data, err', [
+    (vector2, (1.0,), ValueError),
+    (vector2, (1.0, 2.0, 3.0), TypeError),
+    (vector2, (1.0, "foo"), ValueError),
+    (vector3, (1.0, 2.0), ValueError),
+    (vector3, (1.0, 2.0, 3.0, 4.0), TypeError),
+    (vector3, (1.0, 2.0, "foo"), ValueError),
+    (vector4, (1.0, 2.0, 3.0), ValueError),
+    (vector4, (1.0, 2.0, 3.0, 4.0, 5.0), TypeError),
+    (vector4, (1.0, 2.0, 3.0, "foo"), ValueError),
+    (uv, (1.0,), ValueError),
+    (uv, (1.0, "foo"), ValueError),
+    (uv, (1.0, 2.0, 3.0), TypeError),
+    (scale, ("foo"), ValueError),
+    (scale, (1.0, 2.0, 3.0, 4.0), TypeError),
+    (point, (1.0,), ValueError),
+    (point, (1.0, 2.0), ValueError),
+    (point, (1.0, 2.0, 3.0, 4.0), TypeError),
+    (point, (1.0, 2.0, "foo"), ValueError),
+])
+def test_type_constructor_exceptions(
+                        cnst,
+                        data,
+                        err,
+                    ):
+    '''
+    Test the type constructors
+    '''
+    with pytest.raises(err):
+        cnst(*data)
 
 
 # Constructors and constructed types, floating point unlimited range.

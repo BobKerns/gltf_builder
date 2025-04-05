@@ -17,7 +17,7 @@ from itertools import islice
 
 import numpy as np
 
-from gltf_builder.core_types import ByteSize, ByteSizeAuto, Number
+from gltf_builder.core_types import ByteSize, ByteSizeAuto, Number, float01
 
 EPSILON = 1e-12
 '''
@@ -27,6 +27,15 @@ EPSILON2 = EPSILON * EPSILON
 '''
 The square of `EPSILON` for efficient near-zero length tests.
 '''
+
+
+class _Arrayable(NamedTuple):
+    '''
+    A tuple of values that can be converted to a numpy array.
+    '''
+    def __array__(self, dtype: np.dtype = np.float32, copy: bool=False) -> np.ndarray:
+        return np.fromiter(self, dtype=dtype)
+
 
 class _Floats2(NamedTuple):
     '''
@@ -80,7 +89,8 @@ class VectorLike(NamedTuple):
     
     def __mul__(self, other: float|Self) -> Self:
         match other:
-            case float():
+            case float()|np.float32():
+                other = float(other)
                 return type(self)(*(a*other for a in self))
             case VectorLike() if len(self) == len(other):
                return sum(a*b for a,b in zip(self, other))
@@ -107,30 +117,34 @@ class PointLike(NamedTuple):
         return sqrt(sum((a-b)**2 for a,b in zip(self, other)))
 
 
-class _Vector2(_Floats2, VectorLike):
+class _Vector2(_Floats2, VectorLike, _Arrayable):
     '''
     A 2D vector, x and y.
     '''
-    x: float
-    y: float
+    pass
 
 
-class _Vector3(_Floats3, VectorLike):
+class _Vector3(_Floats3, VectorLike, _Arrayable):
     '''
     A 3D vector, x, y, and z. 3D vectors support cross products.
     '''
-    x: float
-    y: float
-    z: float
     
-    def cross(self, other: Self) -> Self:
+    def cross(self, other: 'Self|_Tangent') -> Self:
         '''
         Return the cross product of this vector and another.
         '''
+        # Tangent is a 3D vector with additional info
+        match other:
+            case _Tangent():
+                sign = 1 if self.w == other.w else -1
+            case _:
+                sign = 1
+        if not isinstance(other, (_Vector3, _Tangent)):
+            raise ValueError('Invalid vector cross product')
         return _Vector3(
-            self.y * other.z - self.z * other.y,
-            self.z * other.x - self.x * other.z,
-            self.x * other.y - self.y * other.x
+            sign * (self.y * other.z - self.z * other.y),
+            sign * (self.z * other.x - self.x * other.z),
+            sign * (self.x * other.y - self.y * other.x) 
         )
     
     __matmul__ = cross
@@ -140,28 +154,21 @@ class _Vector4(_Floats4, VectorLike):
     '''
     A 4D vector, x, y, z, and w.
     '''
-    x: float
-    y: float
-    z: float
-    w: float
+    pass
 
 
 class _Point(_Floats3, PointLike):
     '''
     A point in 3D space. Required for any `Vertex`.
     '''
-    x: float
-    y: float
-    z: float
+    pass
 
 
 class _Scale(_Floats3):
     '''
     Scale factors for a 3D object node.
     '''
-    x: float
-    y: float
-    z: float
+    pass
 
 
 class _Tangent(_Floats4, VectorLike):
@@ -180,9 +187,14 @@ class _Tangent(_Floats4, VectorLike):
         x, y, z, _ = self
         return (x*x + y*y + z*z) > EPSILON*EPSILON
     
-    def __mul__(self, other: 'float|VectorLike') -> 'VectorLike':
+    @overload
+    def __mul__(self, other: float|np.float32) -> Self: ...
+    @overload
+    def __mul__(self, other: 'VectorLike') -> float: ...
+    def __mul__(self, other: 'float|np.float32|VectorLike') -> Self|float:
         match other:
-            case float():
+            case float()|np.float32():
+                other = float(other)
                 return type(self)(*(a*other for a in self))
             case VectorLike() if len(self) == len(other):
                return self.x * other.x + self.y * other.y + self.z * other.z
@@ -196,23 +208,11 @@ class _Tangent(_Floats4, VectorLike):
         x, y, z, _ = self
         return sqrt(x*x + y*y + z*z)
     
-    def cross(self, other: 'Vector3|_Tangent') -> 'Vector3':
-        '''
-        Return the cross product of this vector and another. The cross product involving
-        tangent is not tangent.
-        '''
-        match other:
-            case _Tangent():
-                sign = 1 if self.w == other.w else -1
-            case _:
-                sign = 1
-        return  _Vector3(
-            sign * (self.y * other.z - self.z * other.y),
-            sign(self.z * other.x - self.x * other.z),
-            sign(self.x * other.y - self.y * other.x)
-        )
-    
-    __matmul__ = cross
+    def __neg__(self) -> Self:
+        return _Tangent(-self.x, -self.y, -self.z, self.w)
+
+    cross = _Vector3.cross
+    __matmul__ = _Vector3.cross
 
 class _Uvf_(NamedTuple):
     '''
@@ -221,9 +221,11 @@ class _Uvf_(NamedTuple):
     u: float
     v: float
 
-class _Uvf(_Uvf_, PointLike):
-    u: float
-    v: float
+class _Uvf(_Uvf_, _Arrayable, PointLike):
+    '''
+    A 2D texture coordinate (in U and V) in floating point.
+    '''
+    pass
 
 class _UvX(NamedTuple):
     '''
@@ -232,35 +234,45 @@ class _UvX(NamedTuple):
     u: int
     v: int
 
-class _Uv8(_UvX, PointLike):
+
+class _Uv8(_UvX, _Arrayable, PointLike):
     '''
     A 2D texture coordinate (in U and V) in 8-bit integers.
     '''
-    u: int
-    v: int
+    pass
 
 
-class _Uv16(_UvX, PointLike):
+class _Uv16(_UvX, _Arrayable, PointLike):
     '''
     A 2D texture coordinate (in U and V) in 16-bit integers.
     '''
     u: int
     v: int
 
+
 _Uv: TypeAlias = _Uvf|_Uv8|_Uv16
 '''
 A 2D texture coordinate (in U and V) in floating point, 8-bit, or 16-bit integers.
 '''
 
-class RGB(NamedTuple):
+
+class _RGB(NamedTuple):
+    '''
+    A RGB color with integer values between 0 and 255, inclusive.
+    '''
+    r: int
+    g: int
+    b: int
+
+
+class RGB(_RGB, _Arrayable):
     '''
     A RGB color with floating point values between 0.0 and 1.0, inclusive.
     '''
-    r: float
-    g: float
-    b: float
+    pass
 
-class RGBA(NamedTuple):
+
+class _RGBA(NamedTuple):
     '''
     A RGBA color with floating point values between 0.0 and 1.0, inclusive.
     '''
@@ -270,10 +282,18 @@ class RGBA(NamedTuple):
     a: float
 
 
+class RGBA(_RGBA, _Arrayable):
+    '''
+    A RGBA color with floating point values between 0.0 and 1.0, inclusive.
+    '''
+    pass
+
+
 class _RGBI(NamedTuple):
     r: int
     g: int
     b: int
+
 
 class _RGBAI(NamedTuple):
     r: int
@@ -281,32 +301,38 @@ class _RGBAI(NamedTuple):
     b: int
     a: int
 
-class RGB8(_RGBI):
+
+class RGB8(_RGBI, _Arrayable):
     '''
     An RGB color with 8-bit integer values between 0 and 255, inclusive.
     '''
     pass
 
-class RGBA8(_RGBAI):
+
+class RGBA8(_RGBAI, _Arrayable):
     '''
     An RGAB color with 8-bit integer values between 0 and 255, inclusive.
     '''
     pass
+
 
 class RGB16(_RGBI):
     '''
     An RGB color with 16-bit integer values between 0 and 255, inclusive.
     '''
 
+
 class RGBA16(_RGBAI):
     '''
     An RGBA color with 16-bit integer values between 0 and 255, inclusive.
     '''
 
+
 _Colorf: TypeAlias = RGB|RGBA
 _Color8: TypeAlias = RGB8|RGBA8
 _Color16: TypeAlias = RGB16|RGBA16
 _Color: TypeAlias = _Colorf|_Color8|_Color16
+
 
 class _Joint(NamedTuple):
     '''
@@ -317,19 +343,22 @@ class _Joint(NamedTuple):
     j3: int
     j4: int
 
-class _Joint8(_Joint):
+
+class _Joint8(_Joint, _Arrayable):
     '''
     A tuple of four 8-bit integers representing a joint index
     '''
     pass
 
-class _Joint16(_Joint):
+
+class _Joint16(_Joint, _Arrayable):
     '''
     A tuple of four 16-bit integers representing a joint index.
     '''
     pass
 
-class _Weightf(NamedTuple):
+
+class _Weightf_(NamedTuple):
     '''
     A tuple of four floats representing a morph target weight.
     '''
@@ -337,6 +366,14 @@ class _Weightf(NamedTuple):
     w2: float
     w3: float
     w4: float
+
+
+class _Weightf(_Weightf_, _Arrayable):
+    '''
+    A tuple of four floats representing a morph target weight.
+    '''
+    pass
+
 
 class _WeightX(NamedTuple):
     '''
@@ -347,22 +384,26 @@ class _WeightX(NamedTuple):
     w3: int
     w4: int
 
-class _Weight8(_WeightX):
+
+class _Weight8(_WeightX, _Arrayable):
     '''
     A tuple of four 8-bit ints representing a morph target weight.
     '''
     pass
 
-class _Weight16(_WeightX):
+
+class _Weight16(_WeightX, _Arrayable):
     '''
     A tuple of four 16-bit ints representing a morph target weight.
     '''
     pass
 
+
 _Weight: TypeAlias = _Weightf|_Weight8|_Weight16
 '''
 A tuple of four floats or integers representing a morph target weight.
 '''
+
 
 NP2Vector: TypeAlias = np.ndarray[tuple[Literal[2]], np.float32]
 NP3Vector: TypeAlias = np.ndarray[tuple[Literal[3]], np.float32]
@@ -452,10 +493,6 @@ AttributeDataItem: TypeAlias = (
 Valid types for an attribute data item.
 '''
 
-float01: TypeAlias = float|Literal[0,1]
-'''
-A float value between 0 and 1, or the literals 0 or 1.
-'''
 
 @overload
 def point() -> _Point: ...
@@ -464,12 +501,12 @@ def point(p: Point, /) -> _Point: ...
 @overload
 def point(p: np.ndarray, /) -> _Point: ...
 @overload
-def point(p: tuple[float,float|int,float|int], /) -> _Point: ...
+def point(p: tuple[Number,Number,Number], /) -> _Point: ...
 @overload
-def point(x: float|int, y: float|int, z: float|int) -> _Point: ...
-def point(x: Optional[float|Point|np.ndarray|tuple[float|int,float|int,float|int]]=None,
-        y: Optional[float|int]=None,
-        z: Optional[float|int]=None) -> _Point:
+def point(x: Number, y: Number, z: Number) -> _Point: ...
+def point(x: Optional[Number|Point|np.ndarray|tuple[Number,Number,Number]]=None,
+        y: Optional[Number]=None,
+        z: Optional[Number]=None) -> _Point:
     '''
     Validate and return a canonicalized point object.
     Only the type is canonicalized, not the values.
@@ -504,9 +541,9 @@ def uv() -> _Uv: ...
 @overload
 def uv(v: Uv, /) -> _Uv: ...
 @overload
-def uv(u: float, v: float) -> _Uv: ...
-def uv(u: Optional[float|Point]=None,
-        v: Optional[float]=None,
+def uv(u: Number, v: Number, /) -> _Uv: ...
+def uv(u: Optional[Number|Point]=None,
+        v: Optional[Number]=None, /, *,
         size: ByteSizeAuto=4) -> _Uv:
     '''
     Return a canonicalized Uv texture coordinate object.
@@ -556,11 +593,11 @@ def uv(u: Optional[float|Point]=None,
                return u
             u = unscale(u)
             return _uv(scale(u.u), scale(u.v))
-        case (float()|int(), float()|int()), None:
+        case (float()|int()|np.float32(), float()|int()|np.float32()), None:
             return _uv(scale(u[0]), scale(u[1]))
         case np.ndarray(), None if u.shape == (2,):
             return _uv(scale(u[0]), scale(u[1]))
-        case float()|int(), float()|int():
+        case float()|int()|np.float32(), float()|int()|np.float32():
             return _uv(scale(u), scale(v))
         case _:
             raise ValueError('Invalid uv')     
@@ -571,19 +608,19 @@ def vector2() -> _Vector2: ...
 @overload
 def vector2(v: Vector2, /) -> _Vector2: ...
 @overload
-def vector2(x: float, y: float) -> _Vector2: ...
-def vector2(x: Optional[float|Point]=None,
-            y: Optional[float]=None) -> _Vector2:
+def vector2(x: Number, y: Number) -> _Vector2: ...
+def vector2(x: Optional[Number|Point]=None,
+            y: Optional[Number]=None) -> _Vector2:
     match x,y:
         case None, None:
             return _Vector2(0.0, 0.0)
         case _Vector2(), None:
             return x 
-        case (float()|int(), float()|int()), None:
+        case (float()|int()|np.float32(), float()|int()|np.float32()), None:
             return _Vector2(float(x[0]), float(x[1]))
         case np.ndarray(), None if x.shape == (2,):
             return _Vector2(float(x[0]), float(x[1]))
-        case float()|int(), float()|int():
+        case float()|int()|np.float32(), float()|int()|np.float32():
             return _Vector2(float(x), float(y))
         case _:
             raise ValueError('Invalid vector2')  
@@ -618,22 +655,22 @@ def vector4() -> _Vector4: ...
 @overload
 def vector4(v: Vector4, /) -> _Vector4: ...
 @overload
-def vector4(x: float, y: float, z: float) -> _Vector4: ...
-def vector4(x: Optional[float|Point]=None,
-        y: Optional[float]=None,
-        z: Optional[float]=None,
-        w: Optional[float]=None
+def vector4(x: Number, y: Number, z: Number, w: Number) -> _Vector4: ...
+def vector4(x: Optional[Number|Point]=None,
+        y: Optional[Number]=None,
+        z: Optional[Number]=None,
+        w: Optional[Number]=None
     ) -> _Vector4:
     match x, y, z, w:
         case None, None, None, None:
             return _Vector4(0.0, 0.0, 0.0, 0.0)
         case _Vector4(), None, None, None:
             return x
-        case (float()|int(), float()|int(), float()|int(), float()|int()), None, None, None:
+        case (float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32()), None, None, None:
             return _Vector4(float(x[0]), float(x[1]), float(x[2]), float(x[3]))
         case np.ndarray(), None, None, None if x.shape == (4,):
             return _Vector4(float(x[0]), float(x[1]), float(x[2]), float(x[3]))
-        case float()|int(), float()|int(), float()|int(), float()|int():
+        case float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32():
             return _Vector4(float(x), float(y), float(z), float(w))
         case _:
             raise ValueError('Invalid vector4')
@@ -644,23 +681,23 @@ def scale() -> _Scale: ...
 @overload
 def scale(p: Scale, /) -> _Scale: ...
 @overload
-def scale(x: float, y: float, z: float) -> _Scale: ...
-def scale(x: Optional[float|Point]=None,
-        y: Optional[float]=None,
-        z: Optional[float]=None) -> _Point:
+def scale(x: Number, y: Number, z: Number) -> _Scale: ...
+def scale(x: Optional[Number|Point]=None,
+        y: Optional[Number]=None,
+        z: Optional[Number]=None) -> _Point:
     match x, y, z:
         case None, None, None:
             return _Scale(1.0, 1.0, 1.0)
-        case float()|int(), None, None if y is None and z is None:
+        case float()|int()|np.float32(), None, None if y is None and z is None:
             x = float(x)
             return _Scale(x, x, x)
         case _Scale(), None, None:
             return x
-        case (float()|int(), float()|int(), float()|int()), None, None:
+        case (float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32()), None, None:
             return _Scale(float(x[0]), float(x[1]), float(x[2]))
         case np.ndarray(), None, None if x.shape == (3,):
             return _Scale(float(x[0]), float(x[1]), float(x[2]))
-        case float()|int(), float()|int(), float()|int():
+        case float()|int()|np.float32(), float()|int()|np.float32(), float()|int()|np.float32():
             return _Scale(float(x), float(y), float(z))
         case _:
             raise ValueError('Invalid scale')
@@ -669,25 +706,37 @@ def scale(x: Optional[float|Point]=None,
 @overload
 def tangent( t: Tangent) -> _Tangent: ...
 @overload
-def tangent(x: float|Tangent,
-            y: Optional[float]=None,
-            z: Optional[float]=None,
+def tangent(x: Number|Tangent,
+            y: Optional[Number]=None,
+            z: Optional[Number]=None,
             w: Optional[Literal[-1, 1]] = None,
         ) -> _Tangent: ...
-def tangent(x: float|Tangent,
-            y: Optional[float]=None,
-            z: Optional[float]=None,
+def tangent(x: Number|Tangent,
+            y: Optional[Number]=None,
+            z: Optional[Number]=None,
             w: Optional[Literal[-1, 1]] = 1,
         ) -> _Tangent:
     w = w or 1
     match x, y, z, w:
         case _Tangent(), None, None, -1|1:
             return x
-        case (float()|int(), float()|int(), float()|int(), float()|int()), None, None, -1|1:
+        case (float()|int()|np.float32(),
+              float()|int()|np.float32(),
+              float()|int()|np.float32(), 
+              -1|1
+              ), None, None, -1|1:
             return _Tangent(float(x[0]), float(x[1]), float(x[2]), float(x[3]))
-        case np.ndarray(), None, None, -1|1 if x.shape == (4,) and x[3] in (-1, 1):
+        case np.ndarray(), None, None, -1|1 if (
+            x.shape == (4,)
+            and x[3] in (-1, 1)
+        ):
             return _Tangent(float(x[0]), float(x[1]), float(x[2]), float(x[3]))
-        case float()|int(), float()|int(), float()|int(), -1|1:
+        case (
+            float()|int()|np.float32(),
+            float()|int()|np.float32(),
+            float()|int()|np.float32(),
+            -1|1
+        ):
             return _Tangent(float(x), float(y), float(z), float(w))
         case _:
             raise ValueError('Invalid tangent')
@@ -709,27 +758,27 @@ def color(c: RGBA8|NP4IVector16) -> RGBA16: ...
 @overload
 def color(c: Color, /) ->  Color: ...
 @overload
-def color(r: float, g: float, b: float, a: float) -> RGBA: ...
+def color(r: float01, g: float01, b: float01, a: float01) -> RGBA: ...
 @overload
-def color(r: float, g: float, b: float) -> RGB: ...
+def color(r: float01, g: float01, b: float01) -> RGB: ...
 @overload
 def color(c: Color, /, size: Literal[8]) ->  RGB|RGBA: ...
 @overload
-def color(r: float, g: float, b: float, a: float, size: Literal[8]) -> RGBA8: ...
+def color(r: float01, g: float01, b: float01, a: float01, size: Literal[8]) -> RGBA8: ...
 @overload
-def color(r: float, g: float, b: float, size: Literal[8]) -> RGB8: ...
+def color(r: float01, g: float01, b: float01, size: Literal[8]) -> RGB8: ...
 @overload
 def color(c: Color, /, size: Literal[16]) ->  RGB16|RGBA16: ...
 @overload
-def color(r: float, g: float, b: float, a: float, size: Literal[16]) -> RGBA16: ...
+def color(r: float01, g: float01, b: float01, a: float01, size: Literal[16]) -> RGBA16: ...
 @overload
-def color(r: float, g: float, b: float, size: Literal[16]) -> RGB16: ...
+def color(r: float01, g: float01, b: float01, size: Literal[16]) -> RGB16: ...
 @overload
 def color(c: Color, /, size: Literal[32]) ->  RGB|RGBA: ...
 @overload
-def color(r: float, g: float, b: float, a: float, size: Literal[32]) -> RGBA: ...
+def color(r: float01, g: float01, b: float01, a: float01, size: Literal[32]) -> RGBA: ...
 @overload
-def color(r: float, g: float, b: float, size: Literal[32]) -> RGB: ...
+def color(r: float01, g: float01, b: float01, size: Literal[32]) -> RGB: ...
 def color(r: Optional[float01|Color]=None,
          g: Optional[float01]=None,
          b: Optional[float01]=None,
@@ -741,9 +790,9 @@ def color(r: Optional[float01|Color]=None,
         2: (65535, RGB16, RGBA16),
         4: (1.0, RGB, RGBA),
     }[size]
-    def scale(v: float) -> int:
+    def scale(v: float01) -> int:
         return int(max(0, min(limit, round(v * limit))))
-    def clamp(v: float) -> float:
+    def clamp(v: float01) -> float:
         return max(0.0, min(1.0, float(v)))
     rescale = clamp if size == 4 else scale
     match r, g, b, a:
@@ -803,13 +852,14 @@ def rgb16(r: int, g: int, b: int, a: Optional[int]=None) -> RGB16:
     return RGBA16(clamp(r), clamp(g), clamp(b), clamp(a))
 
 
-def joints(weights: dict[int, int|float], /,
+def joints(weights: dict[int, float01], /,
            size: Literal[0, 1, 2]=0,
            precision: Literal[0, 1, 2, 4]=0) -> tuple[tuple[_Joint, ...], tuple['Weight', ...]]:
     '''
     Validate and return tuples of joint objects and weight objects, in groups of four.
     '''
     return joint(*weights.keys(), size=size), weight(list(weights.values()), precision=precision)
+
 
 JOINT_RANGES = [
         None,
@@ -873,7 +923,7 @@ def joint(*ids: int|tuple[int, ...]|np.ndarray[tuple[int], int],
             raise ValueError('Invalid joints')    
 
 
-def chunk4(values: Iterable[float|int|None],
+def chunk4(values: Iterable[float01|None],
            num_values: Optional[int]=None) -> Iterable[tuple[float, float, float, float]]:
     '''
     Chunk an iterable of float values into groups of 4. The last chuunk will be
@@ -1034,8 +1084,8 @@ def weight8() -> tuple: ...
 @overload
 def weight8(v: Weight, /) -> tuple[_Weight8]: ...
 @overload
-def weight8(*args: float|int|None) -> tuple[_Weight8, ...]: ...
-def weight8(*args: float|int|None) -> tuple[_Weight8, ...]:
+def weight8(*args: Number|None) -> tuple[_Weight8, ...]: ...
+def weight8(*args: Number|Weight|None) -> tuple[_Weight8, ...]:
     return _weighti(args, 255, _Weight8)
 
 
@@ -1044,15 +1094,15 @@ def weight16() -> tuple: ...
 @overload
 def weight16(v: Weight, /) -> tuple[_Weight16]: ...
 @overload
-def weight16(*args: int|float|None) -> tuple[_Weight16, ...]: ...
-def weight16(*args: int|float|None) -> tuple[_Weight16, ...]:
+def weight16(*args: Number|None) -> tuple[_Weight16, ...]: ...
+def weight16(*args: Number|None) -> tuple[_Weight16, ...]:
     '''
     
     '''
     return _weighti(args, 65535, _Weight16)
 
 
-def _weighti(args: tuple[np.ndarray|float|int|None],
+def _weighti(args: tuple[np.ndarray|Number|None],
              limit: int,
              fn: Callable[[tuple[int, int, int, int]], Any]) -> tuple[Any, ...]:
     match args:
@@ -1125,7 +1175,7 @@ def _weighti(args: tuple[np.ndarray|float|int|None],
     return tuple(fn(*chunk) for chunk in chunk4i(results, num_values=len(results)))
 
 
-def _map_range(value: float|int, limit: int) -> int:
+def _map_range(value: float01, limit: int) -> int:
     '''
     Map a value from 0..1.0. The value is clamped to the input range.
     '''

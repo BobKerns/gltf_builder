@@ -7,6 +7,7 @@ from typing import TypeAlias
 import numpy as np
 
 import gltf_builder.attribute_types as at
+from gltf_builder.core_types import Number
 
 
 class _Matrix:
@@ -40,12 +41,12 @@ class _Matrix:
 
         return NotImplemented
 
-    def __mul__(self, scalar: float|int) -> '_Matrix':
-        if not isinstance(scalar, (int, float)):
+    def __mul__(self, scalar: Number) -> '_Matrix':
+        if not isinstance(scalar, (int, float, np.float32)):
             return NotImplemented
         return matrix(self._data * scalar)
 
-    def __rmul__(self, scalar: float|int):
+    def __rmul__(self, scalar: Number):
         return self.__mul__(scalar)
 
     def __getitem__(self, idx: int):
@@ -73,7 +74,6 @@ class _Matrix:
     def identity(cls):
         return cls(np.identity(4, dtype=np.float32))
     
-
 
 Matrix: TypeAlias = (
     _Matrix
@@ -124,14 +124,14 @@ def matrix(m: Matrix) -> _Matrix:
         case tuple() if (
             len(m) == 4
             and all(isinstance(v, tuple) and len(v) == 4 for v in m)
-            and all(isinstance(v, (int, float))
+            and all(isinstance(v, (int, float, np.float32))
                     for a in m
                     for v in a)
         ):
             return _Matrix(m)
         case tuple() if (
             len(m) == 16
-            and all(isinstance(v, (int, float)) for v in m)
+            and all(isinstance(v, (int, float, np.float32)) for v in m)
         ):
             return _Matrix(m)
         case _:

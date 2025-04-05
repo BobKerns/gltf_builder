@@ -193,3 +193,23 @@ def test_constructor(input):
         [9, 10, 11, 12],
         [13, 14, 15, 16],
     ]
+
+M16 = np.array([
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16]
+], dtype=np.float32)
+M0 = np.zeros((4, 4), dtype=np.float32)
+@mark.parametrize('a, b, expected', [
+    (matrix(M16), IDENTITY, matrix(M16)),
+    (IDENTITY, matrix(M16), matrix(M16)),
+    (matrix(M16), matrix(M0), matrix(M0)),
+    (matrix(M0), matrix(M16), matrix(M0)),
+    (IDENTITY, matrix(M0), matrix(M0)),
+    (matrix(M0), IDENTITY, matrix(M0)),
+])
+def test_matrix_multiplication(a, b, expected):
+    result = a @ b
+    assert isinstance(result, _Matrix)
+    assert result == expected
