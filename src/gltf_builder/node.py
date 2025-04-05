@@ -16,7 +16,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.element import (
     Element, _Scope, BNode, BMesh, BPrimitive,
 )
-from gltf_builder.quaternion import Quaternion
+from gltf_builder.quaternions import QuaternionSpec
 from gltf_builder.mesh import _Mesh 
 from gltf_builder.holder import Holder
 from gltf_builder.protocols import (
@@ -54,7 +54,7 @@ class BNodeContainer(BNodeContainerProtocol):
                 children: Iterable[BNode]=(),
                 mesh: Optional[BMesh]=None,
                 translation: Optional[Vector3]=None,
-                rotation: Optional[Quaternion]=None,
+                rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3]=None,
                 matrix: Optional[Matrix4]=None,
                 extras: Mapping[str, Any]=EMPTY_MAP,
@@ -96,7 +96,7 @@ class BNodeContainer(BNodeContainerProtocol):
     def instantiate(self, node_or_mesh: BNode|BMesh, /,
                     name: str='',
                     translation: Optional[Vector3]=None,
-                    rotation: Optional[Quaternion]=None,
+                    rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3]=None,
                     matrix: Optional[Matrix4]=None,
                     extras: Mapping[str, Any]=EMPTY_MAP,
@@ -170,7 +170,7 @@ class _Node(BNodeContainer, BNode):
                  mesh: Optional[_Mesh]=None,
                  root: Optional[bool]=None,
                  translation: Optional[Vector3]=None,
-                 rotation: Optional[Quaternion]=None,
+                 rotation: Optional[QuaternionSpec]=None,
                  scale: Optional[Vector3]=None,
                  matrix: Optional[Matrix4]=None,
                  extras: Mapping[str, Any]=EMPTY_MAP,

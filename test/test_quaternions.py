@@ -1,6 +1,6 @@
 '''
-Tests for quaternian.py
-This file contains unit tests for the functions in the quaternian.py module.
+Tests for quaternions.py
+This file contains unit tests for the functions in the quaternions.py module.
 These tests cover quaternion multiplication, quaternion normalization,
 quaternion conversion to matrix, and quaternion interpolation.
 '''
@@ -11,16 +11,14 @@ import numpy as np
 import pytest
 from pytest import approx, mark
 
-import gltf_builder.quaternion as Q
-from gltf_builder.quaternion import (
-    I, IDENTITY, J, K, MINUS_ONE, quaternion, _Quaternion,
+from gltf_builder.quaternions import (
+    I, IDENTITY, J, K, MINUS_ONE, quaternion, Quaternion as Q, Quaternion,
 )
 from gltf_builder.attribute_types import (
     vector3, scale,
     _Vector3, _Scale,
 )
 from gltf_builder.matrix import matrix
-
 
 
 def test_quaternian():
@@ -40,8 +38,8 @@ def rotate_vector(v, q):
 
 def test_identity_multiplication():
     q = quaternion(0.5, 1, 2, 3)
-    assert Q.multiply(q, IDENTITY) == q
-    assert Q.multiply(IDENTITY, q) == q
+    assert q * IDENTITY == q
+    assert IDENTITY * q == q
 
 @pytest.mark.parametrize("a, b, result", [
     (I, J, K),
@@ -55,14 +53,14 @@ def test_identity_multiplication():
     (K, K, MINUS_ONE),
 ])
 def test_imaginary_unit_products(a, b, result):
-    assert Q.multiply(a, b) == result
+    assert a * b == result
 
 
 def test_full_formula_check():
     q1 = quaternion(1, 2, 3, 0)
     q2 = quaternion(4, 5, 6, 0)
     expected = quaternion(-3, 6, -3, -32)
-    assert Q.multiply(q1, q2) == expected
+    assert q1 * q2 == expected
 
 
 def test_full_formula_check_operator():
@@ -85,14 +83,14 @@ def test_inverse_multiplication():
     q = quaternion(sin_t, 0, 0, cos_t)
     q_inv = quaternion(-sin_t, 0, 0, cos_t)
 
-    assert Q.multiply(q, q_inv) == approx(IDENTITY)
+    assert q * q_inv == approx(IDENTITY)
 
 
 def test_non_commutativity():
     q1 = quaternion(1, 2, 3, 0)
     q2 = quaternion(4, 5, 6, 0)
-    prod1 = Q.multiply(q1, q2)
-    prod2 = Q.multiply(q2, q1)
+    prod1 = q1 * q2
+    prod2 = q2 * q1
     assert prod1 != approx(prod2)
 
 def test_rotate_vector_90deg_z():
@@ -103,17 +101,17 @@ def test_rotate_vector_90deg_z():
     q = quaternion(0, 0, sin_t, cos_t)  # unit quaternion for 90° around Z
 
     v = vector3(1, 0, 0)
-    v_rotated = rotate_vector(v, q)
+    v_rotated = q.rotate_vector(v)
 
     assert v_rotated == approx(vector3(0, 1, 0), abs=1e-6)
 
 def test_rotate_vector_180deg_y():
     # Rotate (1, 0, 0) by 180° around Y axis → should become (-1, 0, 0)
     theta = math.pi
-    q = (math.cos(theta/2), 0, math.sin(theta/2), 0)
+    q = quaternion(math.cos(theta/2), 0, math.sin(theta/2), 0)
 
     v = vector3(1, 0, 0)
-    v_rotated = rotate_vector(v, q)
+    v_rotated = q.rotate_vector(v)
 
     assert v_rotated == approx(vector3(-1, 0, 0), abs=1e-6)
 
@@ -121,7 +119,7 @@ def test_rotate_vector_180deg_y():
 def test_q_norm():
     'Test quaternion normalization'
     q = quaternion(1, 2, 3, 4)
-    normalized_q = Q.normalize(q)
+    normalized_q = q.normalize()
     norm = (q.w**2 + q.x**2 + q.y**2 + q.z**2) ** 0.5
     assert normalized_q.w == approx(q.w / norm)
     assert normalized_q.x == approx(q.x / norm)
@@ -225,9 +223,58 @@ def test_decompose_trs(matrix_input, expected_translation, expected_rotation, ex
     t, r, s = Q.decompose_trs(matrix(matrix_input))
 
     assert isinstance(t, _Vector3)
-    assert isinstance(r, _Quaternion)
+    assert isinstance(r, Quaternion)
     assert isinstance(s, _Scale)
 
     assert t == approx(expected_translation)
     assert r == approx(expected_rotation)
     assert s == approx(expected_scale)
+
+
+def angle_axis_quaternion(axis, angle_rad):
+    """Constructs quaternion (x, y, z, w) for rotation around axis."""
+    axis = np.asarray(axis, dtype=np.float32)
+    axis = axis / np.linalg.norm(axis)
+    half_angle = angle_rad / 2
+    s = np.sin(half_angle)
+    x, y, z = axis * s
+    w = np.cos(half_angle)
+    return quaternion(x, y, z, w)
+
+
+def test_log_of_identity_is_zero():
+    q = quaternion(0, 0, 0, 1)
+    log = q.log()
+    assert (log.x, log.y, log.z) == approx((0, 0, 0))
+
+
+def test_exp_of_zero_is_identity():
+    zero = quaternion(0, 0, 0, 0)
+    result = Q.exp(zero)
+    assert (result.x, result.y, result.z, result.w) == approx((0, 0, 0, 1))
+
+
+def test_log_exp_round_trip():
+    q = Q.from_axis_angle((0, 0, 1), np.pi / 2)
+    q2 = Q.exp(q.log())
+    assert q2 == approx(q)
+
+def test_exp_log_round_trip():
+    q = angle_axis_quaternion((1, 2, 3), np.pi * 0.75)
+    q2 = Q.exp(q.log())
+    assert q2 == approx((q))
+
+
+def test_log_magnitude_is_half_angle():
+    q = angle_axis_quaternion((0, 1, 0), np.pi)
+    log_q = q.log()
+    # Expected: log should have magnitude π/2 in direction (0,1,0)
+    assert (log_q.x, log_q.y, log_q.z) == approx((0, np.pi/2, 0), abs=1e-6)
+
+
+def test_halfway_rotation_via_scaled_log():
+    full = angle_axis_quaternion((0, 0, 1), np.pi)
+    log_half = 0.5 * full.log()
+    half = Q.exp(log_half)
+    expected = angle_axis_quaternion((0, 0, 1), np.pi / 2)
+    assert (half.x, half.y, half.z, half.w) == approx(tuple(expected))

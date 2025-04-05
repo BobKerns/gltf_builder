@@ -1,7 +1,6 @@
 import math
 
-from gltf_builder import Builder, PrimitiveMode
-import gltf_builder.quaternion as q
+from gltf_builder import Builder, PrimitiveMode, Quaternion as Q
 
 def test_example1(save):
     builder = Builder()
@@ -36,7 +35,7 @@ def test_example1(save):
     top.instantiate(cube,
                     translation=(2, 0, 0),
                     scale=(1, 2, 2),
-                    rotation=q.from_axis_angle((1, 1, 0.5), math.pi/4)
+                    rotation=Q.from_axis_angle((1, 1, 0.5), math.pi/4)
                 )
     gltf = builder.build()
     save(gltf)

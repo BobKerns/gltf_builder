@@ -21,8 +21,8 @@ from gltf_builder.utils import (
 )
 from gltf_builder.builder import Builder
 from gltf_builder.matrix import matrix, Matrix
-from gltf_builder.quaternion import (
-    Quaternion
+from gltf_builder.quaternions import (
+    QuaternionSpec, Quaternion, quaternion,
 )
 
 __all__ = [ 
@@ -58,6 +58,8 @@ __all__ = [
     'point',
     'PrimitiveMode',
     'Quaternion',
+    'quaternion',
+    'QuaternionSpec',
     'RGB',
     'RGBA',
     'RGBA16',

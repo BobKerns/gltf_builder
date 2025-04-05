@@ -17,8 +17,7 @@ from gltf_builder.core_types import (
 from gltf_builder.attribute_types import (
     Vector3, Matrix4
 )
-from gltf_builder.quaternion import Quaternion
-import gltf_builder.quaternion as Q
+from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
     from gltf_builder.element import(
         BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor,
@@ -40,7 +39,7 @@ class BNodeContainerProtocol(Protocol):
                 children: Iterable['BNode']=(),
                 mesh: Optional['BMesh']=None,
                 translation: Optional[Vector3]=None,
-                rotation: Optional[Quaternion]=None,
+                rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3]=None,
                 matrix: Optional[Matrix4]=None,
                 extras: Mapping[str, Any]=EMPTY_MAP,
@@ -54,7 +53,7 @@ class BNodeContainerProtocol(Protocol):
     def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
                     name: str='',
                     translation: Optional[Vector3]=None,
-                    rotation: Optional[Quaternion]=None,
+                    rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3]=None,
                     matrix: Optional[Matrix4]=None,
                     extras: Mapping[str, Any]=EMPTY_MAP,

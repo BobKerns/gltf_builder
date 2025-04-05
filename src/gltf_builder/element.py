@@ -14,7 +14,7 @@ import numpy as np
 import pygltflib as gltf
 
 from gltf_builder.holder import Holder
-from gltf_builder.quaternion import Quaternion
+from gltf_builder.quaternions import QuaternionSpec
 from gltf_builder.core_types import (
     PrimitiveMode, BufferViewTarget, ElementType, EMPTY_MAP,
 )
@@ -194,7 +194,7 @@ class BNode(Element[gltf.Node], _Scope, Protocol):
     mesh: BMesh
     root: bool
     translation: Optional[Vector3]
-    rotation: Optional[Quaternion]
+    rotation: Optional[QuaternionSpec]
     scale: Optional[Vector3]
     matrix: Optional[Matrix4]
 
