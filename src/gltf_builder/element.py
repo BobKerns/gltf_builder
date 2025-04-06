@@ -19,9 +19,10 @@ from gltf_builder.core_types import (
     PrimitiveMode, BufferViewTarget, ElementType, EMPTY_MAP,
 )
 from gltf_builder.attribute_types import (
-    Vector3, Vector4, Matrix4, Point,
+    Vector3Spec, Vector4Spec, PointSpec,
     AttributeDataItem, AttributeDataList, AttributeDataSequence,
 )
+from gltf_builder.matrix import Matrix4
 from gltf_builder.compile import Compileable, T, _Scope
 from gltf_builder.log import GLTF_LOG
 
@@ -145,7 +146,7 @@ class BPrimitive(Compileable[gltf.Primitive], Protocol):
     Base class for primitives
     '''
     mode: PrimitiveMode
-    points: list[Point]
+    points: list[PointSpec]
     attribs: dict[str, list[tuple[int|float,...]]]
     indicies: list[int]
     mesh: Optional['BMesh']
@@ -169,14 +170,14 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
 
     @abstractmethod
     def add_primitive(self, mode: PrimitiveMode,
-                      *points: Point,
-                      NORMAL: Optional[Iterable[Vector3]]=None,
-                      TANGENT: Optional[Iterable[Vector4]]=None,
-                      TEXCOORD_0: Optional[Iterable[Vector3]]=None,
-                      TEXCOORD_1: Optional[Iterable[Vector3]]=None,
-                      COLOR_0: Optional[Iterable[Vector4]]=None,
-                      JOINTS_0: Optional[Iterable[Vector4]]=None,
-                      WEIGHTS_0: Optional[Iterable[Vector4]]=None,
+                      *points: PointSpec,
+                      NORMAL: Optional[Iterable[Vector3Spec]]=None,
+                      TANGENT: Optional[Iterable[Vector4Spec]]=None,
+                      TEXCOORD_0: Optional[Iterable[Vector3Spec]]=None,
+                      TEXCOORD_1: Optional[Iterable[Vector3Spec]]=None,
+                      COLOR_0: Optional[Iterable[Vector4Spec]]=None,
+                      JOINTS_0: Optional[Iterable[Vector4Spec]]=None,
+                      WEIGHTS_0: Optional[Iterable[Vector4Spec]]=None,
                       extras: Mapping[str, Any]|None=EMPTY_MAP,
                       extensions: Mapping[str, Any]|None=EMPTY_MAP,
                       **attribs: Iterable[tuple[int|float,...]]
@@ -193,9 +194,9 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
 class BNode(Element[gltf.Node], _Scope, Protocol):
     mesh: BMesh
     root: bool
-    translation: Optional[Vector3]
+    translation: Optional[Vector3Spec]
     rotation: Optional[QuaternionSpec]
-    scale: Optional[Vector3]
+    scale: Optional[Vector3Spec]
     matrix: Optional[Matrix4]
 
     @property

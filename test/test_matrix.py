@@ -10,7 +10,7 @@ from pytest import approx, mark
 
 
 from gltf_builder.matrix import (
-    matrix, _Matrix,
+    matrix, Matrix,
     IDENTITY,
 )
 from gltf_builder.attribute_types import (
@@ -184,7 +184,7 @@ def test_matrix_rmul():
 ])
 def test_constructor(input):
     m = matrix(input)
-    assert isinstance(m, _Matrix)
+    assert isinstance(m, Matrix)
     assert m._data.shape == (4, 4)
     assert m._data.dtype == np.float32
     assert m._data.tolist() == [
@@ -211,5 +211,5 @@ M0 = np.zeros((4, 4), dtype=np.float32)
 ])
 def test_matrix_multiplication(a, b, expected):
     result = a @ b
-    assert isinstance(result, _Matrix)
+    assert isinstance(result, Matrix)
     assert result == expected

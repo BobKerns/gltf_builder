@@ -10,6 +10,18 @@ from types import MappingProxyType
 import pygltflib as gltf
 import numpy as np
 
+
+_IntScalar: TypeAlias = int|np.int8|np.int16|np.int32|np.uint8|np.uint16|np.uint32
+Scalar: TypeAlias = float|np.float32|_IntScalar
+'''A scalar value: int, float, or numpy equivalent.'''
+
+
+float01: TypeAlias = float|Literal[0,1]|np.float32
+'''
+A float value between 0 and 1, or the literals 0 or 1.
+'''
+
+
 ByteSize: TypeAlias = Literal[1, 2, 4]
 '''
 The size of the data in bytes for the glTF file. This is used to determine
@@ -147,12 +159,3 @@ class NameMode(StrEnum):
     '''
     Do not use names.
     '''
-
-
-Number: TypeAlias = int | float | np.float32
-
-
-float01: TypeAlias = float|Literal[0,1]|np.float32
-'''
-A float value between 0 and 1, or the literals 0 or 1.
-'''

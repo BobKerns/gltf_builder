@@ -1,12 +1,12 @@
 
 from gltf_builder.core_types import (
-    ByteSize, ByteSizeAuto,
+    Scalar, ByteSize, ByteSizeAuto,
     PrimitiveMode, ElementType,  ComponentType, NameMode,
 )
 from gltf_builder.attribute_types import (
-    Point, Tangent, Normal, Scalar, Vector, Vector2, Vector3, Vector4, VectorLike,
-    Matrix2, Matrix3, Matrix4, Scale, Uv,
-    Color, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
+    PointSpec, TangentSpec, NormalSpec, VectorSpec, Vector2Spec, Vector3Spec, Vector4Spec, VectorLike,
+    ScaleSpec, UvSpec,
+    ColorSpec, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
     point, scale, vector2, vector3, vector4, tangent, uv, joint, joints, weight,
     AttributeDataSequence, AttributeDataList, AttributeDataItem,
 
@@ -20,7 +20,7 @@ from gltf_builder.utils import (
     distribute_floats, distribute_ints, normalize, map_range,
 )
 from gltf_builder.builder import Builder
-from gltf_builder.matrix import matrix, Matrix
+from gltf_builder.matrix import matrix, MatrixSpec, Matrix2Spec, Matrix3Spec, Matrix4Spec
 from gltf_builder.quaternions import (
     QuaternionSpec, Quaternion, quaternion,
 )
@@ -37,7 +37,7 @@ __all__ = [
     'Builder',
     'ByteSize',
     'ByteSizeAuto',
-    'Color',
+    'ColorSpec',
     'color',
     'ComponentType',
     'distribute_floats',
@@ -47,14 +47,14 @@ __all__ = [
     'joints',
     'map_range',
     'matrix',
-    'Matrix',
-    'Matrix2',
-    'Matrix3',
-    'Matrix4',
+    'MatrixSpec',
+    'Matrix2Spec',
+    'Matrix3Spec',
+    'Matrix4Spec',
     'NameMode',
-    'Normal',
+    'NormalSpec',
     'normalize',
-    'Point',
+    'PointSpec',
     'point',
     'PrimitiveMode',
     'Quaternion',
@@ -69,19 +69,19 @@ __all__ = [
     'rgb16',
     'rgb8',
     'Scalar',
-    'Scale',
+    'ScaleSpec',
     'scale',
-    'Tangent',
+    'TangentSpec',
     'to_matrix',
-    'Uv',
+    'UvSpec',
     'uv',
     'tangent',
-    'Vector',
-    'Vector2',
+    'VectorSpec',
+    'Vector2Spec',
     'vector2',
-    'Vector3',
+    'Vector3Spec',
     'vector3',
-    'Vector4',
+    'Vector4Spec',
     'vector4',
     'VectorLike',
     'weight',

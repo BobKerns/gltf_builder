@@ -16,7 +16,7 @@ from gltf_builder.quaternions import (
 )
 from gltf_builder.attribute_types import (
     vector3, scale,
-    _Vector3, _Scale,
+    Vector3, Scale,
 )
 from gltf_builder.matrix import matrix
 
@@ -222,9 +222,9 @@ def test_q_norm():
 def test_decompose_trs(matrix_input, expected_translation, expected_rotation, expected_scale):
     t, r, s = Q.decompose_trs(matrix(matrix_input))
 
-    assert isinstance(t, _Vector3)
+    assert isinstance(t, Vector3)
     assert isinstance(r, Quaternion)
-    assert isinstance(s, _Scale)
+    assert isinstance(s, Scale)
 
     assert t == approx(expected_translation)
     assert r == approx(expected_rotation)

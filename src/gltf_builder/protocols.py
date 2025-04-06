@@ -14,9 +14,8 @@ from gltf_builder.holder import Holder
 from gltf_builder.core_types import (
     ElementType, ComponentType, NameMode, EMPTY_MAP,
 )
-from gltf_builder.attribute_types import (
-    Vector3, Matrix4
-)
+from gltf_builder.attribute_types import Vector3Spec
+from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
     from gltf_builder.element import(
@@ -38,9 +37,9 @@ class BNodeContainerProtocol(Protocol):
                 name: str='',
                 children: Iterable['BNode']=(),
                 mesh: Optional['BMesh']=None,
-                translation: Optional[Vector3]=None,
+                translation: Optional[Vector3Spec]=None,
                 rotation: Optional[QuaternionSpec]=None,
-                scale: Optional[Vector3]=None,
+                scale: Optional[Vector3Spec]=None,
                 matrix: Optional[Matrix4]=None,
                 extras: Mapping[str, Any]=EMPTY_MAP,
                 extensions: Mapping[str, Any]=EMPTY_MAP,
@@ -52,9 +51,9 @@ class BNodeContainerProtocol(Protocol):
     @abstractmethod
     def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
                     name: str='',
-                    translation: Optional[Vector3]=None,
+                    translation: Optional[Vector3Spec]=None,
                     rotation: Optional[QuaternionSpec]=None,
-                    scale: Optional[Vector3]=None,
+                    scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4]=None,
                     extras: Mapping[str, Any]=EMPTY_MAP,
                     extensions: Mapping[str, Any]=EMPTY_MAP,

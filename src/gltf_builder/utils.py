@@ -19,8 +19,8 @@ from gltf_builder.core_types import (
     ElementType, ComponentType, BufferType,
 )
 from gltf_builder.attribute_types import (
-    Vector, Vector4, Vector3, Vector2, _Vector, _Vector4, _Vector3, _Vector2, VectorLike,
-    _Tangent,
+    VectorSpec, Vector4Spec, Vector3Spec, Vector2Spec, Vector4, Vector3, Vector2, VectorLike,
+    Tangent,
 )
 
 
@@ -144,19 +144,19 @@ def distribute_ints(*values: int|float, lower: int=0, upper: int=255) -> tuple[i
 
 
 @overload
-def normalize(vec: Vector2) -> _Vector2: ...
+def normalize(vec: Vector2Spec) -> Vector2: ...
 @overload
-def normalize(vec: Vector3) -> _Vector3: ...
+def normalize(vec: Vector3Spec) -> Vector3: ...
 @overload
-def normalize(vec: Vector4) -> _Vector4: ...
-def normalize(vec: Vector) -> _Vector:
+def normalize(vec: Vector4Spec) -> Vector4: ...
+def normalize(vec: VectorSpec) -> Vector2|Vector3|Vector4:
     '''
     Normalize the vector to unit length.
     '''
     match vec:
-        case _Tangent():
+        case Tangent():
             tlen = vec.length
-            return _Tangent(vec.x/tlen, vec.y/tlen, vec.z/tlen, vec.w)
+            return Tangent(vec.x/tlen, vec.y/tlen, vec.z/tlen, vec.w)
         case VectorLike():
             cls = type(vec)
         case tuple() if type(vec) is not tuple:
@@ -164,11 +164,11 @@ def normalize(vec: Vector) -> _Vector:
             raise ValueError(f'{type(vec).name} is not a vector-like value.')
     match len(vec):
         case 2:
-            cls = _Vector2
+            cls = Vector2
         case 3:
-            cls = _Vector3
+            cls = Vector3
         case 4:
-            cls = _Vector4
+            cls = Vector4
         case _:
             raise ValueError(f'Unsupported vector length: {len(vec)}')
 

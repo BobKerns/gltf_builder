@@ -33,7 +33,7 @@ Based on the value of the trace, the quaternion components can be computed as:
 
   Otherwise, determine the largest diagonal element and compute the quaternion components accordingly to avoid division by small numbers, which can lead to numerical instability.
 
-This approach minimizes numerical errors by selecting the computation path that avoids small denominators. For a detailed discussion on this method, refer to Accurate Computation of Quaternions from Rotation Matrices.
+This approach minimizes numerical errors by selecting the computation path that avoids small denominators. For a detailed discussion on this method, refer to [Accurate Computation of Quaternions from Rotation Matrices](https://digital.csic.es/bitstream/10261/179990/1/Accurate%20Computation_Sarabandi.pdf).
 
 # Quaternion Multiplication
 
@@ -61,7 +61,7 @@ When implementing quaternion operations, consider the following to enhance numer
 * Thresholding: Implement thresholds to handle cases where computations approach numerical limits, such as very small denominators, to avoid instability.
 * Precision: Use appropriate data types (e.g., double precision) to minimize rounding errors in critical computations.
 
-For an in-depth exploration of numerical stability in quaternion computations, consult A Survey on the Computation of Quaternions from Rotation Matrices.
+For an in-depth exploration of numerical stability in quaternion computations, consult [A Survey on the Computation of Quaternions from Rotation Matrices](https://digital.csic.es/bitstream/10261/202072/1/A%20Survey%20on%20the%20Computation_Sarabandi.pdf).
 
 ## Conclusion
 

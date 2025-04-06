@@ -7,12 +7,12 @@ from typing import NamedTuple, TypeAlias, overload
 
 import numpy as np
 
-from gltf_builder.core_types import Number, float01
+from gltf_builder.core_types import Scalar, float01
 from gltf_builder.attribute_types import (
     EPSILON, vector3,
-    _Vector3, _Scale, scale,
+    Vector3, Scale, scale,
 )
-from gltf_builder.matrix import matrix, _Matrix
+from gltf_builder.matrix import matrix, Matrix
 
 dtype = np.dtype([('x', np.float32),
                        ('y', np.float32),
@@ -36,7 +36,7 @@ class Quaternion(NamedTuple):
     def __neg__(self):
         return Quaternion(-self.x, -self.y, -self.z, -self.w)
     
-    def __mul__(self, other: 'Quaternion|Number'):
+    def __mul__(self, other: 'Quaternion|Scalar'):
         if isinstance(other, Quaternion):
             x1, y1, z1, w1 = self
             x2, y2, z2, w2 = other
@@ -55,7 +55,7 @@ class Quaternion(NamedTuple):
         else:
             return NotImplemented
 
-    def __rmul__(self, other: 'Quaternion|Number'):
+    def __rmul__(self, other: 'Quaternion|Scalar'):
         if isinstance(other, Quaternion):
             return other * self
         if isinstance(other, (int, float, np.float32)):
@@ -66,7 +66,7 @@ class Quaternion(NamedTuple):
         else:
             return NotImplemented
         
-    def __truediv__(self, other: 'Quaternion|Number'):
+    def __truediv__(self, other: 'Quaternion|Scalar'):
         if isinstance(other, (int, float, np.float32)):
             other = float(other)
             return Quaternion(self.x / other,
@@ -88,7 +88,7 @@ class Quaternion(NamedTuple):
                            self.z / n,
                            self.w / n)
 
-    def rotate_vector(self, v: _Vector3) -> _Vector3:
+    def rotate_vector(self, v: Vector3) -> Vector3:
         """
         Rotate a 3D vector using this quaternion.
 
@@ -154,7 +154,7 @@ class Quaternion(NamedTuple):
         return Quaternion(0.0, 0.0, 0.0, 0.0)  # If theta is zero, log is zero
 
     @staticmethod
-    def exp(v: '_Vector3|Quaternion') -> 'Quaternion':
+    def exp(v: 'Vector3|Quaternion') -> 'Quaternion':
         """
         Compute the exponential map of an axis-angle representation.
 
@@ -179,7 +179,7 @@ class Quaternion(NamedTuple):
         return IDENTITY # Identity
     
     @staticmethod
-    def decompose_trs(m: _Matrix) -> tuple[_Vector3, 'Quaternion', _Scale]:
+    def decompose_trs(m: Matrix) -> tuple[Vector3, 'Quaternion', Scale]:
         """
         Decompose a 4x4 transformation matrix into translation, rotation (as a quaternion), and scale components.
 
@@ -241,9 +241,9 @@ class Quaternion(NamedTuple):
                 z = 0.25 * s
 
         rotation_quaternion = Quaternion(x, y, z, w)
-        return _Vector3(*translation), rotation_quaternion, scale(*_scale)
+        return Vector3(*translation), rotation_quaternion, scale(*_scale)
 
-    def to_matrix(self) -> _Matrix:
+    def to_matrix(self) -> Matrix:
         """
         Convert a quaternion (x, y, z, w) to a 4x4 rotation matrix.
 
@@ -272,7 +272,7 @@ class Quaternion(NamedTuple):
         ))
     
     @staticmethod
-    def from_matrix(m: _Matrix) -> 'Quaternion':
+    def from_matrix(m: Matrix) -> 'Quaternion':
         """
         Convert a 3x3 or 4x4 rotation matrix to a quaternion (x, y, z, w).
 
@@ -328,7 +328,7 @@ class Quaternion(NamedTuple):
         q = np.array([x, y, z, w], dtype=dtype)
         return Quaternion(*(q / np.linalg.norm(q)))
     
-    def to_axis_angle(self) -> tuple[_Vector3, float]:
+    def to_axis_angle(self) -> tuple[Vector3, float]:
         """
         Convert a quaternion (x, y, z, w) to axis-angle representation.
 
@@ -354,7 +354,7 @@ class Quaternion(NamedTuple):
 
 
     @staticmethod
-    def from_axis_angle(axis: _Vector3, angle: float) -> 'Quaternion':
+    def from_axis_angle(axis: Vector3, angle: float) -> 'Quaternion':
         """
         Convert a rotation about an arbitrary axis to a quaternion in (x, y, z, w) order.
 
@@ -517,15 +517,15 @@ W = Quaternion(0.0, 0.0, 0.0, 1.0)
 def quaternion(qx: 'QuaternionSpec') -> Quaternion:
     ...
 @overload
-def quaternion(qx: Number,
-               y: Number|None=None,
-               z: Number|None=None,
-               w: Number|None=None) -> Quaternion:
+def quaternion(qx: Scalar,
+               y: Scalar|None=None,
+               z: Scalar|None=None,
+               w: Scalar|None=None) -> Quaternion:
     ...
-def quaternion(qx: 'QuaternionSpec|Number',
-               y: Number|None=None,
-               z: Number|None=None,
-               w: Number|None=None) -> Quaternion:
+def quaternion(qx: 'QuaternionSpec|Scalar',
+               y: Scalar|None=None,
+               z: Scalar|None=None,
+               w: Scalar|None=None) -> Quaternion:
     '''
     Create a quaternion from a Quaternion object or components.
 
@@ -553,7 +553,7 @@ def quaternion(qx: 'QuaternionSpec|Number',
 
 
 QuaternionSpec: TypeAlias = (
-    Quaternion|tuple[Number, Number, Number, Number]
+    Quaternion|tuple[Scalar, Scalar, Scalar, Scalar]
     |np.ndarray[tuple[int], np.float32]
 )
 '''

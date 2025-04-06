@@ -11,7 +11,7 @@ from gltf_builder.core_types import (
     Phase, PrimitiveMode, BufferViewTarget, EMPTY_MAP,
 )
 from gltf_builder.attribute_types import (
-    Point, Vector3, Vector4,
+    PointSpec, Vector3Spec, Vector4Spec,
 )
 from gltf_builder.protocols import BuilderProtocol
 from gltf_builder.element import (
@@ -29,14 +29,14 @@ class _Primitive(BPrimitive):
     
     def __init__(self,
                  mode: PrimitiveMode,
-                 points: Optional[Iterable[Point]]=None,
-                 NORMAL: Optional[Iterable[Vector3]]=None,
-                 TANGENT: Optional[Iterable[Vector4]]=None,
-                 TEXCOORD_0: Optional[Iterable[Point]]=None,
-                 TEXCOORD_1: Optional[Iterable[Point]]=None,
-                 COLOR_0: Optional[Iterable[Point]]=None,
-                 JOINTS_0: Optional[Iterable[Point]]=None,
-                 WEIGHTS_0: Optional[Iterable[Point]]=None,
+                 points: Optional[Iterable[PointSpec]]=None,
+                 NORMAL: Optional[Iterable[Vector3Spec]]=None,
+                 TANGENT: Optional[Iterable[Vector4Spec]]=None,
+                 TEXCOORD_0: Optional[Iterable[PointSpec]]=None,
+                 TEXCOORD_1: Optional[Iterable[PointSpec]]=None,
+                 COLOR_0: Optional[Iterable[PointSpec]]=None,
+                 JOINTS_0: Optional[Iterable[PointSpec]]=None,
+                 WEIGHTS_0: Optional[Iterable[PointSpec]]=None,
                  extras: Mapping[str, Any]=EMPTY_MAP,
                  extensions: Mapping[str, Any]=EMPTY_MAP,
                  mesh: Optional[BMesh]=None,

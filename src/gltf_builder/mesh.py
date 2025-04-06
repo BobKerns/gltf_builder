@@ -11,7 +11,7 @@ from gltf_builder.core_types import (
     Phase, PrimitiveMode, EMPTY_MAP,
 )
 from gltf_builder.attribute_types import (
-    Point, Vector3, Vector4,
+    PointSpec, Vector3Spec, Vector4Spec,
 )
 from gltf_builder.protocols import BuilderProtocol
 from gltf_builder.element import BMesh, _Scope
@@ -37,14 +37,14 @@ class _Mesh(BMesh):
         self.__detached = detached
         
     def add_primitive(self, mode: PrimitiveMode,
-                      *points: Point,
-                      NORMAL: Optional[Iterable[Vector3]]=None,
-                      TANGENT: Optional[Iterable[Vector4]]=None,
-                      TEXCOORD_0: Optional[Iterable[Vector3]]=None,
-                      TEXCOORD_1: Optional[Iterable[Vector3]]=None,
-                      COLOR_0: Optional[Iterable[Vector4]]=None,
-                      JOINTS_0: Optional[Iterable[Vector4]]=None,
-                      WEIGHTS_0: Optional[Iterable[Vector4]]=None,
+                      *points: PointSpec,
+                      NORMAL: Optional[Iterable[Vector3Spec]]=None,
+                      TANGENT: Optional[Iterable[Vector4Spec]]=None,
+                      TEXCOORD_0: Optional[Iterable[Vector3Spec]]=None,
+                      TEXCOORD_1: Optional[Iterable[Vector3Spec]]=None,
+                      COLOR_0: Optional[Iterable[Vector4Spec]]=None,
+                      JOINTS_0: Optional[Iterable[Vector4Spec]]=None,
+                      WEIGHTS_0: Optional[Iterable[Vector4Spec]]=None,
                       extras: Mapping[str, Any]|None=EMPTY_MAP,
                       extensions: Mapping[str, Any]|None=EMPTY_MAP,
                       **attribs: Iterable[tuple[int|float,...]]

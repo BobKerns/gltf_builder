@@ -12,7 +12,7 @@ from pytest import approx
 from gltf_builder.utils import distribute_ints, distribute_floats, normalize, map_range
 
 from gltf_builder.attribute_types import (
-    _Vector2, _Vector3, _Vector4, _Tangent, EPSILON,
+    Vector2, Vector3, Vector4, Tangent, EPSILON,
 )
 
 
@@ -85,19 +85,19 @@ def test_distribute_ints(lower, upper,
 
 
 @pytest.mark.parametrize('input,vtype,expected', [
-    ((1, 1), _Vector2, (sqrt(2)/2, sqrt(2)/2)),
-    ((1, 0), _Vector2, (1.0, 0.0)),
-    ((0, 1), _Vector2, (0.0, 1.0)),
-    ((0, 0), _Vector2, (0, 0)),
-    (_Vector2(1, 1), _Vector2, (sqrt(2)/2, sqrt(2)/2)),
-    (np.array((1, 1), np.float32), _Vector2, (sqrt(2)/2, sqrt(2)/2)),
-    ((1, 1, 1), _Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
-    (_Vector3(1, 1, 1), _Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
-    (np.array((1, 1, 1), np.float32), _Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
-    ((1, 1, 1, 1), _Vector4, (0.5, 0.5, 0.5, 0.5)),
-    (_Vector4(1, 1, 1, 1), _Vector4, (0.5, 0.5, 0.5, 0.5)),
-    (_Tangent(1, 1, 1, 1), _Tangent, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3, 1.0)),
-    (np.array((1, 1, 1, 1), np.float32), _Vector4, (0.5, 0.5, 0.5, 0.5)),
+    ((1, 1), Vector2, (sqrt(2)/2, sqrt(2)/2)),
+    ((1, 0), Vector2, (1.0, 0.0)),
+    ((0, 1), Vector2, (0.0, 1.0)),
+    ((0, 0), Vector2, (0, 0)),
+    (Vector2(1, 1), Vector2, (sqrt(2)/2, sqrt(2)/2)),
+    (np.array((1, 1), np.float32), Vector2, (sqrt(2)/2, sqrt(2)/2)),
+    ((1, 1, 1), Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
+    (Vector3(1, 1, 1), Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
+    (np.array((1, 1, 1), np.float32), Vector3, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3)),
+    ((1, 1, 1, 1), Vector4, (0.5, 0.5, 0.5, 0.5)),
+    (Vector4(1, 1, 1, 1), Vector4, (0.5, 0.5, 0.5, 0.5)),
+    (Tangent(1, 1, 1, 1), Tangent, (sqrt(3)/3, sqrt(3)/3, sqrt(3)/3, 1.0)),
+    (np.array((1, 1, 1, 1), np.float32), Vector4, (0.5, 0.5, 0.5, 0.5)),
 ])
 def test_normalize(input, vtype, expected):
     r = normalize(input)

@@ -10,13 +10,12 @@ from typing import Optional, Any
 import pygltflib as gltf
 
 from gltf_builder.core_types import Phase, EMPTY_MAP
-from gltf_builder.attribute_types import (
-    Matrix4, Vector3,
-)
+from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
+from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
 from gltf_builder.element import (
     Element, _Scope, BNode, BMesh, BPrimitive,
 )
-from gltf_builder.quaternions import QuaternionSpec
+from gltf_builder.quaternions import QuaternionSpec, quaternion
 from gltf_builder.mesh import _Mesh 
 from gltf_builder.holder import Holder
 from gltf_builder.protocols import (
@@ -53,10 +52,10 @@ class BNodeContainer(BNodeContainerProtocol):
                 name: str='',
                 children: Iterable[BNode]=(),
                 mesh: Optional[BMesh]=None,
-                translation: Optional[Vector3]=None,
+                translation: Optional[Vector3Spec]=None,
                 rotation: Optional[QuaternionSpec]=None,
-                scale: Optional[Vector3]=None,
-                matrix: Optional[Matrix4]=None,
+                scale: Optional[Vector3Spec]=None,
+                matrix: Optional[Matrix4Spec]=None,
                 extras: Mapping[str, Any]=EMPTY_MAP,
                 extensions: Mapping[str, Any]=EMPTY_MAP,
                 detached: bool=False,
@@ -95,10 +94,10 @@ class BNodeContainer(BNodeContainerProtocol):
     
     def instantiate(self, node_or_mesh: BNode|BMesh, /,
                     name: str='',
-                    translation: Optional[Vector3]=None,
+                    translation: Optional[Vector3Spec]=None,
                     rotation: Optional[QuaternionSpec]=None,
-                    scale: Optional[Vector3]=None,
-                    matrix: Optional[Matrix4]=None,
+                    scale: Optional[Vector3Spec]=None,
+                    matrix: Optional[Matrix4Spec]=None,
                     extras: Mapping[str, Any]=EMPTY_MAP,
                     extensions: Mapping[str, Any]=EMPTY_MAP,
                 ) -> BNode:
@@ -169,10 +168,10 @@ class _Node(BNodeContainer, BNode):
                  children: Iterable['_Node']=(),
                  mesh: Optional[_Mesh]=None,
                  root: Optional[bool]=None,
-                 translation: Optional[Vector3]=None,
+                 translation: Optional[Vector3Spec]=None,
                  rotation: Optional[QuaternionSpec]=None,
-                 scale: Optional[Vector3]=None,
-                 matrix: Optional[Matrix4]=None,
+                 scale: Optional[Vector3Spec]=None,
+                 matrix: Optional[Matrix4Spec]=None,
                  extras: Mapping[str, Any]=EMPTY_MAP,
                  extensions: Mapping[str, Any]=EMPTY_MAP,
                  detached: bool=False,
@@ -185,10 +184,10 @@ class _Node(BNodeContainer, BNode):
         self.__detached = detached
         self.root = root
         self.mesh = mesh
-        self.translation = translation
-        self.rotation = rotation
-        self.scale = scale
-        self.matrix = matrix
+        self.translation = vector3(translation) if translation else None
+        self.rotation = quaternion(rotation) if rotation else None
+        self.scale = to_scale(scale) if scale else None
+        self.matrix = to_matrix(matrix) if matrix else None
         
     def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
         match phase:

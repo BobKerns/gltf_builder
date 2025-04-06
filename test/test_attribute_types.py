@@ -19,10 +19,10 @@ from gltf_builder.attribute_types import (
     joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
     weight, weight8, weight16,
     color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
-    _Vector2, _Vector3, _Vector4,
+    Vector2, Vector3, Vector4,
     _Weightf, _Weight8, _Weight16,
-    _Tangent, _Scale, _Point, _Uvf, _Uv16, _Uv8,
-    _Joint, _Joint8, _Joint16,
+    Tangent, Scale, Point, PointLike, UvfFloat, Uv16, Uv8,
+    Joint, _Joint8, _Joint16,
     EPSILON,
 )
 
@@ -107,21 +107,21 @@ def case_uvf(cnst: Callable[..., Any], data: tuple,):
     '''
     Test a type constructor with a _UvF instance.
     '''
-    return (_Uvf(*(float(d) for d in data)),)
+    return (UvfFloat(*(float(d) for d in data)),)
 
 
 def case_uv8(cnst: Callable[..., Any], data: tuple,):
     '''
     Test a type constructor with a _UvF instance.
     '''
-    return (_Uv8(*(round(float(d) * 255) for d in data)),)
+    return (Uv8(*(round(float(d) * 255) for d in data)),)
 
 
 def case_uv16(cnst: Callable[..., Any], data: tuple,):
     '''
     Test a type constructor with a _UvF instance.
     '''
-    return (_Uv16(*(round(float(d) * 65535) for d in data)),)
+    return (Uv16(*(round(float(d) * 65535) for d in data)),)
 
 
 def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
@@ -309,11 +309,11 @@ VEC_PARAMS = [
 
 # Constructors and constructed types, floating point unlimited range.
 @pytest.mark.parametrize('cnst, ndata, t', [
-    (vector2, 2, _Vector2),
-    (vector3, 3, _Vector3),
-    (vector4, 4, _Vector4),
-    (scale, 3, _Scale),
-    (point, 3, _Point),
+    (vector2, 2, Vector2),
+    (vector3, 3, Vector3),
+    (vector4, 4, Vector4),
+    (scale, 3, Scale),
+    (point, 3, Point),
 ])
 # Data and expected exceptions.
 @pytest.mark.parametrize('data, exc', VEC_PARAMS)
@@ -333,7 +333,7 @@ def test_type_constructors(
 
 def test_origin():
     p = point()
-    assert p == _Point(0.0, 0.0, 0.0)
+    assert p == Point(0.0, 0.0, 0.0)
 
 
 @pytest.mark.parametrize('cnst, data, err', [
@@ -370,9 +370,9 @@ def test_type_constructor_exceptions(
 
 # Constructors and constructed types, floating point unlimited range.
 @pytest.mark.parametrize('cnst, ndata, t, size', [
-    (uv, 2, _Uvf, 'inf',),
-    (uv, 2, _Uv16, 2,),
-    (uv, 2, _Uv8, 1,),
+    (uv, 2, UvfFloat, 'inf',),
+    (uv, 2, Uv16, 2,),
+    (uv, 2, Uv8, 1,),
 ])
 # Data and expected exceptions.
 @pytest.mark.parametrize('data, exc', SCALED_PARAMS)
@@ -394,12 +394,12 @@ def test_uv(
 
 
 @pytest.mark.parametrize('cnst, t, vals', [
-    (vector2, _Vector2, (0.0, 0.0)),
-    (vector3, _Vector3, (0.0, 0.0, 0.0)),
-    (vector4, _Vector4, (0.0, 0.0, 0.0, 0.0)),
-    (uv, _Uvf, (0.0, 0.0)),
-    (scale, _Scale, (1.0, 1.0, 1.0)),
-    (point, _Point, (0.0, 0.0, 0.0)),
+    (vector2, Vector2, (0.0, 0.0)),
+    (vector3, Vector3, (0.0, 0.0, 0.0)),
+    (vector4, Vector4, (0.0, 0.0, 0.0, 0.0)),
+    (uv, UvfFloat, (0.0, 0.0)),
+    (scale, Scale, (1.0, 1.0, 1.0)),
+    (point, Point, (0.0, 0.0, 0.0)),
 ])
 def test_emvty(cnst, t, vals):
     '''
@@ -500,11 +500,11 @@ def test_tangent(data, tcase):
     '''
     Test the tangent type constructor.
     '''
-    expected = _Tangent(*(float(n) for n in data))
-    args = tcase(_Tangent, tuple(float(d) for d in data))
+    expected = Tangent(*(float(n) for n in data))
+    args = tcase(Tangent, tuple(float(d) for d in data))
     r = tangent(*args)
     assert tuple(r) == approx(tuple(expected))
-    assert type(r) is _Tangent
+    assert type(r) is Tangent
     assert all(isinstance(v, float) for v in r)
 
 @pytest.mark.parametrize('size', [0, 1, 2])
@@ -529,7 +529,7 @@ def test_joint(tcase, data, size):
     '''
     Test the joint type constructor.
     '''
-    jtype = [_Joint, _Joint8, _Joint16][size]
+    jtype = [Joint, _Joint8, _Joint16][size]
     def extend(d):
         return d + (0,) * (4 - len(d))
     expected = [
@@ -710,13 +710,21 @@ def test_scale(data, expected):
         with pytest.raises(expected):
             scale(*data)
         return
-    expected = _Scale(*(float(n) for n in expected))
+    expected = Scale(*(float(n) for n in expected))
     r = scale(*data)
     assert tuple(r) == approx(tuple(expected))
-    assert type(r) is _Scale
+    assert type(r) is Scale
     assert all(isinstance(v, float) for v in r)
 
 
+def via_vector(p1: PointLike, p2: PointLike):
+    return (p1 - p2).length
+
+
+@pytest.mark.parametrize('via', [
+    via_vector,
+    PointLike.distance,
+])
 @pytest.mark.parametrize('fn, n', [
     (point, 3),
     (uv, 2),
@@ -733,7 +741,7 @@ def test_scale(data, expected):
     ((-1.5, -1.5, -1.5), (-2.5, -2.5, -2.5),),
     ((0, 0, 0), (1, 1, 1),),
 ])
-def test_distance(fn, n, p1, p2):
+def test_point_difference(fn, n, p1, p2, via):
     '''
     Test the distance function.
     '''
@@ -743,8 +751,8 @@ def test_distance(fn, n, p1, p2):
     p2 = fn(p2)
     # Use the constructed values to allow for scaling or clamping.
     d = sqrt(sum((a-b)*(a-b) for a,b in zip(p1, p2)))
-    assert p1 - p2 == approx(d)
-    assert p2 - p1 == approx(d)
+    assert (p1 - p2).length == d
+    assert (p2 - p1).length == d
 
 @pytest.mark.parametrize('v1, v2, r', [
     ((1, 1, 1), (1, 1, 1), 3),
