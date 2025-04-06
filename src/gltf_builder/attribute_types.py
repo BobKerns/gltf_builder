@@ -100,16 +100,24 @@ class VectorLike(NamedTuple):
             case VectorLike() if len(self) == len(other):
                return sum(a*b for a,b in zip(self, other))
             case _:
-                raise ValueError('Invalid vector multiplication')
+                return NotImplemented
 
     def __rmul__(self, other: float|Self) -> Self:
         return self.__mul__(other)
 
     def __truediv__(self, other: float) -> 'VectorLike':
-        return type(self)(*(a/other for a in self))
+        match other:
+            case float()|np.float32()|int()|np.int32()|np.uint16()|np.int16()|np.uint8()|np.int8():
+                return type(self)(*(a/other for a in self))
+            case _:
+                return NotImplemented
     
     def dot(self, other: 'VectorLike') -> float:
-        return sum(a*b for a,b in zip(self, other))
+        match other:
+            case VectorLike() if len(self) == len(other):
+                return sum(a*b for a,b in zip(self, other))
+            case _:
+                raise TypeError('Invalid vector dot product')
 
 
 VEC = TypeVar('VEC', bound='Vector2|Vector3')
@@ -141,7 +149,7 @@ class Vector3(_Floats3, VectorLike, _Arrayable):
     A 3D vector, x, y, and z. 3D vectors support cross products.
     '''
     
-    def cross(self, other: 'Self|Tangent') -> Self:
+    def __matmul__(self, other: 'Self|Tangent') -> Self:
         '''
         Return the cross product of this vector and another.
         '''
@@ -149,17 +157,15 @@ class Vector3(_Floats3, VectorLike, _Arrayable):
         match other:
             case Tangent():
                 sign = 1 if self.w == other.w else -1
-            case _:
+            case VectorLike():
                 sign = 1
-        if not isinstance(other, (Vector3, Tangent)):
-            raise ValueError('Invalid vector cross product')
+            case _:
+                return NotImplemented
         return Vector3(
             sign * (self.y * other.z - self.z * other.y),
             sign * (self.z * other.x - self.x * other.z),
             sign * (self.x * other.y - self.y * other.x) 
         )
-    
-    __matmul__ = cross
 
 
 class Vector4(_Floats4, VectorLike):
@@ -194,15 +200,16 @@ class Scale(_Floats3):
     '''
     pass
 
-
-class Tangent(_Floats4, VectorLike):
-    '''
-    A tangent vector. The w value is -1 or 1, indicating the direction of the bitangent.
-    '''
+class _Tangent(NamedTuple):
     x: float
     y: float
     z: float
     w: Literal[-1, 1]
+
+class Tangent(_Tangent, VectorLike):
+    '''
+    A tangent vector. The w value is -1 or 1, indicating the direction of the bitangent.
+    '''
 
     def __bool__(self) -> bool:
         '''
@@ -210,6 +217,26 @@ class Tangent(_Floats4, VectorLike):
         '''
         x, y, z, _ = self
         return (x*x + y*y + z*z) > EPSILON*EPSILON
+    
+    def __add__(self, other: Self) -> Self:
+        match other:
+            case Tangent():
+                pass
+            case VectorLike() if len(other == 3):
+                pass
+            case _:
+                return NotImplemented
+        return Tangent(self.x + other.x, self.y + other.y, self.z + other.z, self.w)
+    
+    def __sub__(self, other: Self) -> Self:
+        match other:
+            case Tangent():
+                pass
+            case VectorLike() if len(other == 3):
+                pass
+            case _:
+                return NotImplemented
+        return Tangent(self.x - other.x, self.y - other.y, self.z - other.z, self.w)
     
     @overload
     def __mul__(self, other: float|np.float32) -> Self: ...
@@ -220,10 +247,10 @@ class Tangent(_Floats4, VectorLike):
             case float()|np.float32():
                 other = float(other)
                 return type(self)(*(a*other for a in self))
-            case VectorLike() if len(self) == len(other):
-               return self.x * other.x + self.y * other.y + self.z * other.z
             case Tangent():
                 return self.x * other.x + self.y * other.y + self.z * other.z
+            case VectorLike() if len(self) == len(other):
+               return self.x * other.x + self.y * other.y + self.z * other.z
             case _:
                 raise ValueError('Invalid vector multiplication')
     
@@ -234,9 +261,26 @@ class Tangent(_Floats4, VectorLike):
     
     def __neg__(self) -> Self:
         return Tangent(-self.x, -self.y, -self.z, self.w)
+    
+    def __truediv__(self, other: float) -> 'VectorLike':
+        match other:
+            case float()|np.float32():
+                other = float(other)
+            case _:
+                return NotImplemented
+        return Tangent(self.x / other, self.y / other, self.z / other, self.w)
+    
+    def dot(self, other: 'VectorLike') -> float:
+        match other:
+            case Tangent():
+                pass
+            case  VectorLike() if len(other) == 3:
+                pass 
+            case _:
+                raise TypeError('Invalid vector dot product')
+        return self.x * other.x + self.y * other.y + self.z * other.z
 
-    cross = Vector3.cross
-    __matmul__ = Vector3.cross
+    __matmul__ = Vector3.__matmul__
 
 
 class _Sized(_Arrayable):

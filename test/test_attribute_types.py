@@ -11,8 +11,7 @@ from math import sqrt, cos, pi
 
 import numpy as np
 
-import pytest
-from pytest import approx
+from pytest import approx, mark, raises, fixture
 
 from gltf_builder.core_types import ByteSize
 from gltf_builder.attribute_types import (
@@ -214,12 +213,12 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
         if signature(cnst).parameters.get('size') is not None:
             kwargs['size'] = size
         if isinstance(exc, type) and issubclass(exc, Exception):
-            with pytest.raises((exc, TypeError)):
+            with raises((exc, TypeError)):
                 r = cnst(*data, **kwargs)
             return
         data = data[0:ndata]
         if 0 < len(data) < min_data or len(data) > max_data:
-            with pytest.raises((ValueError, TypeError)):
+            with raises((ValueError, TypeError)):
                 r = cnst(*data, **kwargs)
             return
         expected = t(*[elt_type(float(n)) for n in data])
@@ -253,12 +252,13 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
     return validator
 # Input cases
 
-@pytest.fixture(params=[case_tuple,
-                        case_tuple_tuple,
-                        case_obj,
-                        case_obj_tuple,
-                        case_numpy,
-                    ])
+@fixture(params=[
+        case_tuple,
+        case_tuple_tuple,
+        case_obj,
+        case_obj_tuple,
+        case_numpy,
+    ])
 def validator_nested(request):
     '''
     Validator for types and constructor functions.
@@ -268,7 +268,7 @@ def validator_nested(request):
     
 
 
-@pytest.fixture(params=[case_tuple,
+@fixture(params=[case_tuple,
                          case_obj,
                          ])
 def validator_flat(request):
@@ -280,7 +280,7 @@ def validator_flat(request):
 
 
     
-@pytest.fixture(params=[case_tuple,
+@fixture(params=[case_tuple,
                          case_uvf,
                          case_uv8,
                          case_uv16,
@@ -308,7 +308,7 @@ VEC_PARAMS = [
 
 
 # Constructors and constructed types, floating point unlimited range.
-@pytest.mark.parametrize('cnst, ndata, t', [
+@mark.parametrize('cnst, ndata, t', [
     (vector2, 2, Vector2),
     (vector3, 3, Vector3),
     (vector4, 4, Vector4),
@@ -316,7 +316,7 @@ VEC_PARAMS = [
     (point, 3, Point),
 ])
 # Data and expected exceptions.
-@pytest.mark.parametrize('data, exc', VEC_PARAMS)
+@mark.parametrize('data, exc', VEC_PARAMS)
 def test_type_constructors(
                         validator_nested,
                         t ,
@@ -336,7 +336,7 @@ def test_origin():
     assert p == Point(0.0, 0.0, 0.0)
 
 
-@pytest.mark.parametrize('cnst, data, err', [
+@mark.parametrize('cnst, data, err', [
     (vector2, (1.0,), ValueError),
     (vector2, (1.0, 2.0, 3.0), TypeError),
     (vector2, (1.0, "foo"), ValueError),
@@ -364,18 +364,18 @@ def test_type_constructor_exceptions(
     '''
     Test the type constructors
     '''
-    with pytest.raises(err):
+    with raises(err):
         cnst(*data)
 
 
 # Constructors and constructed types, floating point unlimited range.
-@pytest.mark.parametrize('cnst, ndata, t, size', [
+@mark.parametrize('cnst, ndata, t, size', [
     (uv, 2, UvfFloat, 'inf',),
     (uv, 2, Uv16, 2,),
     (uv, 2, Uv8, 1,),
 ])
 # Data and expected exceptions.
-@pytest.mark.parametrize('data, exc', SCALED_PARAMS)
+@mark.parametrize('data, exc', SCALED_PARAMS)
 def test_uv(
             validator_uv,
             t ,
@@ -393,7 +393,7 @@ def test_uv(
         )
 
 
-@pytest.mark.parametrize('cnst, t, vals', [
+@mark.parametrize('cnst, t, vals', [
     (vector2, Vector2, (0.0, 0.0)),
     (vector3, Vector3, (0.0, 0.0, 0.0)),
     (vector4, Vector4, (0.0, 0.0, 0.0, 0.0)),
@@ -410,12 +410,12 @@ def test_emvty(cnst, t, vals):
     assert isinstance(r, t)
 
 
-@pytest.mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
+@mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
     (color, 3, 4, 3, RGB, 4, False),
     (color, 3, 4, 4, RGBA, 4, False),
 ])
 # Data and expected exceptions.
-@pytest.mark.parametrize('data, exc', [
+@mark.parametrize('data, exc', [
     ((1.0, 0.9, 0.3, 0.1), None),
     ((1, "foo", 1, 1,), ValueError),
     ((1, 1, 1, 1, 1), ValueError),
@@ -438,7 +438,7 @@ def test_color(
             )
 
 
-@pytest.mark.parametrize('size', [1, 2, 4])
+@mark.parametrize('size', [1, 2, 4])
 def test_empty_color(size):
     '''
     Test the empty color type constructor.
@@ -453,14 +453,14 @@ def test_empty_color(size):
     r = color(size=size)
     assert r == expected
 
-@pytest.mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
+@mark.parametrize('cnst, min_data, max_data, ndata, t, size, to_int', [
     (rgb8, 3, 4, 3, RGB8, 1, True),
     (rgb8, 3, 4, 4, RGBA8, 1, True),
     (rgb16, 3, 4, 3, RGB16, 2, True),
     (rgb16, 3, 4, 4, RGBA16, 2, True),
 ])
 # Data and expected exceptions.
-@pytest.mark.parametrize('data, exc', [
+@mark.parametrize('data, exc', [
     ((1.0, 0.9, 0.3, 0.1), None),
     ((1, "foo", 1, 1,), ValueError),
     ((1, 1, 1, 1, 1), ValueError),
@@ -482,14 +482,13 @@ def test_color_flat(
                to_int=to_int,
             )
 
-
-@pytest.mark.parametrize('data', [
+@mark.parametrize('data', [
     (1, 2, 3, 1),
     (0.4, 0.3, 0.2, 1),
     (1, 2, 3, -1),
     (0.4, 0.3, 0.2, -1),
 ])
-@pytest.mark.parametrize('tcase', [
+@mark.parametrize('tcase', [
     case_tuple,
     case_tuple_tuple,
     case_obj,
@@ -507,8 +506,8 @@ def test_tangent(data, tcase):
     assert type(r) is Tangent
     assert all(isinstance(v, float) for v in r)
 
-@pytest.mark.parametrize('size', [0, 1, 2])
-@pytest.mark.parametrize('data', [
+@mark.parametrize('size', [0, 1, 2])
+@mark.parametrize('data', [
     (1,),
     (1, 2,),
     (1, 2, 3,),
@@ -517,7 +516,7 @@ def test_tangent(data, tcase):
     (1, 2, 3, 4, 5, 6,),
     (1, 2, 3, 4, 5, 6, 7,),
 ])
-@pytest.mark.parametrize('tcase', [
+@mark.parametrize('tcase', [
     case_tuple,
     case_tuple_tuple,
     case_obj,
@@ -542,7 +541,7 @@ def test_joint(tcase, data, size):
         assert isinstance(v, jtype)
         assert tuple(v) == approx(tuple(e))
 
-@pytest.mark.parametrize('data, size, expected', [
+@mark.parametrize('data, size, expected', [
     ((0.4, 0.3, 0.2, 0.1), 4, ((0.4, 0.3, 0.2, 0.1),)),
     ((0.2, 0.2, 0.3, 0.2, 0.1), 4, ((0.2, 0.2, 0.3, 0.2), (0.1, 0.0, 0.0, 0.0))),
     ((0.1, 0.2, 0.3, 0.2, 0.1, 0.1,), 4, ((0.1, 0.2, 0.3, 0.2), (0.1, 0.1, 0.0, 0.0))),
@@ -562,7 +561,7 @@ def test_joint(tcase, data, size):
     ((), 1, ValueError),
     ((), 2, ValueError),
 ])
-@pytest.mark.parametrize('tcase, zeropad', [
+@mark.parametrize('tcase, zeropad', [
     (case_tuple, False),
     (case_tuple_tuple, False),
     (case_weight_tuple, True),
@@ -604,7 +603,7 @@ def test_weight(tcase,
             )[:4]
     if isinstance(expected, type) and issubclass(expected, Exception):
         arg = tcase(t, argdata, **t_kwargs)
-        with pytest.raises(expected):
+        with raises(expected):
             c(arg, **kwargs)
         return
     arg =  tcase(t, argdata, **t_kwargs)
@@ -626,19 +625,19 @@ def test_weight(tcase,
                 assert ex-1 <= vx <= ex+1
 
 
-@pytest.mark.parametrize('precision, weight', [
+@mark.parametrize('precision, weight', [
     (0, _Weightf),
     (1, _Weight8),
     (2, _Weight16),
     (4, _Weightf),
 ])
 
-@pytest.mark.parametrize('size, joint', [
+@mark.parametrize('size, joint', [
     (0, None),
     (1, _Joint8),
     (2, _Joint16),
 ])
-@pytest.mark.parametrize('data, e_weights',[
+@mark.parametrize('data, e_weights',[
     ({1: 0.3}, ((1.0, 0.0, 0.0, 0.0),)),
     ({1: 0.3}, (((1.0, 0.0, 0.0, 0.0),))),
     ({1: 0.3}, (((1.0, 0.0, 0.0, 0.0),))),
@@ -658,11 +657,11 @@ def test_joints_weights(data, e_weights, size, joint, precision, weight):
     # Handle out-of-range joint indexes.
     match size:
         case 1 if any(v > 255 for v in e_joints):
-            with pytest.raises(ValueError):
+            with raises(ValueError):
                 joints(data, **kwargs)
             return
         case 0|2 if any(v > 65535 for v in e_joints):
-            with pytest.raises(ValueError):
+            with raises(ValueError):
                 joints(data, **kwargs)
             return
     if joint is None:
@@ -694,7 +693,7 @@ def test_joints_weights(data, e_weights, size, joint, precision, weight):
     assert r_weights == pe_weights
 
 
-@pytest.mark.parametrize('data, expected', [
+@mark.parametrize('data, expected', [
     ((), (1.0, 1.0, 1.0)),
     ((1.0, 2.0, 3.0), (1.0, 2.0, 3.0)),
     ((1.0, 2.0), ValueError),
@@ -707,7 +706,7 @@ def test_scale(data, expected):
     Test the scale type constructor.
     '''
     if isinstance(expected, type) and issubclass(expected, Exception):
-        with pytest.raises(expected):
+        with raises(expected):
             scale(*data)
         return
     expected = Scale(*(float(n) for n in expected))
@@ -721,15 +720,15 @@ def via_vector(p1: PointLike, p2: PointLike):
     return (p1 - p2).length
 
 
-@pytest.mark.parametrize('via', [
+@mark.parametrize('via', [
     via_vector,
     PointLike.distance,
 ])
-@pytest.mark.parametrize('fn, n', [
+@mark.parametrize('fn, n', [
     (point, 3),
     (uv, 2),
 ])
-@pytest.mark.parametrize('p1, p2', [
+@mark.parametrize('p1, p2', [
     ((0, 0, 0), (0, 0, 0),),
     ((0, 0, 0), (1, 0, 0),),
     ((0, 0, 0), (0, 1, 0),),
@@ -754,24 +753,38 @@ def test_point_difference(fn, n, p1, p2, via):
     assert (p1 - p2).length == d
     assert (p2 - p1).length == d
 
-@pytest.mark.parametrize('v1, v2, r', [
-    ((1, 1, 1), (1, 1, 1), 3),
-    ((0, 0, 1), (0, 0, 1), 1),
-    ((1, 0, 0), (0, 1, 0), 0),
-    ((1, 0, 0), (1, 1, 0), sqrt(2)*cos(pi/4)),
+def tanplus(x, y, z):
+    return tangent(x, y, z, 1)
+def tanminus(x, y, z):
+    return tangent(x, y, z, -1)
+
+@mark.parametrize('fn, dims', [
+    (tanplus, 3),
+    (tanminus, 3),
+    (vector2, 2),
+    (vector3, 3),
+    (vector4, 4),
 ])
-def test_dot(v1, v2, r):
+@mark.parametrize('v1, v2, r', [
+    ((1, 1, 1, 1), (1, 1, 1, 1), (2, 3, 4)),
+    ((0, 0, 1, 0), (0, 0, 1, 0), (0, 1, 1)),
+    ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0)),
+    ((0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0)),
+    ((1, 0, 0, 0), (1, 1, 0, 0), (sqrt(2)*cos(pi/4), sqrt(2)*cos(pi/4), sqrt(2)*cos(pi/4))),
+])
+def test_dot(v1, v2, r, fn, dims):
     '''
     Test the dot product function.
     '''
-    v1 = vector3(v1)
-    v2 = vector3(v2)
-    assert v1.dot(v2) == approx(r)
-    assert v2.dot(v1) == approx(r)
-    assert v1 * v2 == approx(r)
-    assert v2 * v1 == approx(r)
+    v1 = fn(*v1[:dims])
+    v2 = fn(*v2[:dims])
+    expected = r[dims-2]
+    assert v1.dot(v2) == approx(expected)
+    assert v2.dot(v1) == approx(expected)
+    assert v1 * v2 == approx(expected)
+    assert v2 * v1 == approx(expected)
 
-@pytest.mark.parametrize('v1, v2, expect', [
+@mark.parametrize('v1, v2, expect', [
     ((1, 1, 1), (1, 1, 1), (0, 0, 0)),
     ((0, 0, 1), (0, 0, 1), (0, 0, 0)),
     ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
@@ -789,14 +802,14 @@ def test_cross(v1, v2, expect):
     assert tuple(r) == approx(tuple(expect))
     assert tuple(rr) == approx(tuple(-expect))
 
-@pytest.mark.parametrize('fn, n, extra', [
+@mark.parametrize('fn, n, extra', [
     (vector2, 2, ()),
     (vector3, 3, ()),
     (vector4, 4, ()),
     (tangent, 3, (1,)),
     (tangent, 3, (-1,)),
 ])
-@pytest.mark.parametrize('data, expect', [
+@mark.parametrize('data, expect', [
     ((0, 0, 0, 0), False),
     ((1e-13, 1e-13, 1e-13, 1e-13), False),
     ((0.1, 0.1, 0.1, 0.1), True),
@@ -809,3 +822,21 @@ def test_bool(fn, n, extra, expect, data):
     v = fn(data)
     assert bool(v) == expect
     assert bool(-v) == expect
+
+
+@mark.parametrize('v1, v2, expected', [
+    (vector2(1, 2), vector2(3, 4), vector2(4, 6)),
+    (vector3(1, 2, 3), vector3(4, 5, 6), vector3(5, 7, 9)),
+    (vector4(1, 2, 3, 4), vector4(5, 6, 7, 8), vector4(6, 8, 10, 12)),
+    (tangent(1, 2, 3, 1), tangent(4, 5, 6, 1), tangent(5, 7, 9, 1)),
+    (tangent(1, 2, 3, -1), tangent(4, 5, 6, -1), tangent(5, 7, 9, -1)),
+])
+def test_vector_add(v1, v2, expected):
+    '''
+    Test the vector addition function.
+    '''
+    r = v1 + v2
+    rr = v2 + v1
+    assert tuple(r) == approx(tuple(expected))
+    assert tuple(rr) == approx(tuple(expected))
+    
