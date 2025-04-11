@@ -25,5 +25,9 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.analysis.inlayHints.pytestParameters": true
+    "python.analysis.inlayHints.pytestParameters": true,
+    "testing.displayedCoveragePercent": "statement",
+    "testing.coverageToolbarEnabled": true,
+    "github.copilot.chat.generateTests.codeLens": true,
+    "python.analysis.typeCheckingMode": "strict"
 }
