@@ -12,11 +12,11 @@ import pytest
 from pytest import approx, mark
 
 from gltf_builder.quaternions import (
-    I, IDENTITY, J, K, MINUS_ONE, quaternion, Quaternion as Q, Quaternion,
+    I, IDENTITY, J, K, MINUS_ONE, QuaternionSpec, quaternion, Quaternion as Q, Quaternion,
 )
 from gltf_builder.attribute_types import (
-    vector3, scale,
-    Vector3, Scale,
+    Vector3Spec, vector3, scale,
+    Vector3, Scale, vector4,
 )
 from gltf_builder.matrix import matrix
 
@@ -30,16 +30,18 @@ def test_quaternian():
     assert q.w == 4
 
 
-def rotate_vector(v, q):
+def rotate_vector(v: tuple[float, float, float], q: tuple[float, float, float]):
     """Rotate 3D vector v = (x, y, z) by unit quaternion q"""
-    v_q = quaternion(*v, 0.0)
-    q_inv = Q.conjugate(q)  # if q is unit-length, conjugate = inverse
-    return Q.multiply(Q.multiply(q, v_q), q_inv)[:3]  # drop scalar part
+    v_q = quaternion(*q, 0.0)  # convert to Quaternion with zero w-component
+    v3 = vector3(*v)  # convert to Vector3
+    return v_q.rotate_vector(v3)
+
 
 def test_identity_multiplication():
     q = quaternion(0.5, 1, 2, 3)
     assert q * IDENTITY == q
     assert IDENTITY * q == q
+
 
 @pytest.mark.parametrize("a, b, result", [
     (I, J, K),

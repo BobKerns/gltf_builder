@@ -2,52 +2,59 @@
 4x4 matrix class and operations.
 '''
 
-from typing import TypeAlias, Literal, Generic, TypeVar
+from typing import TypeAlias, Literal, Generic, TypeVar, cast, overload, Self, Any
 
 import numpy as np
 
 import gltf_builder.attribute_types as at
 from gltf_builder.core_types import Scalar
 
-
-DIMS = TypeVar('DIMS', bound=Literal[2, 3, 4])
+MatrixDims: TypeAlias = Literal[2, 3, 4]
+DIMS = TypeVar('DIMS', bound=MatrixDims)
 '''Number of dimensions in the matrix.'''
 
 class Matrix(Generic[DIMS]):
-    def __init__(self, data: tuple|np.ndarray, nocopy:bool = False):
-        if isinstance(data, np.ndarray):
-            if data.dtype != np.float32:
-                arr = data.astype(np.float32)
-            elif nocopy:
-                arr = data
-            else:
-                arr = data.copy()
-        else:
-           arr = np.array(data, dtype=np.float32)
-        if arr.size != 16:
-            raise ValueError("Matrix must have 16 elements.")
-        self._data = arr.reshape((4, 4))
+    '''
+    A 2x2, 3x3, or 4x4 matrix.
+    '''
+    _data: np.ndarray[tuple[DIMS, DIMS], np.dtype[np.float32]]
 
-    def __matmul__(self, other: 'Matrix|at.Vector3|at.Point'):
+    def __init__(self, data: 'MatrixSpec', nocopy:bool = False):
+        match data:
+            case np.ndarray():
+                if data.dtype != np.float32:
+                    arr = data.astype(np.float32)
+                elif nocopy:
+                    arr = data
+                else:
+                    arr = data.copy()
+            case Matrix():
+                arr = data._data
+            case tuple():
+                arr = np.array(data, dtype=np.float32)
+        d = self.dims()
+        self._data = arr.reshape((d, d))
+
+    def __matmul__(self, other: 'Self|at.Vector3|at.Point'):
         if isinstance(other, Matrix):
-            return Matrix(np.matmul(self._data, other._data))
+            return type(self)(np.matmul(self._data, other._data))
 
         if isinstance(other, at.Vector3):
             v4 = np.array([other.x, other.y, other.z, 0], dtype=np.float32)
             result = self._data @ v4
             return at.vector3(*result[:3])
 
-        if isinstance(other, at.Point):
+        if isinstance(other, at.Point): # type: ignore
             v4 = np.array([other.x, other.y, other.z, 1], dtype=np.float32)
             result = self._data @ v4
             return at.point(*result[:3])
 
         return NotImplemented
 
-    def __mul__(self, scalar: Scalar) -> 'Matrix':
-        if not isinstance(scalar, (int, float, np.float32)):
+    def __mul__(self, scalar: Scalar) -> 'Matrix[DIMS]':
+        if not isinstance(scalar, (int, float, np.floating)):
             return NotImplemented
-        return matrix(self._data * scalar)
+        return Matrix(self._data * float(scalar))
 
     def __rmul__(self, scalar: Scalar):
         return self.__mul__(scalar)
@@ -55,15 +62,19 @@ class Matrix(Generic[DIMS]):
     def __getitem__(self, idx: int):
         return self._data[idx]
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self|Any):
         if not isinstance(other, Matrix):
             return False
-        return np.allclose(self._data, other._data, rtol=1e-5, atol=1e-8)
+        o = cast(Matrix[DIMS], other)
+        return np.allclose(self._data, o._data, rtol=1e-5, atol=1e-8)
 
     def __repr__(self):
         return f"Matrix({self._data.tolist()})"
+    
+    @classmethod
+    def dims(cls) -> DIMS: ...
 
-    def as_array(self) -> np.ndarray[tuple[int, int], np.float32]:
+    def as_array(self) -> np.ndarray[tuple[DIMS, DIMS], np.dtype[np.float32]]:
         '''
         Acess the underlying numpy array.
         '''
@@ -74,31 +85,45 @@ class Matrix(Generic[DIMS]):
         return self
 
     @classmethod
-    def identity(cls):
-        return cls(np.identity(4, dtype=np.float32))
+    def identity(cls) -> 'Matrix[DIMS]':
+        return cls(np.identity(cls.dims(), dtype=np.float32))
 
 
 class Matrix2(Matrix[2]):
     '''A 2x2 matrix.'''
-    pass
+    
+    @classmethod
+    def dims(cls) -> Literal[2]:
+        return 2
 
 class Matrix3(Matrix[3]):
     '''A 3x3 matrix.'''
-    pass
+    
+    @classmethod
+    def dims(cls) -> Literal[3]:
+        return 3
 
 
 class Matrix4(Matrix[4]):
     '''A 4x4 matrix.'''
-    pass
+    
+    @classmethod
+    def dims(cls) -> Literal[4]:
+        return 4
 
 
-Matrix2Spec: TypeAlias = Matrix2 | tuple[
+Matrix2Spec: TypeAlias = (
+    Matrix2 | tuple[
         float, float,
         float, float,
-    ] | tuple[
+    ]
+    | tuple[
         tuple[float, float],
         tuple[float, float]
     ]
+    | np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.float32]]
+    | np.ndarray[tuple[Literal[4]], np.dtype[np.float32]]
+)
 '''
 A specification for a 2x2 matrix'
 This includes:
@@ -109,15 +134,20 @@ This includes:
 '''
 
 
-Matrix3Spec: TypeAlias = Matrix3 | tuple[
+Matrix3Spec: TypeAlias = (
+    Matrix3 | tuple[
         float, float, float,
         float, float, float,
         float, float, float
-    ] | tuple[
+    ]
+    | tuple[
         tuple[float, float, float],
         tuple[float, float, float],
         tuple[float, float, float]
     ]
+    | np.ndarray[tuple[Literal[3], Literal[3]], np.dtype[np.float32]]
+    | np.ndarray[tuple[Literal[9]], np.dtype[np.float32]]
+)
 '''
 A specification for a 3x3 matrix'
 This includes:
@@ -128,12 +158,23 @@ This includes:
 '''
 
 
-Matrix4Spec: TypeAlias = tuple[
-    float, float, float, float,
-    float, float, float, float,
-    float, float, float, float,
-    float, float, float, float,
-]
+Matrix4Spec: TypeAlias = (
+    Matrix[Literal[4]]
+    | tuple[
+        float, float, float, float,
+        float, float, float, float,
+        float, float, float, float,
+        float, float, float, float,
+    ]
+    | tuple[
+        tuple[float, float, float, float],
+        tuple[float, float, float, float],
+        tuple[float, float, float, float],
+        tuple[float, float, float, float],
+    ]
+    | np.ndarray[tuple[Literal[4], Literal[4]], np.dtype[np.float32]]
+    | np.ndarray[tuple[Literal[16]], np.dtype[np.float32]]
+)
 '''
 A specification for a 4x4 matrix'
 This includes:
@@ -144,7 +185,7 @@ This includes:
 '''
 
 
-MatrixSpec: TypeAlias = Matrix | Matrix2 | Matrix3 | Matrix4
+MatrixSpec: TypeAlias = Matrix2Spec | Matrix3Spec | Matrix4Spec
 '''
 Any value acceptable as an affine matrix for 3D transformations.
 This includes:
@@ -154,14 +195,30 @@ This includes:
     - tuple[tuple[float] * 4] * 4
 '''
 
-
-IDENTITY: MatrixSpec = Matrix.identity()
+IDENTITY2 = Matrix2.identity()
+'''
+The 2D identity matrix.
+This is a 2x2 matrix with ones on the diagonal and zeros elsewhere.
+'''
+IDENTITY3 = Matrix3.identity()
+'''
+The identity matrix for 2D transformations.
+This is a 3x3 matrix with ones on the diagonal and zeros elsewhere.
+'''
+IDENTITY4 = Matrix4.identity()
 '''
 The identity matrix for 3D transformations.
 This is a 4x4 matrix with ones on the diagonal and zeros elsewhere.
 '''
 
-def matrix(m: MatrixSpec) -> Matrix:
+
+@overload
+def matrix(m: Matrix2Spec) -> Matrix2: ...
+@overload
+def matrix(m: Matrix3Spec) -> Matrix3: ...
+@overload
+def matrix(m: Matrix4Spec) -> Matrix4: ...
+def matrix(m: MatrixSpec) -> Matrix2|Matrix3|Matrix4:
     '''
     Verify and convert a Matrix to a standard _Matrix value.
 
@@ -175,22 +232,37 @@ def matrix(m: MatrixSpec) -> Matrix:
     _Matrix
     '''
     match m:
-        case Matrix():
-            return m
         case np.ndarray():
-            return Matrix(m)
+            match m.shape:
+                case (2, 2)|(4,): 
+                    return Matrix2(m)
+                case (3, 3)|(9,): 
+                    return Matrix3(m)
+                case (4, 4)|(16,): 
+                    return Matrix4(m)
         case tuple() if (
-            len(m) == 4
-            and all(isinstance(v, tuple) and len(v) == 4 for v in m)
-            and all(isinstance(v, (int, float, np.float32))
+            len(m) in (2, 3, 4)
+            and all(isinstance(v, tuple) and len(v) == len(m) for v in m)
+            and all(isinstance(v, (int, float, np.floating, np.integer)) # type: ignore
                     for a in m
-                    for v in a)
+                    for v in cast(tuple[float,...], a))
         ):
-            return Matrix(m)
+            match len(m):
+                case 2: return Matrix2(m)
+                case 3: return Matrix3(m)
+                case 4: return Matrix4(m)
+                case _:
+                    pass
         case tuple() if (
-            len(m) == 16
-            and all(isinstance(v, (int, float, np.float32)) for v in m)
+            len(m) in (4, 9, 16)
+            and all(isinstance(v, (int, float, np.floating, np.integer)) for v in m) # type: ignore
         ):
-            return Matrix(m)
+            match len(m):
+                case 4: return Matrix2(m)
+                case 9: return Matrix3(m)
+                case 16: return Matrix4(m)
+                case _:
+                    pass
         case _:
-            raise ValueError("Invalid matrix format. Must be a 4x4 matrix or a flat list of 16 elements.")
+            pass
+    raise ValueError("Invalid matrix format. Must be a 4x4 matrix or a flat list of 16 elements.")

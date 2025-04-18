@@ -54,8 +54,8 @@ mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
-top = builder.create_node(name='TOP')
-cube = builder.create_node(name='CUBE',
+top = builder.create_node('TOP')
+cube = builder.create_node('CUBE',
                             mesh=mesh,
                             translation=(-0.5, -0.5, -0.5),
                             detached=True, # Don't make it part of the scene

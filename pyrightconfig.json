@@ -1,0 +1,14 @@
+{
+    "executionEnvironments": [
+        {
+            "root": "./test",
+            "pythonVersion": "3.11",
+            "typeCheckingMode": "off"
+        },
+        {
+            "root": "./src",
+            "pythonVersion": "3.11",
+            "typeCheckingMode": "strict"
+        }
+    ],
+}

@@ -2,26 +2,32 @@
 Builder representation of a glTF Accessor
 '''
 
-from typing import Optional, Any
-from collections.abc import Mapping, Iterable
+from typing import Optional, cast
+from collections.abc import Iterable, Sequence
+from pathlib import Path
 
 import pygltflib as gltf
 import numpy as np
 from gltf_builder.core_types import (
-    ElementType, Phase, EMPTY_MAP, BufferViewTarget,
+    ComponentType, ElementType, JsonObject, Phase, BufferViewTarget,
 )
-from gltf_builder.attribute_types import (
-    AttributeDataSequence, AttributeDataItem,
-)
+from gltf_builder.attribute_types import BTYPE, BType
 from gltf_builder.protocols  import BuilderProtocol
 from gltf_builder.element import (
-    BAccessor,  BBuffer, _Scope,
+    BAccessor, BBuffer, NP
 )
+from gltf_builder.compile import DoCompileReturn, Scope_
 from gltf_builder.utils import decode_dtype, decode_stride, decode_type
+from gltf_builder.log import GLTF_LOG
 
-class _Accessor(BAccessor):
+
+LOG = GLTF_LOG.getChild(Path(__name__).stem)
+
+class Accessor_(BAccessor[NP, BTYPE]):
     __memory: memoryview
-    dtype: np.dtype
+    dtype: type[NP]
+    btype: BType
+    
     @property
     def memory(self):
         return self.__memory
@@ -29,75 +35,89 @@ class _Accessor(BAccessor):
     def __init__(self, /,
                  buffer: BBuffer,
                  count: int,
-                 type: ElementType,
-                 componentType: int,
+                 elementType: ElementType,
+                 componentType: ComponentType,
+                 dtype: type[NP],
+                 btype: type[BTYPE],
                  name: str='',
                  normalized: bool=False,
                  max: Optional[list[float]]=None,
                  min: Optional[list[float]]=None,
-                 extras: Mapping[str, Any]|None=EMPTY_MAP,
-                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
                  target: BufferViewTarget = BufferViewTarget.ARRAY_BUFFER,
     ):
-        super().__init__(name, extras, extensions)
-        byteStride = decode_stride(type, componentType)
-        self.dtype = decode_dtype(type, componentType)
-        self._view = buffer._get_view(target, byteStride)
-        self._view._add_accessor(self)
+        super().__init__(name=name,
+                         extras=extras,
+                         extensions=extensions,
+                    )
+        byteStride = decode_stride(elementType, componentType)
+        self.dtype = cast(type[NP], decode_dtype(elementType, componentType))
+        self.view = buffer.get_view(buffer, target, byteStride=byteStride, name=name)
+        self.view.add_accessor(self)
         self.count = count
-        self.type = type
+        self.elt_type = elementType
         self.name = name
         self.componentType = componentType
         self.normalized = normalized
         self.max = max
         self.min = min
+        self.dtype = dtype
         self.data = []
 
-    def _add_data(self, data: AttributeDataSequence):
+    def log_offset(self):
+        if self.byteOffset >= 0:
+            LOG.debug('%s has offset %d(+%d)',
+                    self, self.byteOffset,
+                    self.view.byteOffset
+                    )
+
+    def add_data_(self, data: Sequence[BTYPE]):
         self.data.extend(data)
     
-    def _add_data_item(self, data: AttributeDataItem):
+    def add_data_item_(self, data: BTYPE):
         self.data.append(data)
     
-    def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
+    def _do_compile(self,
+                    builder: BuilderProtocol,
+                    scope: Scope_, phase: Phase,
+                    ) -> DoCompileReturn[gltf.Accessor]:
         match phase:
             case Phase.COLLECT:
-                builder._accessors.add(self)
-                return []
-            case Phase.ENUMERATE:
-                pass
+                builder.accessors_.add(self) # type: ignore
+                return [(self,())]
             case Phase.SIZES:
                 (
                     self.componentCount,
                     self.componentSize,
                     self.byteStride,
-                    self.dtype,
+                    self.dtype, # type: ignore
                     self.bufferType
-                ) = decode_type(self.type, self.componentType)
+                ) = decode_type(self.elt_type, self.componentType)
                 return len(self.data) * self.byteStride
             case Phase.OFFSETS:
-                self._view.compile(builder, scope, phase)
-                self.__memory = self._view._memory(self.byteOffset, len(self))
+                self.view.compile(builder, scope, phase)
+                self.__memory = self.view.memoryview(self.byteOffset, len(self))
             case Phase.BUILD:
                 data = np.array(self.data, self.dtype)
                 if len(self.data) == 0:
-                    min_axis = max_axis = 0
+                    min_axis = max_axis = [0]
                 else:
                     min_axis = self.min or data.min(axis=0)
                     max_axis = self.max or data.max(axis=0)
                 if isinstance(min_axis, Iterable):
-                    min_axis = [float(v) for v in min_axis]
+                    min_axis = [float(v) for v in min_axis] # type: ignore
                 else:
                     min_axis = [float(min_axis)] * self.componentCount
                 if isinstance(max_axis, Iterable):
-                    max_axis = [float(v) for v in max_axis]
+                    max_axis = [float(v) for v in max_axis] # type: ignore
                 else:
                     max_axis = [float(max_axis)] * self.componentCount
                 self.__memory[:] = data.tobytes()
                 return gltf.Accessor(
-                    bufferView=self._view.index,
+                    bufferView=self.view.index,
                     count=self.count,
-                    type=self.type,
+                    type=self.elt_type,
                     componentType=self.componentType,
                     name=self.name,
                     byteOffset=self.byteOffset,
@@ -105,4 +125,5 @@ class _Accessor(BAccessor):
                     max=max_axis,
                     min=min_axis,
                 )
+            case _: pass
                  

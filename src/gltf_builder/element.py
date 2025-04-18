@@ -5,57 +5,56 @@ in the glTF. This also holds the name, defaulting it by the index.
 
 from pathlib import Path
 from typing import (
-    Protocol, Optional, Any, runtime_checkable,
+    Generic, Protocol, Optional, Any, TypeVar, runtime_checkable,
 )
 from abc import abstractmethod
-from collections.abc import Mapping, Iterable
+from collections.abc import Mapping, Iterable, Sequence
 
 import numpy as np
 import pygltflib as gltf
 
-from gltf_builder.holder import Holder
-from gltf_builder.quaternions import QuaternionSpec
+from gltf_builder.holder import Holder_
+from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
-    PrimitiveMode, BufferViewTarget, ElementType, EMPTY_MAP,
+    ComponentType, JsonObject, PrimitiveMode,
+    BufferViewTarget, ElementType, NPTypes
 )
 from gltf_builder.attribute_types import (
-    Vector3Spec, Vector4Spec, PointSpec,
-    AttributeDataItem, AttributeDataList, AttributeDataSequence,
+    ColorSpec, JointSpec, Scale, TangentSpec, UvSpec,
+    Vector3, Vector3Spec, PointSpec,
+    AttributeDataItem, WeightSpec,
+    BTYPE, BType,
+    vector3,
 )
 from gltf_builder.matrix import Matrix4
-from gltf_builder.compile import Compileable, T, _Scope
+from gltf_builder.compile import (
+    Compileable, T,
+    Scope_  # type: ignore
+)
+from gltf_builder.protocols import BNodeContainerProtocol
 from gltf_builder.log import GLTF_LOG
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
+@runtime_checkable
 class Element(Compileable[T], Protocol):
-    __index: int = -1 # -1 means not set
-    @property
-    def index(self) -> int:
-        return self.__index
-    @index.setter
-    def index(self, index: int):
-        if self.__index != -1 and self.__index != index:
-            raise ValueError(f'Index already set old={self.__index}, new={index}')
-        self.__index = index
-    
     def __init__(self,
                  name: str='',
-                 extras: Mapping[str, Any]|None=EMPTY_MAP,
-                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                index: int=-1,
             ):
-        super().__init__(extras, extensions)
-        self.name = name
-        self.extensions = dict(extras) if extras else None
-        self.extras = dict(extensions) if extensions else None
-
-    def __index__(self):
-        return self.__index
+        super().__init__(
+            extras=extras,
+            extensions=extensions,
+            name=name,
+            index=index,
+        )
     
     def __hash__(self):
         return id(self)
         
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         return self is other
     
     def __repr__(self):
@@ -71,24 +70,33 @@ class Element(Compileable[T], Protocol):
             return f'{type(self).__name__}-{self.name}'
 
 
-class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
+class BBuffer(Element[gltf.Buffer], Scope_, Protocol):
     @property
     @abstractmethod
     def blob(self) -> bytes:
         ...
-    views: Holder['BBufferView']
+    views: Holder_['BBufferView']
 
     @abstractmethod
     def __len__(self) -> int:
         ...
 
+    @property
     @abstractmethod
-    def _get_view(self,
-                target: BufferViewTarget,
-                name: str='',
-                normalized: bool=False,
-                byteStride: Optional[int]=None,
-            ) -> 'BBufferView':
+    def bytearray(self) -> bytearray: ...
+
+    @abstractmethod
+    def create_view(self,
+                  target: BufferViewTarget,
+                  /, *,
+                  name: str='',
+                  byteStride: int=0,
+                  extras:  Optional[JsonObject]=None,
+                  extensions: Optional[JsonObject]=None,
+                ) -> 'BBufferView':
+        '''
+        Create a `BBufferView` for this `BBuffer`.
+        '''
         ...
 
 
@@ -96,26 +104,34 @@ class BBufferView(Element[gltf.BufferView], Protocol):
     buffer: BBuffer
     target: BufferViewTarget
     byteStride: int
-    accessors: list['BAccessor']
+    accessors: Holder_['BAccessor[NPTypes, BType]']
 
     @property
     @abstractmethod
-    def blob(self):
-        ...
+    def blob(self) -> bytes: ...
 
     @abstractmethod
-    def _memory(self, offset: int, size: int) -> memoryview:
-        ...
+    def memoryview(self, offset: int, size: int) -> memoryview: ...
 
+    @abstractmethod
+    def add_accessor(self, acc: 'BAccessor[NPTypes, BTYPE]') -> None: ...
+
+NP = TypeVar('NP', bound=NPTypes)
+NUM = TypeVar('NUM', bound=float|int, covariant=True)
 
 @runtime_checkable
-class BAccessor(Element[gltf.Accessor], Protocol):
-    _view: BBufferView
-    data: AttributeDataList
+class BAccessor(Element[gltf.Accessor], Protocol, Generic[NP, BTYPE]):
+    view: BBufferView
+    data: list[BTYPE]
+    __array: np.ndarray[tuple[int], np.dtype[NP]]|None = None
+    @property
+    def array(self) -> np.ndarray[tuple[int], np.dtype[NP]]:
+        if self.__array is None:
+            self.__array = np.array(self.data, dtype=self.dtype)
+        return self.__array
     count: int
-    type: ElementType
-    byteOffset: int
-    componentType: int
+    elt_type: ElementType
+    componentType: ComponentType
     normalized: bool
     max: Optional[list[float]]
     min: Optional[list[float]]
@@ -125,20 +141,20 @@ class BAccessor(Element[gltf.Accessor], Protocol):
     '''The number of bytes per component.'''
     byteStride: int = 0
     '''The total number of bytes per element.'''
-    dtype: np.dtype = np.float32
+    dtype: type[NP]
     '''The numpy dtype for the data.'''
     bufferType: str = 'f'
     '''The buffer type char for `memoryview.cast()`.'''
 
     @abstractmethod
-    def _add_data(self, data: AttributeDataSequence) -> None:
+    def add_data_(self, data: Sequence[BTYPE]) -> None:
         ...
     '''
     Add a Sequence of data to the accessor.
     '''
     
     @abstractmethod
-    def _add_data_item(self, data: AttributeDataItem) -> None:
+    def add_data_item_(self, data: BTYPE) -> None:
         ...
         
 class BPrimitive(Compileable[gltf.Primitive], Protocol):
@@ -146,23 +162,23 @@ class BPrimitive(Compileable[gltf.Primitive], Protocol):
     Base class for primitives
     '''
     mode: PrimitiveMode
-    points: list[PointSpec]
-    attribs: dict[str, list[tuple[int|float,...]]]
-    indicies: list[int]
+    points: Sequence[PointSpec]
+    attribs: Mapping[str, Sequence[AttributeDataItem]]
+    indices: Sequence[int]
     mesh: Optional['BMesh']
     
 
 @runtime_checkable
-class BMesh(Element[gltf.Mesh], _Scope, Protocol):
+class BMesh(Element[gltf.Mesh], Scope_, Protocol):
     primitives: list[BPrimitive]
     weights: list[float]
 
     @property
     @abstractmethod
-    def detached(self):
+    def detached(self) -> bool:
         '''
         A detached mesh is not added to the builder, but is returned
-        to be used as the root of an instancable object, or to be added
+        to be used as the root of an instanceable object, or to be added
         to multiple nodes and thus to the builder later.
         '''
         ...
@@ -172,36 +188,40 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
     def add_primitive(self, mode: PrimitiveMode,
                       *points: PointSpec,
                       NORMAL: Optional[Iterable[Vector3Spec]]=None,
-                      TANGENT: Optional[Iterable[Vector4Spec]]=None,
-                      TEXCOORD_0: Optional[Iterable[Vector3Spec]]=None,
-                      TEXCOORD_1: Optional[Iterable[Vector3Spec]]=None,
-                      COLOR_0: Optional[Iterable[Vector4Spec]]=None,
-                      JOINTS_0: Optional[Iterable[Vector4Spec]]=None,
-                      WEIGHTS_0: Optional[Iterable[Vector4Spec]]=None,
-                      extras: Mapping[str, Any]|None=EMPTY_MAP,
-                      extensions: Mapping[str, Any]|None=EMPTY_MAP,
-                      **attribs: Iterable[tuple[int|float,...]]
+                      TANGENT: Optional[Iterable[TangentSpec]]=None,
+                      TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
+                      TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
+                      COLOR_0: Optional[Iterable[ColorSpec]]=None,
+                      JOINTS_0: Optional[Iterable[JointSpec]]=None,
+                      WEIGHTS_0: Optional[Iterable[WeightSpec]]=None,
+                      extras:  Optional[JsonObject]=None,
+                      extensions:  Optional[JsonObject]=None,
+                      **attribs: Iterable[AttributeDataItem]
                     ) -> BPrimitive:
-        ...
-
-    __views: Holder[BBufferView] 
-
-    def _get_view(self, target: BufferViewTarget, for_object: Compileable) -> BBufferView:
         ...
     
 
 @runtime_checkable
-class BNode(Element[gltf.Node], _Scope, Protocol):
-    mesh: BMesh
+class BNode(Element[gltf.Node], BNodeContainerProtocol, Scope_, Protocol):
+    mesh: BMesh|None
     root: bool
-    translation: Optional[Vector3Spec]
-    rotation: Optional[QuaternionSpec]
-    scale: Optional[Vector3Spec]
+    __translation: Optional[Vector3]
+    @property
+    def translation(self) -> Optional[Vector3]:
+        return self.__translation
+    @translation.setter
+    def translation(self, value: Vector3Spec|None):
+        if value is not None:
+            self.__translation = vector3(value)
+        else:
+            self.__translation = None
+    rotation: Optional[Quaternion]
+    scale: Optional[Scale]
     matrix: Optional[Matrix4]
 
     @property
     @abstractmethod
-    def detached(self):
+    def detached(self) -> bool:
         '''
         A detached node is not added to the builder, but is returned
         to be used as the root of an instancable object.
@@ -211,10 +231,11 @@ class BNode(Element[gltf.Node], _Scope, Protocol):
     @abstractmethod
     def create_mesh(self,
                 name: str='',
+                /, *,
                 primitives: Iterable['BPrimitive']=(),
                 weights: Iterable[float]|None=(),
-                extras: Mapping[str, Any]|None=EMPTY_MAP,
-                extensions: Mapping[str, Any]|None=EMPTY_MAP,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
                 detached: bool=False,
             ) -> 'BMesh':
         '''

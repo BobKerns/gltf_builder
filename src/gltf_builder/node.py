@@ -4,70 +4,76 @@ the build phase.
 '''
 
 
-from collections.abc import Iterable, Mapping
-from typing import Optional, Any
+from collections.abc import Iterable
+from typing import Optional, cast
 
 import pygltflib as gltf
 
-from gltf_builder.core_types import Phase, EMPTY_MAP
+from gltf_builder.compile import Collected
+from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
 from gltf_builder.element import (
-    Element, _Scope, BNode, BMesh, BPrimitive,
+    BBuffer, BBufferView, Element, BNode, BMesh, BPrimitive,
+    Scope_,
 )
 from gltf_builder.quaternions import QuaternionSpec, quaternion
-from gltf_builder.mesh import _Mesh 
-from gltf_builder.holder import Holder
+from gltf_builder.holder import Holder_
 from gltf_builder.protocols import (
     BNodeContainerProtocol, BuilderProtocol,
 )
 
 
 class BNodeContainer(BNodeContainerProtocol):
-    builder: BuilderProtocol
-    children: Holder['_Node']
-    descendants: dict[str, '_Node']   
+    children: Holder_[BNode]
     @property
     def nodes(self):
         return self.children
     @nodes.setter
-    def nodes(self, nodes: Holder['_Node']):
+    def nodes(self, nodes: Holder_['BNode']):
         self.children = nodes
     
     def __init__(self, /,
                 builder: BuilderProtocol,
-                children: Iterable['_Node']=(),
-                **_
+                buffer: BBuffer,
+                children: Iterable[BNode]=(),
             ):
         self.builder = builder
-        self.children = Holder(*children)
+        self.buffer = buffer
+        self._local_views = {}
+        self.children = Holder_(BNode, *children)
         for c in children:
-            if c._parent is not None and c._parent is not self:
-                raise ValueError(f'Node {c.name} already has a parent')
-            c._parent = self
+            if isinstance(self, BNode):
+                if c._parent is not None and c._parent is not self:
+                    raise ValueError(f'Node {c.name} already has a parent')
+                c._parent = self
+            else:
+                if c._parent is not None:
+                    raise ValueError(f'Node {c.name} already has a parent')
+                c._parent = None
             c.root = False
-        self.descendants = {}
+        self.descendants: dict[str, BNode] = {}
     
     def create_node(self,
                 name: str='',
+                /, *,
                 children: Iterable[BNode]=(),
                 mesh: Optional[BMesh]=None,
                 translation: Optional[Vector3Spec]=None,
                 rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3Spec]=None,
                 matrix: Optional[Matrix4Spec]=None,
-                extras: Mapping[str, Any]=EMPTY_MAP,
-                extensions: Mapping[str, Any]=EMPTY_MAP,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
                 detached: bool=False,
-                **attrs: tuple[float|int,...]
-                ) -> '_Node':
+                ) -> 'Node_':
         '''
         Add a node to the builder or as a child of another node.
         if _detached_ is True, the node will not be added to the builder,
         but will be returned to serve as the root of an instancable object.
         '''
         root = isinstance(self, BuilderProtocol) and not detached
-        node = _Node(name=name,
+        node = Node_(name=name,
                     root=root,
                     children=children,
                     mesh=mesh,
@@ -79,7 +85,6 @@ class BNodeContainer(BNodeContainerProtocol):
                     extensions=extensions,
                     builder=self.builder,
                     detached=detached,
-                    **attrs,
                 )
         if not detached:
             self.children.add(node)
@@ -98,12 +103,12 @@ class BNodeContainer(BNodeContainerProtocol):
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4Spec]=None,
-                    extras: Mapping[str, Any]=EMPTY_MAP,
-                    extensions: Mapping[str, Any]=EMPTY_MAP,
+                    extras: Optional[JsonObject]=None,
+                    extensions: Optional[JsonObject]=None,
                 ) -> BNode:
         if isinstance(node_or_mesh, BMesh):
             return self.create_node(
-                name=name,
+                name,
                 mesh=node_or_mesh,
                 translation=translation,
                 rotation=rotation,
@@ -112,8 +117,8 @@ class BNodeContainer(BNodeContainerProtocol):
                 extras=extras,
                 extensions=extensions,
             )
-        def clone(node: BNode):
-            return _Node(
+        def clone(node: BNode) -> BNode:
+            return Node_(
                 name=node.name,
                 children=[clone(child) for child in node.children],
                 mesh=node.mesh,
@@ -126,7 +131,7 @@ class BNodeContainer(BNodeContainerProtocol):
                 builder=self.builder,
             )
         return self.create_node(
-            name=name,
+            name,
             translation=translation,
             rotation=rotation,
             scale=scale,
@@ -152,7 +157,7 @@ class BNodeContainer(BNodeContainerProtocol):
     def __len__(self) -> int:
         return len(self.children)
 
-class _Node(BNodeContainer, BNode):
+class Node_(BNodeContainer, BNode):
     __detached: bool
     @property
     def detached(self) -> bool:
@@ -165,38 +170,46 @@ class _Node(BNodeContainer, BNode):
     def __init__(self,
                  builder: BuilderProtocol,
                  name: str ='',
-                 children: Iterable['_Node']=(),
-                 mesh: Optional[_Mesh]=None,
+                 children: Iterable[BNode]=(),
+                 mesh: Optional[BMesh]=None,
                  root: Optional[bool]=None,
                  translation: Optional[Vector3Spec]=None,
                  rotation: Optional[QuaternionSpec]=None,
                  scale: Optional[Vector3Spec]=None,
                  matrix: Optional[Matrix4Spec]=None,
-                 extras: Mapping[str, Any]=EMPTY_MAP,
-                 extensions: Mapping[str, Any]=EMPTY_MAP,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                 buffer: Optional[BBuffer]=None,
+                 index: int=-1,
                  detached: bool=False,
                  ):
-        Element.__init__(self, name, extras, extensions)
+        super(Element, self).__init__(
+                         name=name,
+                         extras=extras,
+                         extensions=extensions,
+                         index=index,
+                        )
         BNodeContainer.__init__(self,
+                                buffer=buffer or builder.buffer,
                                 builder=builder,
                                 children=children,
                             )
         self.__detached = detached
-        self.root = root
+        self.root = root or False
         self.mesh = mesh
         self.translation = vector3(translation) if translation else None
         self.rotation = quaternion(rotation) if rotation else None
         self.scale = to_scale(scale) if scale else None
         self.matrix = to_matrix(matrix) if matrix else None
+        self._local_views = Holder_(BBufferView)
         
-    def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
+    def _do_compile(self, builder: BuilderProtocol, scope: Scope_, phase: Phase):
         match phase:
             case Phase.COLLECT:
                 self.builder.nodes.add(self)
                 if self.mesh:
-                    self.mesh.compile(builder, scope, phase)
-                    return [self.mesh]
-                return []
+                    return [self.mesh.compile(builder, scope, phase)]
+                return cast(list[Collected], [])
             case Phase.SIZES:
                 size = sum(
                     n.compile(builder, scope, phase)
@@ -212,10 +225,12 @@ class _Node(BNodeContainer, BNode):
                     name=self.name,
                     mesh=self.mesh.index if self.mesh else None,
                     children=[child.index for child in self.children],
-                    translation=self.translation,
-                    rotation=self.rotation,
-                    scale=self.scale,
-                    matrix=self.matrix,
+                    translation=list(self.translation) if self.translation else None,
+                    rotation=list(self.rotation) if self.rotation else None,
+                    scale=list(self.scale) if self.scale else None,
+                    matrix=list(float(v) for v in self.matrix) if self.matrix else None,
+                    extras=self.extras,
+                    extensions=self.extensions,
                 )
             case _:
                 if self.mesh is not None:
@@ -225,9 +240,11 @@ class _Node(BNodeContainer, BNode):
 
     def create_mesh(self,
                  name: str='',
+                  /, *,
                  primitives: Iterable['BPrimitive']=(),
-                 extras: Mapping[str, Any]|None=EMPTY_MAP,
-                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
+                 weights: Iterable[float]|None=(),
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
                  detached: bool=False,
             ) -> 'BMesh':
         mesh = self.builder.create_mesh(name=name,

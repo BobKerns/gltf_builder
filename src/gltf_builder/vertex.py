@@ -2,29 +2,49 @@
 Share and track vertex data.
 '''
 
-from typing import NamedTuple, Optional
+from typing import Any, Optional
 
-from gltf_builder.core_types import (
- #   ElementType, ComponentType, BufferType,
-    EMPTY_MAP, _Point, _Vector3, _Tangent, _Uv, _Color, _Joint, _Weight, AttributeDataItem,
+import numpy as np
+
+from gltf_builder.attribute_types import (
+    AttributeDataItem, Point, Vector3, Tangent_, UvPoint, Color, Joint, Weight,
 )
-#from gltf_builder.utils import decode_dtype, decode_stride, decode_type
 
-class Vertex(NamedTuple):
+class Vertex:
     '''
     A vertex with position, normal, and texture coordinate.
     '''
-    POSITION: _Point
-    NORMAL: Optional[_Vector3] = None
-    TEXCOORD_0: Optional[_Uv] = None
-    TEXCOORD_1: Optional[_Uv] = None
-    TANGENT: Optional[_Tangent] = None
-    COLOR_0: Optional[_Color] = None
-    JOINTS_0: Optional[_Joint] = None
-    WEIGHTS_0: Optional[_Weight] = None
-    attributes: dict[str, tuple[int, ...]|tuple[float, ...]] = EMPTY_MAP
+    POSITION: Point
+    NORMAL: Optional[Vector3]
+    TEXCOORD_0: Optional[UvPoint]
+    TEXCOORD_1: Optional[UvPoint]
+    TANGENT: Optional[Tangent_]
+    COLOR_0: Optional[Color]
+    JOINTS_0: Optional[Joint]
+    WEIGHTS_0: Optional[Weight]
+    attributes: dict[str, AttributeDataItem]
 
-    def __iter__(self):
+    def __init__(self,
+                 POSITION: Point,
+                 NORMAL: Optional[Vector3]=None,
+                 TEXCOORD_0: Optional[UvPoint]=None,
+                 TEXCOORD_1: Optional[UvPoint]=None,
+                 TANGENT: Optional[Tangent_]=None,
+                 COLOR_0: Optional[Color]=None,
+                 JOINTS_0: Optional[Joint]=None,
+                 WEIGHTS_0: Optional[Weight]=None,
+                 **attribs: AttributeDataItem):
+        self.POSITION = POSITION # type: ignore
+        self.NORMAL = NORMAL # type: ignore
+        self.TEXCOORD_0 = TEXCOORD_0 # type: ignore
+        self.TEXCOORD_1 = TEXCOORD_1 # type: ignore
+        self.TANGENT = TANGENT # type: ignore
+        self.COLOR_0 = COLOR_0 # type: ignore
+        self.JOINTS_0 = JOINTS_0    # type: ignore
+        self.WEIGHTS_0 = WEIGHTS_0 # type: ignore
+        self.attributes = attribs
+
+    def __iter__(self): # type: ignore
         for k in ('POSITION', 'NORMAL', 'TEXCOORD_0', 'TEXCOORD_1',
                     'TANGENT', 'COLOR_0', 'JOINTS_0', 'WEIGHTS_0'):
             v = getattr(self, k, None)
@@ -34,12 +54,14 @@ class Vertex(NamedTuple):
 
     def __repr__(self):
         x, y, z = self.POSITION
-        def val(v):
-            def s(x):
-                if isinstance(x, float):
+        def val(v: AttributeDataItem) -> str:
+            def s(x: Any):
+                if isinstance(x, (float, np.floating)):
                     return f'{x:.3f}'
                 return str(x)
-            return f"({','.join(s(x) for x in v)})"
+            if isinstance(v, (tuple, np.ndarray)):
+                return f"({','.join(s(x) for x in v)})"
+            return s(v)
         return (f'@<{x:.3f}, {y:.3f}, {z:.3f}>(' +
                 ', '.join(
                         f'{k}={val(v)}'

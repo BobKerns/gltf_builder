@@ -3,16 +3,14 @@ Simple common types for the gltf_builder module.
 '''
 
 from enum import IntEnum, StrEnum
-from typing import TypeAlias, Literal, Any
-from collections.abc import Mapping
-from types import MappingProxyType
+from typing import TypeAlias, Literal
 
-import pygltflib as gltf
+import pygltflib as gltf # type: ignore
 import numpy as np
 
 
-_IntScalar: TypeAlias = int|np.int8|np.int16|np.int32|np.uint8|np.uint16|np.uint32
-Scalar: TypeAlias = float|np.float32|_IntScalar
+IntScalar: TypeAlias = int|np.int8|np.int16|np.int32|np.uint8|np.uint16
+Scalar: TypeAlias = float|np.float32|IntScalar
 '''A scalar value: int, float, or numpy equivalent.'''
 
 
@@ -41,9 +39,6 @@ The values are:
 - 2: 2 bytes integer
 - 4: 4 bytes integer
 '''
-
-
-EMPTY_MAP: Mapping[str, Any] = MappingProxyType({})
 
 
 class Phase(StrEnum):
@@ -119,6 +114,16 @@ class ElementType(StrEnum):
     MAT2 = "MAT2"
     MAT3 = "MAT3"
     MAT4 = "MAT4"
+
+
+ComponentSize: TypeAlias = Literal[1, 2, 4]
+'''
+The size in bytes of data components in the glTF file.
+The values are:
+- 1: 1 byte integer
+- 2: 2 bytes integer
+- 4: 4 bytes float32
+'''
     
 class ComponentType(IntEnum):
     '''
@@ -131,10 +136,43 @@ class ComponentType(IntEnum):
     UNSIGNED_INT = gltf.UNSIGNED_INT
     FLOAT = gltf.FLOAT
 
+ElementSize: TypeAlias = Literal[1, 2, 3, 4, 9, 16]
+'''
+The number of components in an element.
+The values are:
+- 1: 1 component (e.g. scalar)
+- 2: 2 components (e.g. vec2)
+- 3: 3 components (e.g. vec3)
+- 4: 4 components or 2x2 matrix
+- 9: 3x3 matrix
+- 16: 4x4 matrix
+'''
+
 
 BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
 '''
 Type code for casting a memoryview of a buffer.
+'''
+
+NPAttrTypes: TypeAlias = np.uint8|np.uint16|np.float32
+'''
+The numpy types used in the glTF file for the standard attributes
+'''
+
+NPTypes: TypeAlias = np.int8|np.int16|np.uint32|NPAttrTypes
+'''
+The numpy types used in the glTF file!!
+'''
+
+NPAttrDType: TypeAlias = np.dtype[np.float32]|np.dtype[np.uint8]|np.dtype[np.uint16]
+'''
+The numpy dtypes used in the glTF file for the standard attributes
+'''
+
+
+NPDType: TypeAlias = np.dtype[np.int8]|np.dtype[np.int16]|NPAttrDType
+'''
+The numpy dtypes used in the glTF file
 '''
 
 
@@ -159,3 +197,21 @@ class NameMode(StrEnum):
     '''
     Do not use names.
     '''
+
+
+JsonObject: TypeAlias = dict[str,'JsonData']
+'''
+A JSON-compatible object type.
+'''
+JsonArray: TypeAlias = list['JsonData']
+'''
+A JSON-compatible array type.
+'''
+JsonAtomic: TypeAlias = str|int|float|bool|None
+'''
+A JSON-compatible atomic type.
+'''
+JsonData: TypeAlias = JsonObject|JsonArray|JsonAtomic
+'''
+A JSON-compatible data type.
+'''

@@ -4,8 +4,8 @@ a glTF object.
 '''
 
 import sys
-from collections.abc import Iterable, Mapping
-from typing import Optional, Any
+from collections.abc import Iterable
+from typing import Literal, Optional
 from itertools import count
 from datetime import datetime
 import logging
@@ -14,65 +14,75 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 
+from gltf_builder.attribute_types import (
+    ColorSpec, JointSpec, TangentSpec, UvSpec, Vector3Spec, WeightSpec,
+    BType, BTypeType,
+)
 from gltf_builder.core_types import (
-     NameMode, Phase, EMPTY_MAP,
-     ElementType, ComponentType,
+     BufferViewTarget, JsonObject, NPTypes, NameMode, Phase,
+     ElementType, ComponentType, Scalar,
 )
 from gltf_builder.asset import BAsset, __version__
-from gltf_builder.holder import Holder
-from gltf_builder.buffer import _Buffer
-from gltf_builder.view import _BufferView
-from gltf_builder.accessor import _Accessor
-from gltf_builder.mesh import _Mesh
-from gltf_builder.node import _Node, BNodeContainer
-from gltf_builder.protocols import BuilderProtocol
-from gltf_builder.element import BPrimitive, Element
+from gltf_builder.holder import Holder_
+from gltf_builder.buffer import Buffer_
+from gltf_builder.view import BaseBufferVieW_
+from gltf_builder.accessor import Accessor_
+from gltf_builder.mesh import Mesh_
+from gltf_builder.node import Node_, BNodeContainer
+from gltf_builder.protocols import AttributeInfo, BuilderProtocol
+from gltf_builder.element import (
+     BTYPE, BAccessor, BBuffer, BBufferView, BMesh, BNode, BPrimitive, Element,
+)
 from gltf_builder.compile import Compileable, Collected
-from gltf_builder.utils import USERNAME, USER
+from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
 class Builder(BNodeContainer, BuilderProtocol):
-    id_counters: dict[str, count]
+    id_counters: dict[str, count] # type: ignore
     name: str = ''
-    __ordered_views: list[_BufferView]
+    __ordered_views: list[BBufferView] = []
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
     def __init__(self, /,
                 asset: gltf.Asset= BAsset(),
-                meshes: Iterable[_Mesh]=(),
-                nodes: Iterable[_Node] = (),
-                buffers: Iterable[_Buffer]=(),
-                views: Iterable[_BufferView]=(),
-                accessors: Iterable[_Accessor]=(),
-                extras: Mapping[str, Any]=EMPTY_MAP,
-                extensions: Mapping[str, Any]=EMPTY_MAP,
+                meshes: Iterable[Mesh_]=(),
+                nodes: Iterable[Node_] = (),
+                buffers: Iterable[Buffer_]=(),
+                views: Iterable[BaseBufferVieW_]=(),
+                accessors: Iterable[Accessor_[NPTypes, BType]]=(),
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
                 index_size: int=32,
                 name_mode: NameMode=NameMode.AUTO,
         ):
-        super().__init__(builder=self, children=nodes)
-        self.asset = asset
-        self.meshes = Holder(*meshes)
-        self.nodes = Holder(*nodes)
         if not buffers:
-            buffers = [_Buffer('main')]
-        self._buffers = Holder(*buffers)
-        self._views = Holder(*views)
-        self._accessors = Holder(*accessors)
+            buffers = [Buffer_('main')]
+        else:
+            buffers = list(buffers)
+        super().__init__(buffer=buffers[0], builder=self, children=nodes)
+        self.asset = asset
+        self.meshes = Holder_(BMesh, *meshes)
+        self.buffers_ = Holder_(BBuffer, *buffers)
+        self.views_ = Holder_(BBufferView, *views)
+        self.accessors_ = Holder_(BAccessor, *accessors)
         self.index_size = index_size
-        self.extras = dict(extras)
-        self.extensions = dict(extensions)
+        self.extras = extras or {}
+        self.extensions = extensions or {}
         self.attr_type_map ={
-            'TANGENT': (gltf.VEC4, gltf.FLOAT),
-            'TEXCOORD_0': (gltf.VEC2, gltf.FLOAT),
-            'TEXCOORD_1': (gltf.VEC2, gltf.FLOAT),
-            'COLOR_0': (gltf.VEC4, gltf.FLOAT),
-            'JOINTS_0': (gltf.VEC4, gltf.UNSIGNED_SHORT),
-            'WEIGHTS_0': (gltf.VEC4, gltf.FLOAT),
-            '__DEFAULT__': (gltf.VEC3, gltf.FLOAT),
+            'TANGENT': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[TangentSpec]),
+            'POSITION': AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
+            'NORMAL': AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
+            'COLOR': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
+            'TEXCOORD_0': AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
+            'TEXCOORD_1': AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
+            'COLOR_0': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
+            'JOINTS_0': AttributeInfo(gltf.VEC4, gltf.UNSIGNED_SHORT, type[JointSpec]),
+            'WEIGHTS_0': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[WeightSpec]),
+            '__DEFAULT__': AttributeInfo(gltf.SCALAR, gltf.FLOAT, type[Scalar]),
         }
         self.id_counters = {}
         self.name_mode = name_mode
@@ -81,11 +91,11 @@ class Builder(BNodeContainer, BuilderProtocol):
                 name: str='',
                 primitives: Iterable[BPrimitive]=(),
                 weights: Iterable[float]|None=(),
-                extras: Mapping[str, Any] = EMPTY_MAP,
-                extensions: Mapping[str, Any] = EMPTY_MAP,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
                 detached: bool=False,
                 ):
-        mesh = _Mesh(name=name,
+        mesh = Mesh_(name=name,
                      primitives=primitives,
                      weights=weights,
                      extras=extras,
@@ -97,30 +107,31 @@ class Builder(BNodeContainer, BuilderProtocol):
     def compile(self, phase: Phase):
         match phase:
             case Phase.ENUMERATE:
-                def assign_index(items: list[Compileable]):
+                def assign_index(items: Iterable[Compileable[gltf.Property]]):
                     for i, n in enumerate(items):
                         n.index = i
-                assign_index(self._buffers)
+                assign_index(self.buffers_)
                 assign_index(self.__ordered_views)
-                assign_index(self._accessors)
+                assign_index(self.accessors_)
                 assign_index(self.meshes)
                 assign_index(self.nodes)
+            case _: pass
 
         match phase:
             case Phase.COLLECT:
                 collected = [
                     *(n.compile(self, self, phase) for n in self.nodes),
                     *(m.compile(self, self, phase) for m in self.meshes),
-                    *(a.compile(self, self, phase) for a in self._accessors),
-                    *(v.compile(self, self, phase) for v in self._views),
-                    *(b.compile(self, self, phase) for b in self._buffers),
+                    *(a.compile(self, self, phase) for a in self.accessors_),
+                    *(v.compile(self, self, phase) for v in self.views_),
+                    *(b.compile(self, self, phase) for b in self.buffers_),
                 ]
-                ordered = sorted(list(self._views),
+                ordered = sorted(list(self.views_),
                                                 key=lambda v: v.byteStride or 4,
                                                 reverse=True)
                 self.__ordered_views = ordered
                 LOG.debug('Collected %s items.', len(collected))
-                def log_collcted(collected: list[Collected], indent: int = 0):
+                def log_collcted(collected: Iterable[Collected], indent: int = 0):
                     for item, children in collected:
                         LOG.debug('. ' * indent + str(item))
                         for child in children:
@@ -131,10 +142,10 @@ class Builder(BNodeContainer, BuilderProtocol):
             case Phase.SIZES:
                 for n in self.nodes:
                     n.compile(self, self, phase)
-                for v in self._buffers:
+                for v in self.buffers_:
                     v.compile(self, self, phase)
             case Phase.OFFSETS:
-                for b in self._buffers:
+                for b in self.buffers_:
                     b.compile(self, self, phase)
                 for n in self.nodes:
                     n.compile(self, self, phase)
@@ -143,11 +154,11 @@ class Builder(BNodeContainer, BuilderProtocol):
                     n.compile(self, self, phase)
                 for m in self.meshes:
                     m.compile(self, self, phase)
-                for a in self._accessors:
+                for a in self.accessors_:
                     a.compile(self, self, phase)
-                for v in self.__ordered_views if self._views else ():
+                for v in self.__ordered_views if self.views_ else ():
                     v.compile(self, self, phase)
-                for b in self._buffers:
+                for b in self.buffers_:
                     b.compile(self, self, phase)
     
     def build(self, /,
@@ -158,7 +169,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             self.name_mode = name_mode
         if index_size is not None:
             self.index_size = index_size
-        def flatten(node: _Node) -> Iterable[_Node]:
+        def flatten(node: BNode) -> Iterable[BNode]:
             yield node
             for n in node.children:
                 yield from flatten(n)
@@ -173,7 +184,7 @@ class Builder(BNodeContainer, BuilderProtocol):
         python = sys.version_info
         self.asset.extras = self.asset.extras or {}
         builder_info = self.asset.extras.get('gltf-builder', {})
-        builder_info = {
+        builder_info: JsonObject = {
                 'version': __version__,
                 'pygltflib': gltf.__version__,
                 'numpy': np.__version__,
@@ -211,7 +222,6 @@ class Builder(BNodeContainer, BuilderProtocol):
                     n.compile(self, self, Phase.BUILD)
                     for n in nodes
                 )
-                if v is not None
             ],
             meshes=[
                 m.compile(self, self, Phase.BUILD)
@@ -219,7 +229,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             ],
             accessors=[
                 a.compile(self, self, Phase.BUILD)
-                for a in self._accessors
+                for a in self.accessors_
                 if a.count > 0
             ],
             # Sort the buffer views by alignment.
@@ -229,30 +239,33 @@ class Builder(BNodeContainer, BuilderProtocol):
             ],
             buffers=[
                 b.compile(self, self, Phase.BUILD)
-                for b in self._buffers
+                for b in self.buffers_
                 if len(b.blob) > 0
             ],
             scene=0,
             scenes=[
-                {'name': 'main',
-                 'nodes': [
-                     n.index
-                     for n in self.nodes
-                     if n.root
-                 ]}
+                gltf.Scene(
+                    name=self.name,
+                    nodes=[
+                        n.index
+                        for n in self.nodes
+                        if n.root
+                    ]
+                )
             ]
         )
-        if len(self._buffers) == 1 :
-            data = self._buffers[0].blob
+        if len(self.buffers_) == 1 :
+            data = self.buffers_[0].blob
         else:
             raise ValueError("Only one buffer is supported by pygltfllib.")
-        g.set_binary_blob(data)
+        g.set_binary_blob(data) # type: ignore
         return g
     
     def define_attrib(self,
                       name: str,
                       type: ElementType,
                       componentType: ComponentType,
+                      btype: BTypeType,
                 ):
         '''
         Define the type of an attribute. The default is VEC3/FLOAT, except for the following:
@@ -263,34 +276,37 @@ class Builder(BNodeContainer, BuilderProtocol):
         - JOINTS_0: VEC4/UNSIGNED_SHORT
         - WEIGHTS_0: VEC4/FLOAT
         '''
-        self.attr_type_map[name] = (type, componentType)
+        self.attr_type_map[name] = AttributeInfo(type, componentType, btype)
 
-    def get_attrib_info(self, name: str) -> tuple[ElementType, ComponentType]:
+    def get_attrib_info(self, name: str) -> AttributeInfo:
         return self.attr_type_map.get(name) or self.attr_type_map['__DEFAULT__']
 
-    def _get_index_size(self, max_value: int) -> int:
+    def get_index_size_(self, max_value: int) -> ComponentType|Literal[-1]:
         '''
         Get the index size based on the configured size or the maximum value.
         '''
         match self.index_size:
             case size if size > 16 and size <= 32:
                 if max_value < 4294967295:
-                    return gltf.UNSIGNED_INT
+                    return ComponentType.UNSIGNED_INT
+                raise ValueError("Index size is too large.")
             case size if size > 8 and size <= 16:
                 if max_value < 65535:
-                    return gltf.UNSIGNED_SHORT
+                    return ComponentType.UNSIGNED_SHORT
+                return ComponentType.UNSIGNED_INT
             case size if size > 0 and size <= 8:
                 if max_value < 255:
-                    return gltf.UNSIGNED_BYTE
+                    return ComponentType.UNSIGNED_BYTE
+                return ComponentType.UNSIGNED_SHORT
             case 0:
                 if max_value < 0:
                     raise ValueError("Index size is negative.")
                 if max_value < 255:
-                    return gltf.UNSIGNED_BYTE
+                    return ComponentType.UNSIGNED_BYTE
                 if max_value < 65535:
-                    return gltf.UNSIGNED_SHORT
+                    return ComponentType.UNSIGNED_SHORT
                 if max_value < 4294967295:
-                    return gltf.UNSIGNED_INT
+                    return ComponentType.UNSIGNED_INT
                 # Unlikely!
                 raise ValueError("Index size is too large.")
             case -1:
@@ -300,44 +316,81 @@ class Builder(BNodeContainer, BuilderProtocol):
 
     __names: set[str] = set()
 
-    def _gen_name(self, obj: Element[Any]|str) -> str:
+    def gen_name_(self,
+                  obj: str|Element[gltf.Property]|None,
+                  gen_prefix: str|object='',
+                  ) -> str|None:
         '''
         Generate a name according to the current name mode policy
         '''
-        def get_count(obj) -> int:
+        def get_count(obj: object) -> int:
             tname = type(obj).__name__[1:]
-            counters = self.id_counters
+            counters = self.id_counters # type: ignore
             if tname not in counters:
                 counters[tname] = count()
-            return next(counters[tname])
+            return next(counters[tname]) # type: ignore
             
-        def gen():
-            if obj and isinstance(obj, str):
-                return obj
-            if obj.name and self.name_mode != NameMode.UNIQUE:
-                # Increment the count anyway for stability.
-                # Naming one node should not affect the naming of another.
-                get_count(obj)
-                return obj.name
-            return f'{type(obj).__name__[1:]}{get_count(obj)}'
+        def gen(obj: str|Element[gltf.Property]|None) -> str:
+            match obj:
+                case str():
+                    return obj
+                case Element() if obj.name and self.name_mode != NameMode.UNIQUE:
+                    # Increment the count anyway for stability.
+                    # Naming one node should not affect the naming of another.
+                    get_count(obj)
+                    return obj.name
+                case _:
+                    if gen_prefix == '':
+                        prefix = type(obj).__name__[1:]
+                    else:
+                        prefix = gen_prefix
+                    return f'{prefix}{get_count(obj)}'
         
-        def register(name: str|None) -> str|None:
+        def register(name: object|None) -> str|None:
+            match name:
+                case str():
+                    name = name.strip()
+                case Element():
+                    name = name.name.strip()
+                case _:
+                    raise ValueError(f'Invalid name: {name}')
             if not name:
                 return None
             self.__names.add(name)
             return name
         match self.name_mode:
             case NameMode.AUTO:
-                return register(gen())
+                return register(gen(obj))
             case NameMode.MANUAL:
-                return register(obj.name or None)
+                return register(obj)
             case NameMode.UNIQUE:
-                name = obj.name
-                while name in self.__names:
-                    name = gen()
-                return register(name)
+                while obj in self.__names:
+                    obj = gen(obj)
+                return register(obj)
             case NameMode.NONE:
                 return None
             case _:
                 raise ValueError(f'Invalid name mode: {self.name_mode}')
 
+    def create_accessor_(self,
+                elementType: ElementType,
+                componentType: ComponentType,
+                btype: type[BTYPE],
+                name: str='',
+                normalized: bool=False,
+                buffer: Optional['BBuffer']=None,
+                count: int=0,
+                target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+                ) -> BAccessor[NPTypes, BTYPE]:
+            dtype = decode_dtype(elementType, componentType)
+            return Accessor_(
+                elementType=elementType,
+                componentType=componentType,
+                btype=btype,
+                buffer=buffer or self.buffers_[0],
+                name=name,
+                dtype=dtype,
+                count=count,
+                normalized=normalized,
+                target=target,
+            )

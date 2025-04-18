@@ -2,50 +2,73 @@
 Definitions for GLTF primitives
 '''
 
-from collections.abc import Iterable, Mapping
-from typing import Any, Optional
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Optional, cast, overload
 
 import pygltflib as gltf
 
+from gltf_builder.compile import Collected
 from gltf_builder.core_types import (
-    Phase, PrimitiveMode, BufferViewTarget, EMPTY_MAP,
+    JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget,
 )
 from gltf_builder.attribute_types import (
-    PointSpec, Vector3Spec, Vector4Spec,
+    AttributeDataItem, ColorSpec, JointSpec, PointSpec,
+    TangentSpec, UvSpec, Vector3Spec, WeightSpec,
 )
-from gltf_builder.protocols import BuilderProtocol
+from gltf_builder.protocols import BType, BuilderProtocol
 from gltf_builder.element import (
-    BAccessor, BPrimitive, BMesh, _Scope,
+    BTYPE, BAccessor, BPrimitive, BMesh, Scope_,
 )
-from gltf_builder.accessor import _Accessor
+from gltf_builder.accessor import Accessor_
+from gltf_builder.utils import decode_dtype
 
 
-class _Primitive(BPrimitive):
+class Primitive_(BPrimitive):
     '''
     Base implementation class for primitives
     '''
-    __attrib_accessors: Mapping[str, BAccessor]
-    __indices_accessor: Optional[BAccessor] = None
+    __attrib_accessors: Mapping[str, BAccessor[NPTypes,BType]]
+    __indices_accessor: Optional[BAccessor[NPTypes, int]] = None
     
     def __init__(self,
                  mode: PrimitiveMode,
-                 points: Optional[Iterable[PointSpec]]=None,
+                 points: Iterable[PointSpec],
                  NORMAL: Optional[Iterable[Vector3Spec]]=None,
-                 TANGENT: Optional[Iterable[Vector4Spec]]=None,
-                 TEXCOORD_0: Optional[Iterable[PointSpec]]=None,
-                 TEXCOORD_1: Optional[Iterable[PointSpec]]=None,
-                 COLOR_0: Optional[Iterable[PointSpec]]=None,
-                 JOINTS_0: Optional[Iterable[PointSpec]]=None,
-                 WEIGHTS_0: Optional[Iterable[PointSpec]]=None,
-                 extras: Mapping[str, Any]=EMPTY_MAP,
-                 extensions: Mapping[str, Any]=EMPTY_MAP,
+                 TANGENT: Optional[Iterable[TangentSpec]]=None,
+                 TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
+                 TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
+                 COLOR_0: Optional[Iterable[ColorSpec]]=None,
+                 JOINTS_0: Optional[Iterable[JointSpec]]=None,
+                 WEIGHTS_0: Optional[Iterable[WeightSpec]]=None,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
                  mesh: Optional[BMesh]=None,
-                 **attribs: Iterable[tuple[int|float,...]],
+                 **attribs: Iterable[AttributeDataItem],
             ):
         super().__init__(extras, extensions)
         self.mode = mode
         self.points = list(points)
-        explicit_attribs = {
+        self.indices = []
+        @overload
+        def collect_attrib(data: Iterable[AttributeDataItem]
+                        ) -> Sequence[AttributeDataItem]: ...
+        @overload
+        def collect_attrib(data: None) -> None: ...
+        @overload
+        def collect_attrib(data: Iterable[AttributeDataItem]|None
+                        ) -> Sequence[AttributeDataItem]|None: ...
+        def collect_attrib(data: Iterable[AttributeDataItem]|None
+                        ) -> Sequence[AttributeDataItem]|None:
+            '''
+            If only an Iterable is given, convert it to a list, as we
+            need to know the length of the data.
+            '''
+            if data is None:
+                return None
+            if isinstance(data, Sequence):
+                return data
+            return list(data)
+        explicit_attribs: dict[str, Iterable[AttributeDataItem]|None] = {
             'NORMAL': NORMAL,
             'TANGENT': TANGENT,
             'TEXCOORD_0': TEXCOORD_0,
@@ -54,11 +77,14 @@ class _Primitive(BPrimitive):
             'JOINTS_0': JOINTS_0,
             'WEIGHTS_0': WEIGHTS_0,
         }
-        self.attribs = {
+        self.attribs: Mapping[str, Sequence[AttributeDataItem]] = {
             'POSITION': self.points,
-            **attribs,
             **{
-                k:list(v)
+                n: collect_attrib(v)
+                for n, v in attribs.items()
+            },
+            **{
+                k: collect_attrib(v)
                 for k, v in explicit_attribs.items()
                 if v is not None
             }
@@ -69,43 +95,46 @@ class _Primitive(BPrimitive):
         self.mesh = mesh
         self.__attrib_accessors = {}
 
-    def _do_compile(self, builder: BuilderProtocol, scope: _Scope, phase: Phase):
+    def _do_compile(self, builder: BuilderProtocol, scope: Scope_, phase: Phase):
         mesh = self.mesh
-        buffer = builder._buffers[0]
-        def compile_attrib(name: str, data: list[tuple[float,...]]):
-            index = self.mesh.primitives.index(self)
+        assert mesh is not None
+        buffer = builder.buffers_[0]
+        def compile_attrib(name: str,
+                           data: Sequence[BTYPE],
+                        ) -> BAccessor[NPTypes, BType]:
+            index = mesh.primitives.index(self)
             prim_name = f'{mesh.name}:{self.mode.name}/{name}[{index}]'
-            eltType, componentType = builder.get_attrib_info(name)
-            accessor = _Accessor(buffer, len(data), eltType, componentType, 
+            eltType, componentType, btype = builder.get_attrib_info(name)
+            dtype = decode_dtype(eltType, componentType)
+            accessor = Accessor_(buffer, len(data), eltType, componentType,
+                                 btype=btype,
+                                 dtype=dtype, 
                                  name=prim_name)
-            accessor._add_data(data)
-            accessor._do_compile(builder, scope, phase)
+            accessor.add_data_(data)
+            accessor.compile(builder, scope, phase)
             return accessor
         match phase:
             case Phase.PRIMITIVES:
-                index_size = builder._get_index_size(len(self.points))
-                if index_size >= 0:
+                index_size = builder.get_index_size_(len(self.points))
+                if index_size != -1:
                     indices = list(range(len(self.points)))
-                    if index_size == 0:
-                        match len(indices):
-                            case  size if size < 255:
-                                index_size = gltf.UNSIGNED_BYTE
-                            case  size if size < 65535:
-                                index_size = gltf.UNSIGNED_SHORT
-                            case  _:
-                                index_size = gltf.UNSIGNED_INT
-                    index = self.mesh.primitives.index(self)
-                    self.__indices_accessor = _Accessor(buffer, len(indices), gltf.SCALAR, index_size,
-                                                        name=f'{mesh.name}:{self.mode.name}/indices[{index}]',
-                                                        target=BufferViewTarget.ELEMENT_ARRAY_BUFFER)
-                    self.__indices_accessor._add_data(indices)
+                    idtype = decode_dtype(gltf.SCALAR, index_size)
+                    index = mesh.primitives.index(self)
+                    self.__indices_accessor = Accessor_(
+                        buffer, len(indices), gltf.SCALAR, index_size,
+                        btype=int,
+                        dtype=idtype,
+                        name=f'{mesh.name}:{self.mode.name}/indices[{index}]',
+                        target=BufferViewTarget.ELEMENT_ARRAY_BUFFER
+                    )
+                    self.__indices_accessor.add_data_(indices)
             case Phase.COLLECT:
-                mesh.name = mesh.name or builder._gen_name(mesh)        
+                mesh.name = mesh.name or builder.gen_name_(mesh.name) or ''       
                 self.__attrib_accessors = {
-                    name: compile_attrib(name, data)
+                    name: compile_attrib(name, cast(Sequence[BType], data))
                     for name, data in self.attribs.items()
                 }
-                accessors =  [
+                accessors: list[tuple[BAccessor[NPTypes, BType]|BAccessor[NPTypes, int], list[Collected]]] = [
                     (a, [a.compile(builder, scope, phase)])
                     for a in self.__attrib_accessors.values()
                 ]

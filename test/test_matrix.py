@@ -5,20 +5,23 @@ These tests cover matrix multiplication, matrix inversion, and matrix
 decomposition to translation, rotation, and scale.
 '''
 
+from typing import Literal
 import numpy as np
-from pytest import approx, mark
-
+from pytest import (
+    approx, # type: ignore
+    mark
+)
 
 from gltf_builder.matrix import (
-    matrix, Matrix,
-    IDENTITY,
+    Matrix4Spec, matrix, Matrix,
+    IDENTITY4,
 )
 from gltf_builder.attribute_types import (
     vector3, point,
 )
 
 def test_identity_matrix_preserves_vector_and_point():
-    m = IDENTITY
+    m = IDENTITY4
     v = vector3(1, 2, 3)
     p = point(4, 5, 6)
 
@@ -182,12 +185,12 @@ def test_matrix_rmul():
             (9, 10, 11, 12),
             (13, 14, 15, 16))),
 ])
-def test_constructor(input):
+def test_constructor(input: Matrix4Spec):
     m = matrix(input)
     assert isinstance(m, Matrix)
-    assert m._data.shape == (4, 4)
-    assert m._data.dtype == np.float32
-    assert m._data.tolist() == [
+    assert m._data.shape == (4, 4)      # type: ignore
+    assert m._data.dtype == np.float32  # type: ignore
+    assert m._data.tolist() == [        # type: ignore
         [1, 2, 3, 4],
         [5, 6, 7, 8],
         [9, 10, 11, 12],
@@ -202,14 +205,14 @@ M16 = np.array([
 ], dtype=np.float32)
 M0 = np.zeros((4, 4), dtype=np.float32)
 @mark.parametrize('a, b, expected', [
-    (matrix(M16), IDENTITY, matrix(M16)),
-    (IDENTITY, matrix(M16), matrix(M16)),
+    (matrix(M16), IDENTITY4, matrix(M16)),
+    (IDENTITY4, matrix(M16), matrix(M16)),
     (matrix(M16), matrix(M0), matrix(M0)),
     (matrix(M0), matrix(M16), matrix(M0)),
-    (IDENTITY, matrix(M0), matrix(M0)),
-    (matrix(M0), IDENTITY, matrix(M0)),
+    (IDENTITY4, matrix(M0), matrix(M0)),
+    (matrix(M0), IDENTITY4, matrix(M0)),
 ])
-def test_matrix_multiplication(a, b, expected):
+def test_matrix_multiplication(a: Matrix[Literal[2, 3, 4]], b: Matrix[Literal[2, 3, 4]], expected: Matrix[Literal[2, 3, 4]]):
     result = a @ b
     assert isinstance(result, Matrix)
     assert result == expected

@@ -2,19 +2,23 @@
 Protocol classes to avoid circular imports.
 '''
 
+from abc import abstractmethod
 from typing import (
-    Protocol, runtime_checkable, Optional, TYPE_CHECKING, abstractmethod, Any
+    Literal, NamedTuple, Protocol, runtime_checkable,
+    Optional, TYPE_CHECKING, Any
 )
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 import math
 
 import pygltflib as gltf
 
-from gltf_builder.holder import Holder
+from gltf_builder.compile import Scope_
+from gltf_builder.holder import Holder_
 from gltf_builder.core_types import (
-    ElementType, ComponentType, NameMode, EMPTY_MAP,
+    BufferViewTarget, ElementType, ComponentType, JsonObject,
+    NPTypes, NameMode,
 )
-from gltf_builder.attribute_types import Vector3Spec
+from gltf_builder.attribute_types import Vector3Spec, BTYPE, BType, BTypeType
 from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
@@ -22,29 +26,41 @@ if TYPE_CHECKING:
         BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor,
     )
 
+class BufferViewKey(NamedTuple):
+    buffer: 'BBuffer'
+    target: BufferViewTarget
+    byteStride: int
+    name: str
+
+class AttributeInfo(NamedTuple):
+    type: ElementType
+    componentType: ComponentType
+    btype: BTypeType
+
 class BNodeContainerProtocol(Protocol):
     _parent: Optional['BNode'] = None
-    children: Holder['BNode']
+    children: Holder_['BNode']
+    descendants: dict[str, 'BNode']   
     @property
     def nodes(self):
         return self.children
     @nodes.setter
-    def nodes(self, nodes: Holder['BNode']):
+    def nodes(self, nodes: Holder_['BNode']):
         self.children = nodes
     
     @abstractmethod
     def create_node(self,
                 name: str='',
+                /, *,
                 children: Iterable['BNode']=(),
                 mesh: Optional['BMesh']=None,
                 translation: Optional[Vector3Spec]=None,
                 rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3Spec]=None,
                 matrix: Optional[Matrix4]=None,
-                extras: Mapping[str, Any]=EMPTY_MAP,
-                extensions: Mapping[str, Any]=EMPTY_MAP,
-                detached: bool=False,
-                **attrs: tuple[float|int,...]
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
+                detached: bool=False
                 ) -> 'BNode':
         ...
     
@@ -55,12 +71,12 @@ class BNodeContainerProtocol(Protocol):
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4]=None,
-                    extras: Mapping[str, Any]=EMPTY_MAP,
-                    extensions: Mapping[str, Any]=EMPTY_MAP,
+                    extras: Optional[JsonObject]=None,
+                    extensions: Optional[JsonObject]=None,
                 ) -> 'BNode':
         ...
 
-    def print_hierarchy(self, indent=0):
+    def print_hierarchy(self, indent:int=0):
         """Prints the node hierarchy in a readable format."""
         from gltf_builder.element import BNode
         pre = '| ' * indent
@@ -86,7 +102,7 @@ class BNodeContainerProtocol(Protocol):
             child.print_hierarchy(indent + 1)
 
     @abstractmethod
-    def __len__(self):
+    def __len__(self) -> int:
         ...
 
     @abstractmethod
@@ -102,27 +118,27 @@ class BNodeContainerProtocol(Protocol):
         ...
 
     @abstractmethod
-    def __iter__(self):
+    def __iter__(self) -> Iterable['BNode']:
         ...
 
 @runtime_checkable
-class BuilderProtocol(BNodeContainerProtocol, Protocol):
+class BuilderProtocol(BNodeContainerProtocol, Scope_, Protocol):
     asset: gltf.Asset
     '''
     The asset information for the glTF file.
     '''
-    meshes: Holder['BMesh']
+    meshes: Holder_['BMesh']
     '''
     The meshes in the glTF file.
     '''
-    _buffers: Holder['BBuffer']
+    buffers_: Holder_['BBuffer']
     '''
     The buffers in the glTF file.'''
-    _views: Holder['BBufferView']
+    views_: Holder_['BBufferView']
     '''
     The buffer views in the glTF file.
     '''
-    _accessors: Holder['BAccessor']
+    accessors_: Holder_['BAccessor[NPTypes, BType]']
     '''
     The accessors in the glTF file.
     '''
@@ -150,7 +166,7 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
     This is only used when creating the indices buffer view.
 
     '''
-    attr_type_map: dict[str, tuple[ElementType, ComponentType]]
+    attr_type_map: dict[str, AttributeInfo]
     '''
     The mapping of attribute names to their types.
     '''
@@ -163,14 +179,18 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
     UNIQUE: Ensure the name is unique.
     NONE: Do not use names.
     '''
+    buffer: 'BBuffer'
+    '''
+    The primary `BBuffer` for the glTF file.
+    '''
     
     @abstractmethod
     def create_mesh(self,
                  name: str='',
                  primitives: Iterable['BPrimitive']=(),
-                 detatched: bool=False,
-                 extras: Mapping[str, Any]|None=EMPTY_MAP,
-                 extensions: Mapping[str, Any]|None=EMPTY_MAP,
+                 weights: Iterable[float]=(),
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
                  detached: bool=False,
             ) -> 'BMesh':
         
@@ -181,24 +201,61 @@ class BuilderProtocol(BNodeContainerProtocol, Protocol):
         ...
 
     @abstractmethod
-    def define_attrib(self, name: str, type: ElementType, componentType: ComponentType):
+    def define_attrib(self, name: str, type: ElementType, componentType: ComponentType,
+                      btype: BTypeType):
         ...
 
     @abstractmethod
-    def get_attrib_info(self, name: str) -> tuple[ElementType, ComponentType]:
+    def get_attrib_info(self, name: str) -> AttributeInfo:
         ...
 
     @abstractmethod
-    def _get_index_size(self, max_value: int) -> int:
+    def get_index_size_(self, max_value: int) -> ComponentType|Literal[-1]:
         ...
 
-    def _gen_name(self, name: str|None, gen_prefix: str|object) -> str|None:
+    def gen_name_(self, obj: str|None, gen_prefix: str|object='') -> str|None:
         '''
         Generate a name for an object according to the current `NameMode` policy.
 
         PARAMETERS
         ----------
-        object: Element
+        obj: Element
             The object to generate a name for.
+        gen_prefix: str|object
+            The prefix to use for the generated name.
+            If the prefix is an object, its `__class__.__name__` will be used.
+        '''
+        ...
+
+    def create_accessor_(self,
+                elementType: ElementType,
+                componentType: ComponentType,
+                btype: type[BTYPE],
+                name: str='',
+                normalized: bool=False,
+                buffer: Optional['BBuffer']=None,
+                count: int=0,
+                target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+                ) -> 'BAccessor[NPTypes, BTYPE]':
+        '''
+        Create a `BAccessor` for the given element type and component type.
+        PARAMETERS
+        ----------
+        elementType: ElementType
+            The element type for the accessor.
+        componentType: ComponentType
+            The component type for the accessor.
+        btype: type[BTYPE]
+            The type of the accessor data.
+        name: str
+            The name of the accessor.
+        normalized: bool
+            Whether the accessor data is normalized.
+        target: BufferViewTarget
+            The target for the buffer view.
+        RETURNS
+        -------
+        BAccessor[NPTypes, BTYPE]
+            The created accessor.
         '''
         ...

@@ -8,7 +8,7 @@ from gltf_builder.attribute_types import (
     ScaleSpec, UvSpec,
     ColorSpec, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
     point, scale, vector2, vector3, vector4, tangent, uv, joint, joints, weight,
-    AttributeDataSequence, AttributeDataList, AttributeDataItem,
+    AttributeDataItem,
 
 )
 from gltf_builder.accessor import BAccessor
@@ -20,15 +20,18 @@ from gltf_builder.utils import (
     distribute_floats, distribute_ints, normalize, map_range,
 )
 from gltf_builder.builder import Builder
-from gltf_builder.matrix import matrix, MatrixSpec, Matrix2Spec, Matrix3Spec, Matrix4Spec
+from gltf_builder.matrix import (
+    matrix, Matrix, MatrixDims,
+    Matrix2, Matrix3, Matrix4,
+    MatrixSpec, Matrix2Spec, Matrix3Spec, Matrix4Spec,
+    IDENTITY2, IDENTITY3, IDENTITY4,
+)
 from gltf_builder.quaternions import (
     QuaternionSpec, Quaternion, quaternion,
 )
 
 __all__ = [ 
     'AttributeDataItem',
-    'AttributeDataList',
-    'AttributeDataSequence',
     'BAccessor',
     'BAsset',
     'BMesh',
@@ -43,10 +46,18 @@ __all__ = [
     'distribute_floats',
     'distribute_ints',
     'ElementType',
+    'IDENTITY2',
+    'IDENTITY3',
+    'IDENTITY4',
     'joint',
     'joints',
     'map_range',
     'matrix',
+    'Matrix',
+    'Matrix2',
+    'Matrix3',
+    'Matrix4',
+    'MatrixDims',
     'MatrixSpec',
     'Matrix2Spec',
     'Matrix3Spec',
@@ -72,7 +83,6 @@ __all__ = [
     'ScaleSpec',
     'scale',
     'TangentSpec',
-    'to_matrix',
     'UvSpec',
     'uv',
     'tangent',

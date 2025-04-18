@@ -16,7 +16,7 @@ from typing import  overload
 import numpy as np
 
 from gltf_builder.core_types import (
-    ElementType, ComponentType, BufferType,
+    ElementType, ComponentType, BufferType, ComponentSize, ElementSize, NPTypes,
 )
 from gltf_builder.attribute_types import (
     VectorSpec, Vector4Spec, Vector3Spec, Vector2Spec, Vector4, Vector3, Vector2, VectorLike,
@@ -24,7 +24,7 @@ from gltf_builder.attribute_types import (
 )
 
 
-COMPONENT_SIZES: dict[ComponentType, tuple[int, np.dtype, BufferType]] = {
+COMPONENT_SIZES: dict[ComponentType, tuple[ComponentSize, type[NPTypes], BufferType]] = {
     ComponentType.BYTE: (1, np.int8, 'b'),
     ComponentType.UNSIGNED_BYTE: (1, np.uint8, 'B'),
     ComponentType.SHORT: (2, np.int16, 'h'),
@@ -33,8 +33,7 @@ COMPONENT_SIZES: dict[ComponentType, tuple[int, np.dtype, BufferType]] = {
     ComponentType.FLOAT: (4, np.float32, 'f'),
 }
 
-
-ELEMENT_TYPE_SIZES = {
+ELEMENT_TYPE_SIZES: dict[ElementType, ElementSize] = {
     ElementType.SCALAR: 1,
     ElementType.VEC2: 2,
     ElementType.VEC3: 3,
@@ -44,14 +43,14 @@ ELEMENT_TYPE_SIZES = {
     ElementType.MAT4: 16,
 }
 
-def decode_component_type(componentType: ComponentType) -> tuple[int, np.dtype, BufferType]:
+def decode_component_type(componentType: ComponentType) -> tuple[int, type[NPTypes], BufferType]:
     '''
     Decode the component type into a tuple of the component size, numpy dtype, and buffer type.
     '''
     return COMPONENT_SIZES[componentType]
 
 
-def decode_type(type: ElementType, componentType: ComponentType) -> tuple[int, int, int, np.dtype, BufferType]:
+def decode_type(type: ElementType, componentType: ComponentType) -> tuple[int, int, int, type[NPTypes], BufferType]:
     '''
     Decode the `ElementType` and `ComponentType` into a tuple of:
     - the component count per element
@@ -65,13 +64,15 @@ def decode_type(type: ElementType, componentType: ComponentType) -> tuple[int, i
     stride = componentSize * componentCount
     return componentCount, componentSize, stride, dt, bt
 
+
 def decode_stride(type: ElementType, componentType: ComponentType) -> int:
     '''
     Decode the `ElementType` and `ComponentType` into the stride (total bytes per element).
     '''
     return decode_type(type, componentType)[2]
 
-def decode_dtype(type: ElementType, componentType: ComponentType) -> np.dtype:
+
+def decode_dtype(type: ElementType, componentType: ComponentType) -> type[NPTypes]:
     '''
     Decode the `ElementType` and `ComponentType` into the numpy dtype.
     '''
@@ -144,24 +145,37 @@ def distribute_ints(*values: int|float, lower: int=0, upper: int=255) -> tuple[i
 
 
 @overload
-def normalize(vec: Vector2Spec) -> Vector2: ...
+def normalize(vec: Tangent ,/) -> Tangent: ... # type: ignore
 @overload
-def normalize(vec: Vector3Spec) -> Vector3: ...
+def normalize(vec: Vector2Spec, /) -> Vector2: ...
 @overload
-def normalize(vec: Vector4Spec) -> Vector4: ...
-def normalize(vec: VectorSpec) -> Vector2|Vector3|Vector4:
+def normalize(vec: Vector3Spec, /) -> Vector3: ...
+@overload
+def normalize(vec: Vector4Spec, /) -> Vector4: ...
+def normalize(vec: VectorSpec|Tangent, /) -> Vector2|Vector3|Vector4|Tangent:
     '''
     Normalize the vector to unit length.
     '''
     match vec:
         case Tangent():
             tlen = vec.length
-            return Tangent(vec.x/tlen, vec.y/tlen, vec.z/tlen, vec.w)
+            return Tangent(float(vec.x/tlen), float(vec.y/tlen), float(vec.z/tlen), vec.w)
         case VectorLike():
             cls = type(vec)
-        case tuple() if type(vec) is not tuple:
-            # A NamedTuple
-            raise ValueError(f'{type(vec).name} is not a vector-like value.')
+        case np.ndarray():
+            total = sum(v*v for v in vec) ** 0.5
+            match len(vec):
+                case 2:
+                    return Vector2(*(v / total for v in vec))
+                case 3:
+                    return Vector3(*(v / total for v in vec))
+                case 4:
+                    return Vector4(*(v / total for v in vec))
+                case _:
+                    raise ValueError(f'Unsupported vector length: {len(vec)}')
+            raise ValueError(f'{type(vec).__name__} is not a vector-like value.')
+        case _:
+            raise ValueError(f'{type(vec).__name__} is not a vector-like value.')
     match len(vec):
         case 2:
             cls = Vector2
@@ -221,54 +235,56 @@ def map_range(value: float|int,
 
 
 def _get_human_name():
-    """Returns the full name of the current user, falling back to the username if necessary."""
+    """
+    Returns the full name of the current user, falling back to the username if necessary.
+    """
     
-    full_name = None
+    try:
+        full_name = None
 
-    if sys.platform.startswith("linux") or sys.platform == "darwin":  # macOS and Linux
-        try:
-            full_name = pwd.getpwuid(os.getuid()).pw_gecos.split(',')[0].strip()
-        except KeyError:
-            pass
-        
-        # Try getent as a fallback
-        if not full_name:
+        if sys.platform.startswith("linux") or sys.platform == "darwin":  # macOS and Linux
             try:
-                result = subprocess.check_output(["getent", "passwd", os.getlogin()], text=True)
-                full_name = result.split(":")[4].split(",")[0].strip()
-            except (subprocess.CalledProcessError, IndexError, FileNotFoundError, OSError):
+                full_name = pwd.getpwuid(os.getuid()).pw_gecos.split(',')[0].strip()
+            except KeyError:
+                pass
+            
+            # Try getent as a fallback
+            if not full_name:
+                try:
+                    result = subprocess.check_output(["getent", "passwd", os.getlogin()], text=True)
+                    full_name = result.split(":")[4].split(",")[0].strip()
+                except (subprocess.CalledProcessError, IndexError, FileNotFoundError, OSError):
+                    pass
+
+        elif sys.platform.startswith("win"):  # Windows
+            try:
+                size = ctypes.wintypes.DWORD(0)
+                ctypes.windll.advapi32.GetUserNameExW(3, None, ctypes.byref(size))  # Get required buffer size
+                buffer = ctypes.create_unicode_buffer(size.value)
+                if ctypes.windll.advapi32.GetUserNameExW(3, buffer, ctypes.byref(size)):
+                    full_name = buffer.value.strip()
+            except Exception:
                 pass
 
-    elif sys.platform.startswith("win"):  # Windows
-        try:
-            size = ctypes.wintypes.DWORD(0)
-            ctypes.windll.advapi32.GetUserNameExW(3, None, ctypes.byref(size))  # Get required buffer size
-            buffer = ctypes.create_unicode_buffer(size.value)
-            if ctypes.windll.advapi32.GetUserNameExW(3, buffer, ctypes.byref(size)):
-                full_name = buffer.value.strip()
-        except Exception:
-            pass
+        # If full name is not found, fall back to the username
+        if not full_name:
+            full_name = getpass.getuser()
 
-    # If full name is not found, fall back to the username
-    if not full_name:
-        full_name = getpass.getuser()
+        return full_name
+    except Exception:
+        return ''
 
-    return full_name
 
-USERNAME: str
-'''
-The current user's login name, included by default in the glTF `Asset` metadata.
-'''
-try:
-    USERNAME = getpass.getuser()
-except Exception:
-    USERNAME = ''
+def _get_username():
+    """
+    Returns the username of the current user.
+    """
+    try:
+        return getpass.getuser()
+    except Exception:
+        return ''
 
-USER: str
-'''
-The current user's full name, included by default in the glTF `Asset` metadata.
-'''
-try:
-    USER = _get_human_name()
-except Exception:
-    USER = ''
+USERNAME: str = _get_username()
+
+
+USER: str = _get_human_name()

@@ -3,11 +3,11 @@ Prepackaged geometries (nodes with meshes), mostly useful for testing.
 '''
 
 
-from collections.abc import Mapping, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any
+from typing import Optional
 
-from gltf_builder.core_types import NameMode, EMPTY_MAP, PrimitiveMode
+from gltf_builder.core_types import JsonObject, NameMode, PrimitiveMode
 from gltf_builder.builder import Builder
 from gltf_builder.element import BNode
 
@@ -16,14 +16,14 @@ from gltf_builder.element import BNode
 def make(name: str,
          name_mode: NameMode = NameMode.UNIQUE,
          index_size: int = -1,
-         extras: Mapping[str, Any]|None = None,
-         extensions: Mapping[str, Any]|None = None,
+         extras: Optional[JsonObject]=None,
+         extensions: Optional[JsonObject]|None = None,
          ) -> Iterator[BNode]:
     '''
     Create a detatched node to add geometry to.
     '''
-    extras = extras or EMPTY_MAP
-    extensions = extensions or EMPTY_MAP
+    extras = extras or {}
+    extensions = extensions or {}
 
     extras = {
             **extras,
@@ -32,7 +32,7 @@ def make(name: str,
         }
     }
     b = Builder(index_size=index_size, name_mode=name_mode)
-    node = b.create_node(name=name,
+    node = b.create_node(name,
                       detached=True,
                       extras=extras,
                       extensions=extensions,

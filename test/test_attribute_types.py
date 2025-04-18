@@ -2,8 +2,11 @@
 Tests for type constructors and types in attribute_types.py.
 '''
 
+# pyright: basic
+
+from abc import abstractmethod
 from collections.abc import Callable
-from typing import Optional, Literal, Any
+from typing import Generic, Optional, Literal, Any, Protocol, TypeAlias, TypeVar, cast, overload
 from functools import wraps
 from inspect import signature
 from math import sqrt, cos, pi
@@ -11,87 +14,154 @@ from math import sqrt, cos, pi
 
 import numpy as np
 
-from pytest import approx, mark, raises, fixture
+from pytest import (
+    mark, raises, fixture,
+    approx, # type: ignore
+)
+import pytest as pt
 
 from gltf_builder.core_types import ByteSize
 from gltf_builder.attribute_types import (
-    joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
-    weight, weight8, weight16,
+    Weight, joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
+    weight,
     color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
     Vector2, Vector3, Vector4,
-    _Weightf, _Weight8, _Weight16,
+    _Weightf, _Weight8, _Weight16, # type: ignore
     Tangent, Scale, Point, PointLike, UvfFloat, Uv16, Uv8,
-    Joint, _Joint8, _Joint16,
+    Joint,
+    _Joint8, _Joint16, # type: ignore
     EPSILON,
 )
 
-def case_tuple(cnst: Callable[..., Any], data: tuple,):
+
+RET = TypeVar('RET')
+'''
+Function return type
+'''
+RET_cov = TypeVar('RET_cov', covariant=True)
+
+
+class Function(Protocol):
+    '''
+    Function declaration types.
+    '''
+    ...
+    __name__: str
+    __qualname__: str
+    __module__: str
+    __doc__: str
+
+class Constructor(Function, Protocol, Generic[RET_cov]):
+    '''
+    Type for the constructor function.
+    '''
+    def __call__(self, *args: Any, **kwargs: Any) -> RET_cov: ...
+    
+
+class _CaseFnSized(Function, Protocol, Generic[RET]):
+    '''
+    Type for the case function.
+    '''
+    @abstractmethod
+    def __call__(self,
+                 cnst: Constructor[RET],
+                 data: tuple[Any, ...], /, *,
+                 size: ByteSize|Literal['inf'],
+                 ) -> RET:
+        ...
+
+
+class _CaseFnUnsized(Function, Protocol, Generic[RET]):
+    '''
+    Type for the case function.
+    '''
+    @abstractmethod
+    def __call__(self,
+                 cnst: Constructor[RET],
+                 data: tuple[Any, ...],
+                 ) -> RET:
+        ...
+
+CaseFn: TypeAlias = _CaseFnSized[RET] | _CaseFnUnsized[RET]
+
+def case_tuple(cnst: Constructor[tuple[Any,...]], data: tuple[Any, ...],
+               ) -> tuple[Any, ...]:
     '''
     Test a type constructor with a tuple of data.
     '''
     return tuple(data)
 
 
-def case_obj(cnst: Callable[..., Any], data: tuple,):
+def case_obj(cnst: Constructor[RET], data: tuple[Any,  ...],) -> RET:
     '''
     Test a type constructor with a tuple of data.
     '''
     return cnst(*data)
 
-def tuple_of(c: Callable[[Callable[..., Any]], Callable[..., Any]],
-             size: Optional[ByteSize]=None):
+@overload
+def tuple_of(c: _CaseFnUnsized[RET],
+             size: Optional[ByteSize]=None) -> _CaseFnUnsized[RET]: ...
+@overload
+def tuple_of(c: _CaseFnSized[RET],
+             size: Optional[ByteSize]=None) -> _CaseFnSized[RET]: ...
+def tuple_of(c: CaseFn[RET],
+             size: Optional[ByteSize]=None) -> CaseFn[RET]:
     '''
     Test a type constructor with a tuple of data.
     '''
-    @wraps(c)
-    def tupleobj(cnst: Callable[..., Any], data: tuple, /,
-            size: Optional[ByteSize]=size):
+    @wraps(c) # type: ignore
+    def tupleobj(cnst: Constructor, data: tuple[Any, ...], /,
+            size: Optional[ByteSize]=size) -> tuple[Any, ...]:
         kwargs = {}
         if size is not None and signature(c).parameters.get('size') is not None:
             kwargs['size'] = size
         return (c(cnst, data, **kwargs),)
     tupleobj.__name__ = f'{c.__name__}_tuple'
     tupleobj.__qualname__ = tupleobj.__name__
-    return tupleobj
+    return cast(CaseFn, tupleobj)
 
 
-def case_weight(cnst: Callable[..., Any], data: tuple, /,
-                size: ByteSize):
+def case_weight(cnst: Constructor[Weight], data: tuple[Any, ...], /,
+                size: ByteSize|Literal['inf']) -> Weight:
     '''
     Test a type constructor with a tuple of data.
     '''
     total = sum(data)
     match size:
         case 1:
-            def scale(v: float):
+            def scale(v: Any): # type: ignore
                 return round((float(v)/total)*255)
             zero = 0
         case 2:
-            def scale(v: float):
+            def scale(v: Any): # type: ignore
                 return round((float(v)/total)*65535)
             zero = 0
         case 4:
-            def scale(v):
+            def scale(v: Any): # type: ignore
                 return float(v)/total
+            zero = 0.0
+        case 'inf':
+            def scale(v: Any): # type: ignore
+                return float(v)
             zero = 0.0
     if abs(total) < EPSILON:
         return cnst(*(zero for _ in data))
     return cnst(*(scale(d) for d in data))
 
-def case_numpy(cnst: Callable[..., Any], data: tuple,):
+def case_numpy(cnst: Constructor[Any], data: tuple[Any, ...],):
     '''
     Test a type constructor with a numpy array.
     '''
     return (np.array(data, np.float32),)
 
-def case_numpy8(cnst: Callable[..., Any], data: tuple,):
+def case_numpy8(cnst: Constructor[Any], data: tuple[Any, ...],):
     '''
     Test a type constructor with a numpy array.
     '''
     return (np.array(data, np.uint8),)
 
 
-def case_numpy16(cnst: Callable[..., Any], data: tuple,):
+def case_numpy16(cnst: Constructor[np.ndarray], data: tuple[Any, ...],) -> tuple[np.ndarray]:
     '''
     Test a type constructor with a numpy array.
     '''
@@ -102,28 +172,48 @@ case_tuple_tuple = tuple_of(case_tuple)
 case_obj_tuple = tuple_of(case_obj)
 case_weight_tuple = tuple_of(case_weight)
 
-def case_uvf(cnst: Callable[..., Any], data: tuple,):
+def case_uvf(cnst: Constructor[Any], data: tuple[Any, ...],):
     '''
     Test a type constructor with a _UvF instance.
     '''
     return (UvfFloat(*(float(d) for d in data)),)
 
 
-def case_uv8(cnst: Callable[..., Any], data: tuple,):
+def case_uv8(cnst: Constructor[Uv8], data: tuple[Any, ...],) -> tuple[Uv8]:
     '''
     Test a type constructor with a _UvF instance.
     '''
     return (Uv8(*(round(float(d) * 255) for d in data)),)
 
 
-def case_uv16(cnst: Callable[..., Any], data: tuple,):
+def case_uv16(cnst: Callable[..., Any], data: tuple[Any, ...],):
     '''
     Test a type constructor with a _UvF instance.
     '''
     return (Uv16(*(round(float(d) * 65535) for d in data)),)
 
+class NestedValidator(Function, Protocol):
+    '''
+    Type for the validator function.
+    '''
+    def __call__(
+        self,
+        t: type,
+        cnst: Callable[..., Any],
+        min_data: int,
+        max_data: int,
+        ndata: int,
+        data: tuple[Any, ...],
+        exc: type[ValueError] | None,
+        size: ByteSize|Literal['inf']=4,
+        to_int: bool=False,
+        epsilon: Optional[float]=None,
+    ) -> None:
+        '''
+        Validate the type constructor against the supplied data.
+        '''
 
-def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
+def validator_fn(tcase: Callable[[Callable[..., Any], tuple[Any, ...]], tuple[Any, ...]]) -> NestedValidator:
     @wraps(tcase)
     def validator(
             t: type,
@@ -131,8 +221,8 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
             min_data: int,
             max_data: int,
             ndata: int,
-            data: tuple,
-            exc: type[Exception] | None,
+            data: tuple[Any, ...],
+            exc: type[ValueError] | None,
             size: ByteSize|Literal['inf']=4,
             to_int: bool=False,
             epsilon: Optional[float]=None,
@@ -191,7 +281,7 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
                     x = min(1.0, max(0.0, float(x)))
                     return round(x*65535)
             case 4|'inf':
-                elt_type = float
+                elt_type = float # type: ignore
             case _:
                 raise ValueError(f"Invalid size: {size}")
         # Override epsilon for cases where the conversion loses resolution.
@@ -212,7 +302,7 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
         kwargs = {}
         if signature(cnst).parameters.get('size') is not None:
             kwargs['size'] = size
-        if isinstance(exc, type) and issubclass(exc, Exception):
+        if isinstance(exc, type):
             with raises((exc, TypeError)):
                 r = cnst(*data, **kwargs)
             return
@@ -221,12 +311,13 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
             with raises((ValueError, TypeError)):
                 r = cnst(*data, **kwargs)
             return
-        expected = t(*[elt_type(float(n)) for n in data])
+        expected = t(*[elt_type(n) for n in data])
         match expected:
             case (tuple()|np.ndarray(),):
                 # If the constructor under test was given a tuple w/ data, it is
                 # expected to return it unwrapped.
                 expected = expected[0]
+            case _: pass
         if to_int:
             data = tuple(elt_type(n) for n in data)
         data = tcase(t, data)
@@ -259,19 +350,19 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple], tuple]):
         case_obj_tuple,
         case_numpy,
     ])
-def validator_nested(request):
+def validator_nested(request: type[pt.FixtureRequest],
+        ) -> NestedValidator:
     '''
     Validator for types and constructor functions.
 
     '''
-    return validator_fn(request.param)
+    return validator_fn(request.param) # type: ignore
     
-
 
 @fixture(params=[case_tuple,
                          case_obj,
                          ])
-def validator_flat(request):
+def validator_flat(request: pt.FixtureRequest):
     '''
     Validator for types and constructor functions.
 
@@ -279,29 +370,28 @@ def validator_flat(request):
     return validator_fn(request.param)
 
 
-    
 @fixture(params=[case_tuple,
                          case_uvf,
                          case_uv8,
                          case_uv16,
                          case_numpy,
                          ])
-def validator_uv(request):
+def validator_uv(request: type[pt.FixtureRequest]):
     '''
     Validator for types and constructor functions.
 
     '''
-    return validator_fn(request.param)
+    return validator_fn(request.param) # type: ignore
     
 
-SCALED_PARAMS = [
+SCALED_PARAMS: list[tuple[tuple[Any, ...], type[ValueError]|None]] = [
     ((0.4, 0.3, 0.2, 0.1), None),
     ((0.0, 0.0, 0.0, 0.0), None),
     ((0, "foo", 0, 0,), ValueError),
     ((0, 0, 0, 0, 0), ValueError),
 ]
 
-VEC_PARAMS = [
+VEC_PARAMS: list[tuple[tuple[Any, ...], type[ValueError]|None]] = [
     ((1.0, 2.0, 3.0, 4.0), None),
     *SCALED_PARAMS,
 ]
@@ -318,12 +408,12 @@ VEC_PARAMS = [
 # Data and expected exceptions.
 @mark.parametrize('data, exc', VEC_PARAMS)
 def test_type_constructors(
-                        validator_nested,
-                        t ,
-                        ndata,
-                        cnst,
-                        data,
-                        exc,
+                        validator_nested: NestedValidator,
+                        t: type ,
+                        ndata: Literal[2] | Literal[3] | Literal[4],
+                        cnst: Callable[..., Any],
+                        data: tuple[tuple[Any, ...], type[ValueError] | None],
+                        exc: type[ValueError]|None,
                     ):
     '''
     Test the type constructors
@@ -499,7 +589,7 @@ def test_tangent(data, tcase):
     '''
     Test the tangent type constructor.
     '''
-    expected = Tangent(*(float(n) for n in data))
+    expected = Tangent(float(data[0]), float(data[1]), float(data[2]), data[3])
     args = tcase(Tangent, tuple(float(d) for d in data))
     r = tangent(*args)
     assert tuple(r) == approx(tuple(expected))
@@ -540,6 +630,12 @@ def test_joint(tcase, data, size):
     for v, e in zip(r, expected):
         assert isinstance(v, jtype)
         assert tuple(v) == approx(tuple(e))
+
+def weight8(*args, **kwargs):
+    return weight(*args, precision=1, **kwargs)
+
+def weight16(*args, **kwargs):
+    return weight(*args, precision=2, **kwargs)
 
 @mark.parametrize('data, size, expected', [
     ((0.4, 0.3, 0.2, 0.1), 4, ((0.4, 0.3, 0.2, 0.1),)),
@@ -601,11 +697,12 @@ def test_weight(tcase,
                 ),
                 zero, zero, zero, zero
             )[:4]
-    if isinstance(expected, type) and issubclass(expected, Exception):
-        arg = tcase(t, argdata, **t_kwargs)
-        with raises(expected):
-            c(arg, **kwargs)
-        return
+    match expected:
+        case type() if issubclass(expected, Exception):
+            arg = tcase(t, argdata, **t_kwargs)
+            with raises(expected):
+                c(arg, **kwargs)
+            return
     arg =  tcase(t, argdata, **t_kwargs)
     if zeropad:
         expected = tuple(v
@@ -618,7 +715,7 @@ def test_weight(tcase,
     for v, e in zip(r, expected):
         assert type(v) is type(e)
         for vx, ex in zip(v, e):
-            assert isinstance(vx, (type(ex), np.float32))
+            assert isinstance(vx, (type(ex), np.floating))
             if isinstance(vx, float):
                 assert vx == approx(ex)
             else:
@@ -705,10 +802,11 @@ def test_scale(data, expected):
     '''
     Test the scale type constructor.
     '''
-    if isinstance(expected, type) and issubclass(expected, Exception):
-        with raises(expected):
-            scale(*data)
-        return
+    match expected:
+        case type() if issubclass(expected, Exception):
+            with raises(expected):
+                scale(*data)
+            return
     expected = Scale(*(float(n) for n in expected))
     r = scale(*data)
     assert tuple(r) == approx(tuple(expected))

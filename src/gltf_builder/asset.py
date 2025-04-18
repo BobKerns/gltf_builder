@@ -22,11 +22,11 @@ class BAsset(gltf.Asset):
                  minVersion: Optional[str]=None,
                  extras: Optional[dict[str, Any]]=None,
                  extensions: Optional[dict[str, Any]]=None,
-                 **kwargs):
+                 ):
         super().__init__(generator=generator,
                          version=version,
                          copyright=copyright,
                          minVersion=minVersion,
                          extras=extras,
                          extensions=extensions,
-                         **kwargs)
+                         )

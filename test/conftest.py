@@ -8,8 +8,6 @@ import pytest
 
 from pathlib import Path
 
-import test
-
 from gltf_builder import Builder, NameMode
 from gltf_builder.element import GLTF_LOG
 
@@ -136,7 +134,7 @@ def test_builder(request, save):
         name_mode=NameMode.UNIQUE,
         extras={
             'gltf_builder': {
-                test: {
+                'test': {
                     'module': request.node.parent.name,
                     'test': request.node.name,
                 }

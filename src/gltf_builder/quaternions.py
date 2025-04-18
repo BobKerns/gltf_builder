@@ -3,13 +3,13 @@ Quaternion utilities, per ChatGPT.
 '''
 
 import math
-from typing import NamedTuple, TypeAlias, overload
+from typing import Literal, NamedTuple, TypeAlias, overload, cast
 
 import numpy as np
 
 from gltf_builder.core_types import Scalar, float01
 from gltf_builder.attribute_types import (
-    EPSILON, vector3,
+    EPSILON, Vector3Spec, vector3,
     Vector3, Scale, scale,
 )
 from gltf_builder.matrix import matrix, Matrix
@@ -22,7 +22,7 @@ dtype = np.dtype([('x', np.float32),
 Numpy dtype for a quaternion.
 '''
 
-
+RotMatrix: TypeAlias = np.ndarray[tuple[Literal[3], Literal[3]], np.dtype[np.float32]]
 class Quaternion(NamedTuple):
     '''
     A quaterhion with x, y, z, and w components. Used here to
@@ -36,7 +36,7 @@ class Quaternion(NamedTuple):
     def __neg__(self):
         return Quaternion(-self.x, -self.y, -self.z, -self.w)
     
-    def __mul__(self, other: 'Quaternion|Scalar'):
+    def __mul__(self, other: 'Quaternion|Scalar') -> 'Quaternion': # type: ignore
         if isinstance(other, Quaternion):
             x1, y1, z1, w1 = self
             x2, y2, z2, w2 = other
@@ -47,27 +47,27 @@ class Quaternion(NamedTuple):
             w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
             return Quaternion(x, y, z, w)
         
-        elif isinstance(other, (int, float, np.float32)):
-            return Quaternion(self.x * other,
-                               self.y * other,
-                               self.z * other,
-                               self.w * other)
+        elif isinstance(other, (int, float, np.floating)): # type: ignore
+            return Quaternion(float(self.x * other),
+                               float(self.y * other),
+                               float(self.z * other),
+                               float(self.w * other))
         else:
             return NotImplemented
 
-    def __rmul__(self, other: 'Quaternion|Scalar'):
+    def __rmul__(self, other: 'Quaternion|Scalar'): # type: ignore
         if isinstance(other, Quaternion):
-            return other * self
-        if isinstance(other, (int, float, np.float32)):
-            return Quaternion(self.x * other,
-                               self.y * other,
-                               self.z * other,
-                               self.w * other)
+            return other * self # type: ignore
+        if isinstance(other, (int, float, np.floating)):
+            return Quaternion(float(self.x * other),
+                                float(self.y * other),
+                                float(self.z * other),
+                                float(self.w * other))
         else:
             return NotImplemented
         
     def __truediv__(self, other: 'Quaternion|Scalar'):
-        if isinstance(other, (int, float, np.float32)):
+        if isinstance(other, (int, float, np.floating)):
             other = float(other)
             return Quaternion(self.x / other,
                                 self.y / other,
@@ -77,7 +77,7 @@ class Quaternion(NamedTuple):
             return NotImplemented
         
     def norm(self) -> float:
-        return np.linalg.norm(self)
+        return float(np.linalg.norm(self))
         
     def normalize(self) -> 'Quaternion':
         n = self.norm()
@@ -179,7 +179,7 @@ class Quaternion(NamedTuple):
         return IDENTITY # Identity
     
     @staticmethod
-    def decompose_trs(m: Matrix) -> tuple[Vector3, 'Quaternion', Scale]:
+    def decompose_trs(m: Matrix[Literal[4]]) -> tuple[Vector3, 'Quaternion', Scale]:
         """
         Decompose a 4x4 transformation matrix into translation, rotation (as a quaternion), and scale components.
 
@@ -243,7 +243,7 @@ class Quaternion(NamedTuple):
         rotation_quaternion = Quaternion(x, y, z, w)
         return Vector3(*translation), rotation_quaternion, scale(*_scale)
 
-    def to_matrix(self) -> Matrix:
+    def to_matrix(self) -> Matrix[Literal[4]]:
         """
         Convert a quaternion (x, y, z, w) to a 4x4 rotation matrix.
 
@@ -272,7 +272,7 @@ class Quaternion(NamedTuple):
         ))
     
     @staticmethod
-    def from_matrix(m: Matrix) -> 'Quaternion':
+    def from_matrix(m: Matrix[Literal[4]]) -> 'Quaternion':
         """
         Convert a 3x3 or 4x4 rotation matrix to a quaternion (x, y, z, w).
 
@@ -289,15 +289,16 @@ class Quaternion(NamedTuple):
         mat = matrix(m).as_array()
 
         # Extract the rotation part
+        rot_mat: RotMatrix
         if mat.shape == (4, 4):
-            rot_mat = mat[:3, :3]
+            rot_mat = cast(RotMatrix, mat[:3, :3])
         elif mat.shape == (3, 3):
-            rot_mat = mat
+            rot_mat = cast(RotMatrix, mat)
         else:
             raise ValueError("Input matrix must be 3x3 or 4x4.")
 
         # Compute the trace of the matrix
-        trace = np.trace(rot_mat)
+        trace = float(np.trace(rot_mat))
 
         if trace > 0:
             s = 2.0 * np.sqrt(trace + 1.0)
@@ -326,7 +327,8 @@ class Quaternion(NamedTuple):
                 z = 0.25 * s
 
         q = np.array([x, y, z, w], dtype=dtype)
-        return Quaternion(*(q / np.linalg.norm(q)))
+        norm = float(np.linalg.norm(q))
+        return Quaternion(*(float(v / norm) for v in q))
     
     def to_axis_angle(self) -> tuple[Vector3, float]:
         """
@@ -354,7 +356,7 @@ class Quaternion(NamedTuple):
 
 
     @staticmethod
-    def from_axis_angle(axis: Vector3, angle: float) -> 'Quaternion':
+    def from_axis_angle(axis: Vector3Spec, angle: float) -> 'Quaternion':
         """
         Convert a rotation about an arbitrary axis to a quaternion in (x, y, z, w) order.
 
@@ -465,8 +467,9 @@ class Quaternion(NamedTuple):
         Quaternion
             The interpolated quaternion (x, y, z, w).
         """
-        x1, y1, z1, w1 = q1
-        x2, y2, z2, w2 = q2
+        x1, y1, z1, w1 = (float(v) for v in q1)
+        x2, y2, z2, w2 = (float(v) for v in q2)
+        tf = float(t)
 
         # Compute the dot product (cosine of the angle between quaternions)
         dot = x1*x2 + y1*y2 + z1*z2 + w1*w2
@@ -481,10 +484,10 @@ class Quaternion(NamedTuple):
 
         # Compute interpolation weights
         if dot > 0.9995:  # If very close, use linear interpolation to avoid numerical instability
-            qx = x1 + t * (x2 - x1)
-            qy = y1 + t * (y2 - y1)
-            qz = z1 + t * (z2 - z1)
-            qw = w1 + t * (w2 - w1)
+            qx = x1 + tf * (x2 - x1)
+            qy = y1 + tf * (y2 - y1)
+            qz = z1 + tf * (z2 - z1)
+            qw = w1 + tf * (w2 - w1)
             norm = math.sqrt(qx**2 + qy**2 + qz**2 + qw**2)
             return Quaternion(qx / norm, qy / norm, qz / norm, qw / norm)
 
@@ -545,16 +548,29 @@ def quaternion(qx: 'QuaternionSpec|Scalar',
     Quaternion
         A quaternion with x, y, z, and w components.
     '''
-    if isinstance(qx, Quaternion):
-        return qx
-    if y is None:
-        return Quaternion(*qx)
-    return Quaternion(qx, y, z, w)
+    match qx, y, z, w:
+        case Quaternion(), None, None, None:
+            return qx
+        case (float()|np.floating()|int() as x,
+              float()|np.floating()|int(),
+              float()|np.floating()|int(),
+              float()|np.floating()|int()):
+            return Quaternion(float(x), float(y), float(z), float(w))
+        case (
+            (float()|np.floating()|int() as tx,
+              float()|np.floating()|int() as ty,
+              float()|np.floating()|int() as tz,
+              float()|np.floating()|int() as tw),
+              None, None, None
+            ):
+            return Quaternion(float(tx), float(ty), float(tz), float(tw))
+        case _:
+            raise TypeError(f'Invalid quaternion: {qx}')
 
 
 QuaternionSpec: TypeAlias = (
     Quaternion|tuple[Scalar, Scalar, Scalar, Scalar]
-    |np.ndarray[tuple[int], np.float32]
+    |np.ndarray[tuple[int], np.dtype[np.float32]]
 )
 '''
 A Quaternion, or a type convertible to a Quaternion.

@@ -14,6 +14,7 @@ import pygltflib as gltf
 from gltf_builder import (
     Builder, PrimitiveMode, BMesh, Quaternion as Q,
 )
+from gltf_builder.element import BNode
 from gltf_builder.geometries import (
     _CUBE,
     _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3,
@@ -26,8 +27,8 @@ from gltf_builder.geometries import (
 class GeometryData:
     builder: Builder
     meshes: dict[str, BMesh] = field(default_factory=dict)
-    nodes: dict[str, BMesh] = field(default_factory=dict)
-    save: Callable[[gltf.GLTF2|Builder], None] = lambda g: g
+    nodes: dict[str, BNode] = field(default_factory=dict)
+    save: Callable[[gltf.GLTF2], gltf.GLTF2] = lambda g, **kwargs: g
     def build(self, **kwargs):
         return self.save(self.builder.build(**kwargs))
     def __getitem__(self, name):
@@ -65,7 +66,7 @@ def cube(save):
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE4))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE5))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE6))
-    top = b.create_node(name='TOP')
+    top = b.create_node('TOP')
     top.create_node('CUBE', mesh=m)
     yield GeometryData(builder=b,
                    meshes={'CUBE_MESH': m},
@@ -92,8 +93,8 @@ def test_faces(save):
     def face(name, indices: Iterable[int]):
         m = b.create_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
-        return b.create_node(name=name, mesh=m)
-    b.create_node(name='CUBE',
+        return b.create_node(name, mesh=m)
+    b.create_node('CUBE',
                 children=[
                     face('FACE1', _CUBE_FACE1),
                     face('FACE2', _CUBE_FACE2),
@@ -112,11 +113,11 @@ def test_faces(save):
 
 def test_faces2(save):
     b = Builder()
-    cube = b.create_node(name='CUBE')
+    cube = b.create_node('CUBE')
     def face(name, indices: Iterable[int]):
         m = b.create_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
-        return cube.create_node(name=name, mesh=m)
+        return cube.create_node(name, mesh=m)
     face('FACE1', _CUBE_FACE1)
     face('FACE2', _CUBE_FACE2)
     face('FACE3', _CUBE_FACE3)
@@ -209,7 +210,7 @@ def test_normal(save):
     m.add_primitive(PrimitiveMode.LINE_LOOP,
                     *[_CUBE[i] for i in _CUBE_FACE6],
                     NORMAL=4 *(_CUBE_NORMAL6,))
-    top = b.create_node(name='TOP')
+    top = b.create_node('TOP')
     cube = top.create_node('CUBE', mesh=m, detached=True)
     top.instantiate(cube)
     g = b.build()

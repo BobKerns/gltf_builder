@@ -3,23 +3,25 @@ A container for `Element` objects, indexable by name or index.
 '''
 
 from collections.abc import Iterable
-from typing import TypeVar, TYPE_CHECKING
+from typing import TypeVar, Any, TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from gltf_builder.element import Element
-    T = TypeVar('T', bound=Element)
+    T = TypeVar('T', bound=Element[Any])
 else:
     T = TypeVar('T')
 
-class Holder(Iterable[T]):
+class Holder_(Iterable[T]):
     '''
     A container for `Element` instances, indexable by index or name.
     This also guarantees an item is added only once.
     '''
+    __type: type[T]
     __by_index: list[T]
     __by_name: dict[str, T]
     __by_value: set[T]
-    def __init__(self, *items: T):
+    def __init__(self, type_: type[T], *items: T):
+        self.__type = type_
         self.__by_index = []
         self.__by_name = {}
         self.__by_value = set()
@@ -35,6 +37,21 @@ class Holder(Iterable[T]):
                 self.__by_index.append(item)
                 if item.name:
                     self.__by_name[item.name] = item
+
+    @overload
+    def get(self, key: str|int, default: T) -> T: ...
+    @overload
+    def get(self, key: str|int, default: None) -> T|None: ...
+    @overload
+    def get(self, key: str|int) -> T|None: ...
+    def get(self, key: str|int, default: T|None=None) -> T|None:
+        '''
+        Get an item by index or name, or return `default` if not found.
+        '''
+        try:
+            return self[key]
+        except KeyError:
+            return default
                 
     def __iter__(self):
         '''
@@ -72,4 +89,4 @@ class Holder(Iterable[T]):
         '''
         A string representation of the `Holder`.
         '''
-        return f'<{self.__class__.__name__}({len(self)})>'
+        return f'<{self.__class__.__name__}({self.__type.__name__}, {len(self)})>'
