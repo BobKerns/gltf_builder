@@ -730,9 +730,13 @@ def point(x: Optional[Scalar|PointSpec|np.ndarray[tuple[int], np.dtype[np.float3
             return Point(0.0, 0.0, 0.0)
         case Point(), None, None:
             return x
-        case float()|int()|np.floating()|np.integer(), float()|int()|np.floating()|np.integer(), float()|int()|np.floating()|np.integer():
+        case float()|int()|np.floating()|np.integer(), \
+                float()|int()|np.floating()|np.integer(), \
+                float()|int()|np.floating()|np.integer():
             return Point(float(x), float(y), float(z))
-        case (float()|int()|np.floating()|np.integer(), float()|int()|np.floating()|np.integer(), float()|int()|np.floating()|np.integer()), None, None:
+        case (float()|int()|np.floating()|np.integer(),
+              float()|int()|np.floating()|np.integer(),
+              float()|int()|np.floating()|np.integer()), None, None:
             return Point(float(x[0]), float(x[1]), float(x[2]))
         case np.ndarray(), None, None if x.shape == (3,):
             return Point(float(x[0]), float(x[1]), float(x[2]))
@@ -1095,7 +1099,7 @@ def joints(weights: Mapping[IntScalar, Scalar]|Iterable[tuple[IntScalar,Scalar]]
         case Mapping():
            # An Iterable[X] is incorrectliy promotted to a Mapping[X, Unknown]
            w = cast(Mapping[IntScalar, Scalar], weights)
-           return joint(*w.keys(), size=size), weight(w.values(), precision=precision)
+           return joint(*w.keys(), size=size), weight(*w.values(), precision=precision)
         case Sequence():
             return joint(*[i[0] for i in weights], size=size), weight([i[1] for i in weights], precision=precision)
         case Iterable():
@@ -1181,6 +1185,8 @@ def joint(*ids: IntScalar|Iterable[IntScalar]|_NPIVector,
                                     for i in id_list
                                 ):
                     size, validated = 2, True
+                case Sequence():
+                    raise ValueError('Joint ids out of range')
                 case Iterable():
                     # So we avoid two passes (identifying size, then collecting), which may not be posssible
                     # if the iterable is e.g. a generator.
@@ -1347,16 +1353,17 @@ def _weighti(arg: Iterable[Scalar|None],
              fn: Callable[[int, int, int, int], Any]) -> tuple[Any, ...]:
     values = arg
     if isinstance(arg, np.ndarray):
-        total = int(arg.sum())
+        total = float(arg.sum())
     else:
-        total = int(sum(
+        total = sum(
             float(v or 0)
             for v in arg
-        ))
-    ivalues = (int((i or 0) / total) for i in values)
+        )
+    if abs(total) < EPSILON:
+        raise ValueError('No meaningfully non-zero weights')
+    ivalues = [round((i or 0) * limit / total) for i in values]
     dt = find_dtype(ivalues)
     avalues = np.fromiter(ivalues, dtype=dt)
-    total = avalues.sum()
     return tuple(fn(*chunk) for chunk in chunk4i(avalues))
 
 
