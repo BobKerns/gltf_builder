@@ -44,6 +44,11 @@ class Builder(BNodeContainer, BuilderProtocol):
     id_counters: dict[str, count] # type: ignore
     name: str = ''
     __ordered_views: list[BBufferView] = []
+
+    @property
+    def builder(self) -> BuilderProtocol:
+        return self
+    
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
@@ -63,7 +68,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             buffers = [Buffer_('main')]
         else:
             buffers = list(buffers)
-        super().__init__(buffer=buffers[0], builder=self, children=nodes)
+        super().__init__(buffer=buffers[0], children=nodes)
         self.asset = asset
         self.meshes = Holder_(BMesh, *meshes)
         self.buffers_ = Holder_(BBuffer, *buffers)

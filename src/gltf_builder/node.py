@@ -4,6 +4,7 @@ the build phase.
 '''
 
 
+from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Optional, cast
 
@@ -32,13 +33,15 @@ class BNodeContainer(BNodeContainerProtocol):
     @nodes.setter
     def nodes(self, nodes: Holder_['BNode']):
         self.children = nodes
+
+    @property
+    @abstractmethod
+    def builder(self) -> BuilderProtocol: ...
     
     def __init__(self, /,
-                builder: BuilderProtocol,
                 buffer: BBuffer,
                 children: Iterable[BNode]=(),
             ):
-        self.builder = builder
         self.buffer = buffer
         self._local_views = {}
         self.children = Holder_(BNode, *children)
@@ -158,6 +161,10 @@ class BNodeContainer(BNodeContainerProtocol):
         return len(self.children)
 
 class Node_(BNodeContainer, BNode):
+    __builder: BuilderProtocol
+    @property
+    def builder(self) -> BuilderProtocol:
+        return self.__builder
     __detached: bool
     @property
     def detached(self) -> bool:
@@ -191,9 +198,9 @@ class Node_(BNodeContainer, BNode):
                         )
         BNodeContainer.__init__(self,
                                 buffer=buffer or builder.buffer,
-                                builder=builder,
                                 children=children,
                             )
+        self.__builder = builder
         self.__detached = detached
         self.root = root or False
         self.mesh = mesh
