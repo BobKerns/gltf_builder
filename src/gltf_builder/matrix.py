@@ -218,7 +218,9 @@ def matrix(m: Matrix2Spec) -> Matrix2: ...
 def matrix(m: Matrix3Spec) -> Matrix3: ...
 @overload
 def matrix(m: Matrix4Spec) -> Matrix4: ...
-def matrix(m: MatrixSpec) -> Matrix2|Matrix3|Matrix4:
+@overload
+def matrix(m: Matrix) -> Matrix: ...
+def matrix(m: MatrixSpec) -> Matrix:
     '''
     Verify and convert a Matrix to a standard _Matrix value.
 
@@ -232,6 +234,8 @@ def matrix(m: MatrixSpec) -> Matrix2|Matrix3|Matrix4:
     _Matrix
     '''
     match m:
+        case Matrix():
+            return m
         case np.ndarray():
             match m.shape:
                 case (2, 2)|(4,): 
@@ -255,7 +259,7 @@ def matrix(m: MatrixSpec) -> Matrix2|Matrix3|Matrix4:
                     pass
         case tuple() if (
             len(m) in (4, 9, 16)
-            and all(isinstance(v, (int, float, np.floating, np.integer)) for v in m) # type: ignore
+            and all(isinstance(v, (int, float, np.floating, np.integer)) for v in m)
         ):
             match len(m):
                 case 4: return Matrix2(m)
