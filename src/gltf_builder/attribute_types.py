@@ -1212,7 +1212,10 @@ def chunk4(values: Iterable[Scalar|None]) -> Iterable[tuple[float, float, float,
     '''
     viter = iter(values)
     while True:
-        v1 = float(next(viter) or 0.0)
+        try:
+            v1 = float(next(viter) or 0.0)
+        except StopIteration:
+            return
         try:
             v2 = float(next(viter) or 0.0)
         except StopIteration:
@@ -1238,7 +1241,10 @@ def chunk4i(values: Iterable[IntScalar|None], /) -> Iterable[tuple[int, int, int
     '''
     viter = iter(values)
     while True:
-        v1 = int(next(viter) or 0)
+        try:
+            v1 = int(next(viter) or 0)
+        except StopIteration:
+            return
         try:
             v2 = int(next(viter) or 0)
         except StopIteration:
