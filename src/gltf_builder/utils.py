@@ -162,6 +162,16 @@ def normalize(vec: VectorSpec|Tangent, /) -> Vector2|Vector3|Vector4|Tangent:
             return Tangent(float(vec.x/tlen), float(vec.y/tlen), float(vec.z/tlen), vec.w)
         case VectorLike():
             cls = type(vec)
+        case tuple():
+            match len(vec):
+                case 2:
+                    cls = Vector2
+                case 3:
+                    cls = Vector3
+                case 4:
+                    cls = Vector4
+                case _:
+                    raise ValueError(f'Unsupported vector length: {len(vec)}')
         case np.ndarray():
             total = sum(v*v for v in vec) ** 0.5
             match len(vec):
@@ -176,21 +186,11 @@ def normalize(vec: VectorSpec|Tangent, /) -> Vector2|Vector3|Vector4|Tangent:
             raise ValueError(f'{type(vec).__name__} is not a vector-like value.')
         case _:
             raise ValueError(f'{type(vec).__name__} is not a vector-like value.')
-    match len(vec):
-        case 2:
-            cls = Vector2
-        case 3:
-            cls = Vector3
-        case 4:
-            cls = Vector4
-        case _:
-            raise ValueError(f'Unsupported vector length: {len(vec)}')
 
-    length = sum(v*v for v in vec) ** 0.5
+    length = sum(float(v)*float(v) for v in vec) ** 0.5
     if length < 0.0000001:
         return cls(*repeat(0.0, len(vec)))
     return cls(*(v / length for v in vec))
-
 
 @overload
 def map_range(value: int,
