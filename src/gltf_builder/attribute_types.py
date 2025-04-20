@@ -127,7 +127,7 @@ class VectorLike(NamedTuple, Generic[V, VT]):
                 o = self._other_vector(other)
                 if o is None:
                     return NotImplemented
-                return type(self)(*(a*b for a, b in zip(self, o)))
+                return sum((a*b for a, b in zip(self, o)))
             case _:
                 return NotImplemented
 
