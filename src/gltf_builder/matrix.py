@@ -54,7 +54,7 @@ class Matrix(Generic[DIMS]):
     def __mul__(self, scalar: Scalar) -> 'Matrix[DIMS]':
         if not isinstance(scalar, (int, float, np.floating)):
             return NotImplemented
-        return Matrix(self._data * float(scalar))
+        return type(self)(self._data * float(scalar))
 
     def __rmul__(self, scalar: Scalar):
         return self.__mul__(scalar)
