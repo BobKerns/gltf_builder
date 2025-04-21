@@ -94,7 +94,11 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     self.dtype, # type: ignore
                     self.bufferType
                 ) = decode_type(self.elt_type, self.componentType)
-                return len(self.data) * self.byteStride
+                ldata = sum(
+                    len(d) if isinstance(d, (Sequence, np.ndarray)) else 1
+                    for d in self.data
+                )
+                return ldata * self.byteStride
             case Phase.OFFSETS:
                 self.view.compile(builder, scope, phase)
                 self.__memory = self.view.memoryview(self.byteOffset, len(self))

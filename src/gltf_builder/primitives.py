@@ -13,7 +13,7 @@ from gltf_builder.core_types import (
 )
 from gltf_builder.attribute_types import (
     AttributeDataItem, ColorSpec, JointSpec, PointSpec,
-    TangentSpec, UvSpec, Vector3Spec, WeightSpec,
+    TangentSpec, UvSpec, Vector3Spec, WeightSpec, color, joint, point, tangent, uv, vector3, weight,
 )
 from gltf_builder.protocols import BType, _BuilderProtocol
 from gltf_builder.element import (
@@ -69,27 +69,28 @@ class _Primitive(BPrimitive):
                 return data
             return list(data)
         explicit_attribs: dict[str, Iterable[AttributeDataItem]|None] = {
-            'NORMAL': NORMAL,
-            'TANGENT': TANGENT,
-            'TEXCOORD_0': TEXCOORD_0,
-            'TEXCOORD_1': TEXCOORD_1,
-            'COLOR_0': COLOR_0,
-            'JOINTS_0': JOINTS_0,
-            'WEIGHTS_0': WEIGHTS_0,
+            'NORMAL': [vector3(n) for n in NORMAL or ()],
+            'TANGENT': [tangent(t) for t in TANGENT or ()],
+            'TEXCOORD_0': [uv(u) for u in TEXCOORD_0 or ()],
+            'TEXCOORD_1': [uv(u) for u in TEXCOORD_1 or ()],
+            'COLOR_0': [color(c) for c in COLOR_0 or ()],
+            'JOINTS_0': [j for j0 in JOINTS_0 or () for j in joint(j0)],
+            'WEIGHTS_0': [w for w0 in WEIGHTS_0 or () for w in weight(w0)],
         }
         self.attribs: Mapping[str, Sequence[AttributeDataItem]] = {
-            'POSITION': self.points,
+            'POSITION': [point(p) for p in self.points],
             **{
                 n: collect_attrib(v)
                 for n, v in attribs.items()
+                if v
             },
             **{
                 k: collect_attrib(v)
                 for k, v in explicit_attribs.items()
-                if v is not None
+                if v
             }
         }
-        lengths = {len(v) for v in self.attribs.values()}
+        lengths = {len(v) for v in self.attribs.values() if v}
         if len(lengths) > 1:
             raise ValueError('All attributes must have the same length')
         self.mesh = mesh
@@ -103,6 +104,7 @@ class _Primitive(BPrimitive):
                            data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, BType]:
             index = mesh.primitives.index(self)
+            name = buffer.builder._gen_name(self) or ''
             prim_name = f'{mesh.name}:{self.mode.name}/{name}[{index}]'
             eltType, componentType, btype = builder.get_attrib_info(name)
             dtype = decode_dtype(eltType, componentType)
