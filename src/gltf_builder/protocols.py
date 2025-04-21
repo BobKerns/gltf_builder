@@ -44,9 +44,6 @@ class _BNodeContainerProtocol(Protocol):
     @property
     def nodes(self):
         return self.children
-    @nodes.setter
-    def nodes(self, nodes: Holder_['BNode']):
-        self.children = nodes
     
     @abstractmethod
     def create_node(self,

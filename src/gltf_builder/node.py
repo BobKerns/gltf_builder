@@ -30,9 +30,6 @@ class _BNodeContainer(_BNodeContainerProtocol):
     @property
     def nodes(self):
         return self.children
-    @nodes.setter
-    def nodes(self, nodes: _Holder['BNode']):
-        self.children = nodes
 
     @property
     @abstractmethod
