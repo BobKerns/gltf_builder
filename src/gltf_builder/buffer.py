@@ -11,19 +11,13 @@ from gltf_builder.compile import _Collected, DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget,
 )
-from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
 from gltf_builder.element import (
     BBuffer, BBufferView,
     _Scope,
 )
 from gltf_builder.holder import _Holder
 from gltf_builder.view import _BufferView
-
-
-class _ViewKey(NamedTuple):
-    target: BufferViewTarget
-    byteStride: int
-    name: str
 
 
 class _Buffer(BBuffer):
@@ -41,7 +35,7 @@ class _Buffer(BBuffer):
     
     views: _Holder[BBufferView]
 
-    _views: dict[_ViewKey, BBufferView]
+    _views: dict[_BufferViewKey, BBufferView]
     
     def __init__(self,
                  builder: _BuilderProtocol,
@@ -136,7 +130,7 @@ class _Buffer(BBuffer):
         Get a compatible buffer view. Specifying a name permits the use of distinct views
         for the same target and byteStride for possible optimizations.
         '''
-        key = _ViewKey(target, byteStride, name)
+        key = _BufferViewKey(self, target, byteStride, name)
         view = self._views.get(key)
         if view is None:
             view = _BufferView(self, name, byteStride, target,
