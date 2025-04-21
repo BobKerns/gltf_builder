@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 else:
     T = TypeVar('T')
 
-class Holder_(Iterable[T]):
+class _Holder(Iterable[T]):
     '''
     A container for `Element` instances, indexable by index or name.
     This also guarantees an item is added only once.

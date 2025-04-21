@@ -12,18 +12,18 @@ from gltf_builder.core_types import (
     ComponentType, ElementType, JsonObject, Phase, BufferViewTarget,
 )
 from gltf_builder.attribute_types import BTYPE, BType
-from gltf_builder.protocols  import BuilderProtocol
+from gltf_builder.protocols  import _BuilderProtocol
 from gltf_builder.element import (
     BAccessor, BBuffer, NP
 )
-from gltf_builder.compile import DoCompileReturn, Scope_
+from gltf_builder.compile import DoCompileReturn, _Scope
 from gltf_builder.utils import decode_dtype, decode_stride, decode_type
 from gltf_builder.log import GLTF_LOG
 
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
-class Accessor_(BAccessor[NP, BTYPE]):
+class _Accessor(BAccessor[NP, BTYPE]):
     __memory: memoryview
     dtype: type[NP]
     btype: BType
@@ -53,8 +53,8 @@ class Accessor_(BAccessor[NP, BTYPE]):
                     )
         byteStride = decode_stride(elementType, componentType)
         self.dtype = cast(type[NP], decode_dtype(elementType, componentType))
-        self.view = buffer.get_view(buffer, target, byteStride=byteStride, name=name)
-        self.view.add_accessor(self)
+        self.view = buffer._get_view(buffer, target, byteStride=byteStride, name=name)
+        self.view._add_accessor(self)
         self.count = count
         self.elt_type = elementType
         self.name = name
@@ -72,19 +72,19 @@ class Accessor_(BAccessor[NP, BTYPE]):
                     self.view.byteOffset
                     )
 
-    def add_data_(self, data: Sequence[BTYPE]):
+    def _add_data(self, data: Sequence[BTYPE]):
         self.data.extend(data)
     
-    def add_data_item_(self, data: BTYPE):
+    def _add_data_item(self, data: BTYPE):
         self.data.append(data)
     
     def _do_compile(self,
-                    builder: BuilderProtocol,
-                    scope: Scope_, phase: Phase,
+                    builder: _BuilderProtocol,
+                    scope: _Scope, phase: Phase,
                     ) -> DoCompileReturn[gltf.Accessor]:
         match phase:
             case Phase.COLLECT:
-                builder.accessors_.add(self) # type: ignore
+                builder._accessors.add(self) # type: ignore
                 return [(self,())]
             case Phase.SIZES:
                 (
@@ -115,7 +115,7 @@ class Accessor_(BAccessor[NP, BTYPE]):
                     max_axis = [float(max_axis)] * self.componentCount
                 self.__memory[:] = data.tobytes()
                 return gltf.Accessor(
-                    bufferView=self.view.index,
+                    bufferView=self.view._index,
                     count=self.count,
                     type=self.elt_type,
                     componentType=self.componentType,

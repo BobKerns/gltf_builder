@@ -10,13 +10,13 @@ from gltf_builder.core_types import (
     BufferViewTarget, JsonObject, NPTypes, Phase,
 )
 from gltf_builder.element import (
-    BAccessor, BBuffer, BBufferView, Scope_,
+    BAccessor, BBuffer, BBufferView, _Scope,
 )
-from gltf_builder.protocols import BType, BuilderProtocol
-from gltf_builder.holder import Holder_
+from gltf_builder.protocols import BType, _BuilderProtocol
+from gltf_builder.holder import _Holder
 
 
-class BaseBufferVieW_(BBufferView):
+class _BaseBufferVieW(BBufferView):
     __memory: memoryview
     
     __blob: bytes|None = None
@@ -39,9 +39,9 @@ class BaseBufferVieW_(BBufferView):
         self.target = target
         buffer.views.add(self)
         self.byteStride = byteStride
-        self.accessors = Holder_(type_=BAccessor[NPTypes, BType],)        
+        self.accessors = _Holder(type_=BAccessor[NPTypes, BType],)        
     
-    def add_accessor(self, acc: BAccessor[NPTypes, BType]) -> None:
+    def _add_accessor(self, acc: BAccessor[NPTypes, BType]) -> None:
         '''
         Add an accessor to the buffer view
         '''
@@ -54,10 +54,10 @@ class BaseBufferVieW_(BBufferView):
         end = offset + size
         return self.__memory[offset:end]
         
-    def _do_compile(self, builder: BuilderProtocol, scope: Scope_, phase: Phase):
+    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
         match phase:
             case Phase.COLLECT:
-                builder.accessors_.add(*self.accessors)
+                builder._accessors.add(*self.accessors)
                 return [acc.compile(builder, scope, phase)
                         for acc in self.accessors]
             case Phase.SIZES:
@@ -85,7 +85,7 @@ class BaseBufferVieW_(BBufferView):
                     acc.compile(builder, scope, Phase.BUILD)
                 return gltf.BufferView(
                     name=self.name,
-                    buffer=self.buffer.index,
+                    buffer=self.buffer._index,
                     byteOffset=self.byteOffset,
                     byteLength=len(self),
                     byteStride=self.byteStride,

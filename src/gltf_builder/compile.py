@@ -20,7 +20,7 @@ from gltf_builder.attribute_types import BType
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import decode_stride
 if TYPE_CHECKING:
-    from gltf_builder.protocols import BufferViewKey, BuilderProtocol
+    from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
     from gltf_builder.element import BAccessor, BBufferView, BBuffer
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
@@ -28,26 +28,26 @@ LOG = GLTF_LOG.getChild(Path(__name__).stem)
 T = TypeVar('T', bound=gltf.Property, covariant=True)
 
 
-Collected: TypeAlias = tuple[
-    'Compileable[gltf.Property]',
-    Sequence['Collected'],
+_Collected: TypeAlias = tuple[
+    '_Compileable[gltf.Property]',
+    Sequence['_Collected'],
 ]
 
 
-ReturnCollect_: TypeAlias = Iterable[Collected]|None
-ReturnSize_: TypeAlias = int|None
-ReturnOffset_: TypeAlias = int|None
-ReturnBuild_: TypeAlias = T|None
-ReturnView_: TypeAlias = None
+_ReturnCollect: TypeAlias = Iterable[_Collected]|None
+_ReturnSize: TypeAlias = int|None
+_ReturnOffset: TypeAlias = int|None
+_ReturnBuild: TypeAlias = T|None
+_ReturnView: TypeAlias = None
 DoCompileReturn: TypeAlias = (
-    ReturnCollect_|
-    ReturnSize_|
-    ReturnOffset_|
-    ReturnBuild_[T]|
-    ReturnView_
+    _ReturnCollect|
+    _ReturnSize|
+    _ReturnOffset|
+    _ReturnBuild[T]|
+    _ReturnView
 )
 
-class Compileable(Generic[T], Protocol):
+class _Compileable(Generic[T], Protocol):
     __phases: list[Phase]
     __compiled: T|None = None
     _len: int = -1
@@ -72,19 +72,18 @@ class Compileable(Generic[T], Protocol):
     
     extensions: JsonObject
     extras: JsonObject
-    collected: Collected|None = None
+    _collected: _Collected|None = None
     name: str = ''
 
     __index: int = -1 # -1 means not set
     @property
-    def index(self) -> int:
+    def _index(self) -> int:
         return self.__index
-    @index.setter
-    def index(self, index: int):
+    @_index.setter
+    def _index(self, index: int):
         if self.__index != -1 and self.__index != index:
             raise ValueError(f'Index already set old={self.__index}, new={index}')
         self.__index = index
-
 
     def __init__(self,
                  extras: Optional[JsonObject]=None,
@@ -103,18 +102,18 @@ class Compileable(Generic[T], Protocol):
             LOG.debug(f'{self} has offset {self.byteOffset}')
     
     @overload
-    def compile(self, builder: 'BuilderProtocol', scope: 'Scope_', phase: Literal[Phase.COLLECT]
-                ) -> Collected: ...
+    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.COLLECT]
+                ) -> _Collected: ...
     @overload
-    def compile(self, builder: 'BuilderProtocol', scope: 'Scope_', phase: Literal[Phase.SIZES]) -> int: ...
+    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.SIZES]) -> int: ...
     @overload
-    def compile(self, builder: 'BuilderProtocol', scope: 'Scope_', phase: Literal[Phase.OFFSETS]) -> int: ...
+    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.OFFSETS]) -> int: ...
     @overload
-    def compile(self, builder: 'BuilderProtocol', scope: 'Scope_', phase: Literal[Phase.BUILD]) -> T: ...
+    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.BUILD]) -> T: ...
     @overload
     def compile(self,
-                builder: 'BuilderProtocol', 
-                scope: 'Scope_',
+                builder: '_BuilderProtocol', 
+                scope: '_Scope',
                 phase: Literal[
                         Phase.VIEWS,
                         Phase.ENUMERATE,
@@ -124,13 +123,13 @@ class Compileable(Generic[T], Protocol):
                         Phase.BUFFERS
                     ],
             ) -> None: ...
-    def compile(self, builder: 'BuilderProtocol', scope: 'Scope_', phase: Phase,
-                ) -> 'T|int|Collected|None':
+    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase,
+                ) -> 'T|int|_Collected|None':
         from gltf_builder.element import BAccessor
         if phase in self.__phases:
             match phase:
                 case Phase.COLLECT:
-                    return self.collected
+                    return self._collected
                 case Phase.SIZES:
                     if hasattr(self, '_len'):
                         return self._len
@@ -148,11 +147,11 @@ class Compileable(Generic[T], Protocol):
             self.__phases.append(phase)
             match phase:
                 case Phase.COLLECT:
-                    self.name = builder.gen_name_(self) or '' #type: ignore
-                    items = cast(ReturnCollect_, (self._do_compile(builder, scope, phase) or ()))
+                    self.name = builder._gen_name(self) or '' #type: ignore
+                    items = cast(_ReturnCollect, (self._do_compile(builder, scope, phase) or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
-                    bytelen = cast(ReturnSize_, self._do_compile(builder, scope, phase))
+                    bytelen = cast(_ReturnSize, self._do_compile(builder, scope, phase))
                     if bytelen is not None:
                         self._len = bytelen
                         LOG.debug('%s has length %s', self, self._len)
@@ -177,7 +176,7 @@ class Compileable(Generic[T], Protocol):
                     self._do_compile(builder, scope, phase)
 
     @abstractmethod
-    def _do_compile(self, builder: 'BuilderProtocol', scope: 'Scope_', phase: Phase) -> DoCompileReturn[T]: ...
+    def _do_compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase) -> DoCompileReturn[T]: ...
 
     def __len__(self) -> int:
         return self._len
@@ -187,7 +186,7 @@ class Compileable(Generic[T], Protocol):
             return False
         return bool(self._len)
 
-class AccessorKey(NamedTuple):
+class _AccessorKey(NamedTuple):
     type: ElementType
     componentType: ComponentType
     normalized: bool
@@ -197,7 +196,7 @@ class AccessorKey(NamedTuple):
         return hash((self.type, self.componentType, self.normalized, self.name))
     
     def __eq__(self, other: Any):
-        if isinstance(other, AccessorKey):
+        if isinstance(other, _AccessorKey):
             if self.type == other.type:
                 if self.componentType == other.componentType:
                     if self.normalized == other.normalized:
@@ -205,7 +204,7 @@ class AccessorKey(NamedTuple):
         return False
 
 
-class Scope_(Protocol):
+class _Scope(Protocol):
     '''
     Scope for allocating `BBufferView` and `BAccessor` objects.
 
@@ -217,8 +216,8 @@ class Scope_(Protocol):
     views can follow the same scope as the accessors they contain, or any
     scope above them.
     '''
-    __views: dict['BufferViewKey', 'BBufferView']
-    __accessors: dict[AccessorKey, 'BAccessor[NPTypes, BType]']
+    __views: dict['_BufferViewKey', 'BBufferView']
+    __accessors: dict[_AccessorKey, 'BAccessor[NPTypes, BType]']
     __is_accessor_scope: bool = False
     __is_view_scope: bool = False
     __buffer: 'BBuffer'
@@ -226,13 +225,13 @@ class Scope_(Protocol):
     def target_buffer(self) -> 'BBuffer':
         return self.__buffer
     
-    __buidler: 'BuilderProtocol'
+    __buidler: '_BuilderProtocol'
     @property
-    def builder(self) -> 'BuilderProtocol':
+    def builder(self) -> '_BuilderProtocol':
         return self.__buidler
     
     def __init__(self,
-                builder: 'BuilderProtocol',
+                builder: '_BuilderProtocol',
                 buffer: 'BBuffer',
                 is_accessor_scope: bool=False,
                 is_view_scope: bool=False,
@@ -254,11 +253,11 @@ class Scope_(Protocol):
                     extras: Optional[JsonObject]=None,
                     extensions: Optional[JsonObject]=None,
                 ) -> 'BAccessor[NPTypes, BType]':
-        key = AccessorKey(eltType, componenType, normalized, name)
+        key = _AccessorKey(eltType, componenType, normalized, name)
         byteStride = decode_stride(eltType, componenType)
         accessor = self.__accessors.get(key, None)
         if accessor is None:
-            view = self.target_buffer.get_view(
+            view = self.target_buffer._get_view(
                 self.__buffer, BufferViewTarget,
                 byteStride=byteStride,
                 name=name,
@@ -266,7 +265,7 @@ class Scope_(Protocol):
                 extensions=extensions,
             )
             builder = self.__buidler
-            accessor = builder.create_accessor_(
+            accessor = builder._create_accessor(
                 elementType=eltType,
                 componentType=componenType,
                 btype=btype,
@@ -276,11 +275,11 @@ class Scope_(Protocol):
                 normalized=normalized,
                 target=BufferViewTarget,
             )
-            view.add_accessor(accessor)
+            view._add_accessor(accessor)
             self.__accessors[key] = accessor
         return accessor
 
-    def get_view(self,
+    def _get_view(self,
                 buffer: 'BBuffer',
                 target: BufferViewTarget,
                 byteStride: int=0,
@@ -288,8 +287,8 @@ class Scope_(Protocol):
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
             ) -> 'BBufferView':
-        from gltf_builder.protocols import BufferViewKey
-        key = BufferViewKey(buffer, target, byteStride, name)
+        from gltf_builder.protocols import _BufferViewKey
+        key = _BufferViewKey(buffer, target, byteStride, name)
         view = self.__views.get(key, None)
         if view is None:
             view = self.target_buffer.create_view(

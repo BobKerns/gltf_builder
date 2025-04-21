@@ -7,7 +7,7 @@ from typing import Optional, cast, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compile import Collected
+from gltf_builder.compile import _Collected
 from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget,
 )
@@ -15,15 +15,15 @@ from gltf_builder.attribute_types import (
     AttributeDataItem, ColorSpec, JointSpec, PointSpec,
     TangentSpec, UvSpec, Vector3Spec, WeightSpec,
 )
-from gltf_builder.protocols import BType, BuilderProtocol
+from gltf_builder.protocols import BType, _BuilderProtocol
 from gltf_builder.element import (
-    BTYPE, BAccessor, BPrimitive, BMesh, Scope_,
+    BTYPE, BAccessor, BPrimitive, BMesh, _Scope,
 )
-from gltf_builder.accessor import Accessor_
+from gltf_builder.accessor import _Accessor
 from gltf_builder.utils import decode_dtype
 
 
-class Primitive_(BPrimitive):
+class _Primitive(BPrimitive):
     '''
     Base implementation class for primitives
     '''
@@ -95,10 +95,10 @@ class Primitive_(BPrimitive):
         self.mesh = mesh
         self.__attrib_accessors = {}
 
-    def _do_compile(self, builder: BuilderProtocol, scope: Scope_, phase: Phase):
+    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
         mesh = self.mesh
         assert mesh is not None
-        buffer = builder.buffers_[0]
+        buffer = builder._buffers[0]
         def compile_attrib(name: str,
                            data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, BType]:
@@ -106,35 +106,35 @@ class Primitive_(BPrimitive):
             prim_name = f'{mesh.name}:{self.mode.name}/{name}[{index}]'
             eltType, componentType, btype = builder.get_attrib_info(name)
             dtype = decode_dtype(eltType, componentType)
-            accessor = Accessor_(buffer, len(data), eltType, componentType,
+            accessor = _Accessor(buffer, len(data), eltType, componentType,
                                  btype=btype,
                                  dtype=dtype, 
                                  name=prim_name)
-            accessor.add_data_(data)
+            accessor._add_data(data)
             accessor.compile(builder, scope, phase)
             return accessor
         match phase:
             case Phase.PRIMITIVES:
-                index_size = builder.get_index_size_(len(self.points))
+                index_size = builder._get_index_size(len(self.points))
                 if index_size != -1:
                     indices = list(range(len(self.points)))
                     idtype = decode_dtype(gltf.SCALAR, index_size)
                     index = mesh.primitives.index(self)
-                    self.__indices_accessor = Accessor_(
+                    self.__indices_accessor = _Accessor(
                         buffer, len(indices), gltf.SCALAR, index_size,
                         btype=int,
                         dtype=idtype,
                         name=f'{mesh.name}:{self.mode.name}/indices[{index}]',
                         target=BufferViewTarget.ELEMENT_ARRAY_BUFFER
                     )
-                    self.__indices_accessor.add_data_(indices)
+                    self.__indices_accessor._add_data(indices)
             case Phase.COLLECT:
-                mesh.name = mesh.name or builder.gen_name_(mesh.name) or ''       
+                mesh.name = mesh.name or builder._gen_name(mesh.name) or ''       
                 self.__attrib_accessors = {
                     name: compile_attrib(name, cast(Sequence[BType], data))
                     for name, data in self.attribs.items()
                 }
-                accessors: list[tuple[BAccessor[NPTypes, BType]|BAccessor[NPTypes, int], list[Collected]]] = [
+                accessors: list[tuple[BAccessor[NPTypes, BType]|BAccessor[NPTypes, int], list[_Collected]]] = [
                     (a, [a.compile(builder, scope, phase)])
                     for a in self.__attrib_accessors.values()
                 ]
@@ -157,10 +157,10 @@ class Primitive_(BPrimitive):
                     self.__indices_accessor.compile(builder, scope, phase)
             case Phase.BUILD:
                 attributes = {
-                    name: acc.index
+                    name: acc._index
                     for name, acc in self.__attrib_accessors.items()
                 }
-                indices = self.__indices_accessor.index if self.__indices_accessor else None
+                indices = self.__indices_accessor._index if self.__indices_accessor else None
                 return gltf.Primitive(
                     mode=self.mode,
                     indices=indices,
@@ -174,7 +174,7 @@ class Primitive_(BPrimitive):
                 return None
             
     def __repr__(self):
-        return f'<{self.mode.name} {self.mesh}[{self.index}]'
+        return f'<{self.mode.name} {self.mesh}[{self._index}]'
 
     def __str__(self):
-        return f'{self.mesh}[{self.index}]({self.mode.name})'
+        return f'{self.mesh}[{self._index}]({self.mode.name})'

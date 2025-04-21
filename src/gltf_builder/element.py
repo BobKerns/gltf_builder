@@ -13,7 +13,7 @@ from collections.abc import Mapping, Iterable, Sequence
 import numpy as np
 import pygltflib as gltf
 
-from gltf_builder.holder import Holder_
+from gltf_builder.holder import _Holder
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
     ComponentType, JsonObject, PrimitiveMode,
@@ -28,16 +28,16 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.matrix import Matrix4
 from gltf_builder.compile import (
-    Compileable, T,
-    Scope_  # type: ignore
+    _Compileable, T,
+    _Scope
 )
-from gltf_builder.protocols import BNodeContainerProtocol
+from gltf_builder.protocols import _BNodeContainerProtocol
 from gltf_builder.log import GLTF_LOG
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 @runtime_checkable
-class Element(Compileable[T], Protocol):
+class Element(_Compileable[T], Protocol):
     def __init__(self,
                  name: str='',
                  extras: Optional[JsonObject]=None,
@@ -62,20 +62,20 @@ class Element(Compileable[T], Protocol):
     
     def __str__(self):
         if self.name == '':
-            if self.index == -1:
+            if self._index == -1:
                 return f'{type(self).__name__}-?'
             else:
-                return f'{type(self).__name__}-{self.index}'
+                return f'{type(self).__name__}-{self._index}'
         else:
             return f'{type(self).__name__}-{self.name}'
 
 
-class BBuffer(Element[gltf.Buffer], Scope_, Protocol):
+class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
     @property
     @abstractmethod
     def blob(self) -> bytes:
         ...
-    views: Holder_['BBufferView']
+    views: _Holder['BBufferView']
 
     @abstractmethod
     def __len__(self) -> int:
@@ -104,7 +104,7 @@ class BBufferView(Element[gltf.BufferView], Protocol):
     buffer: BBuffer
     target: BufferViewTarget
     byteStride: int
-    accessors: Holder_['BAccessor[NPTypes, BType]']
+    accessors: _Holder['BAccessor[NPTypes, BType]']
 
     @property
     @abstractmethod
@@ -114,7 +114,7 @@ class BBufferView(Element[gltf.BufferView], Protocol):
     def memoryview(self, offset: int, size: int) -> memoryview: ...
 
     @abstractmethod
-    def add_accessor(self, acc: 'BAccessor[NPTypes, BTYPE]') -> None: ...
+    def _add_accessor(self, acc: 'BAccessor[NPTypes, BTYPE]') -> None: ...
 
 NP = TypeVar('NP', bound=NPTypes)
 NUM = TypeVar('NUM', bound=float|int, covariant=True)
@@ -147,17 +147,17 @@ class BAccessor(Element[gltf.Accessor], Protocol, Generic[NP, BTYPE]):
     '''The buffer type char for `memoryview.cast()`.'''
 
     @abstractmethod
-    def add_data_(self, data: Sequence[BTYPE]) -> None:
+    def _add_data(self, data: Sequence[BTYPE]) -> None:
         ...
     '''
     Add a Sequence of data to the accessor.
     '''
     
     @abstractmethod
-    def add_data_item_(self, data: BTYPE) -> None:
+    def _add_data_item(self, data: BTYPE) -> None:
         ...
         
-class BPrimitive(Compileable[gltf.Primitive], Protocol):
+class BPrimitive(_Compileable[gltf.Primitive], Protocol):
     '''
     Base class for primitives
     '''
@@ -169,7 +169,7 @@ class BPrimitive(Compileable[gltf.Primitive], Protocol):
     
 
 @runtime_checkable
-class BMesh(Element[gltf.Mesh], Scope_, Protocol):
+class BMesh(Element[gltf.Mesh], _Scope, Protocol):
     primitives: list[BPrimitive]
     weights: list[float]
 
@@ -202,7 +202,7 @@ class BMesh(Element[gltf.Mesh], Scope_, Protocol):
     
 
 @runtime_checkable
-class BNode(Element[gltf.Node], BNodeContainerProtocol, Scope_, Protocol):
+class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
     mesh: BMesh|None
     root: bool
     __translation: Optional[Vector3]

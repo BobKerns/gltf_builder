@@ -15,12 +15,12 @@ from gltf_builder.attribute_types import (
     PointSpec, Vector3Spec, JointSpec, WeightSpec,
     TangentSpec, ColorSpec, UvSpec, AttributeDataItem,
 )
-from gltf_builder.protocols import BuilderProtocol
-from gltf_builder.element import BMesh, BPrimitive, Scope_
-from gltf_builder.primitives import Primitive_
+from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.element import BMesh, BPrimitive, _Scope
+from gltf_builder.primitives import _Primitive
 
 
-class Mesh_(BMesh):
+class _Mesh(BMesh):
     indicies: Optional[int]
     __detatched: bool
     @property
@@ -54,8 +54,8 @@ class Mesh_(BMesh):
                       extras: Optional[JsonObject]=None,
                       extensions: Optional[JsonObject]=None,
                       **attribs: Iterable[AttributeDataItem]
-                    ) -> Primitive_:
-        prim = Primitive_(mode, points,
+                    ) -> _Primitive:
+        prim = _Primitive(mode, points,
                           NORMAL=NORMAL,
                           TANGENT=TANGENT,
                           TEXCOORD_0=TEXCOORD_0,
@@ -71,15 +71,15 @@ class Mesh_(BMesh):
         return prim
     
     def _do_compile(self,
-                    builder: BuilderProtocol,
-                    scope: Scope_,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
                     phase: Phase
                 ) -> DoCompileReturn[gltf.Mesh]:
         match phase:
             case Phase.PRIMITIVES:
                 builder.meshes.add(self)
                 for i, prim in enumerate(self.primitives):
-                    prim.index = i
+                    prim._index = i
                     prim.compile(builder, scope, phase)
             case Phase.COLLECT:
                 builder.meshes.add(self)

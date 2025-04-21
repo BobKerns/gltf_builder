@@ -12,17 +12,12 @@ from gltf_builder.attribute_types import (
     EPSILON, Vector3Spec, vector3,
     Vector3, Scale, scale,
 )
-from gltf_builder.matrix import matrix, Matrix
+from gltf_builder.matrix import Matrix4, matrix, Matrix
 
-dtype = np.dtype([('x', np.float32),
-                       ('y', np.float32),
-                       ('z', np.float32),
-                       ('w', np.float32),])
-'''
-Numpy dtype for a quaternion.
-'''
 
-RotMatrix: TypeAlias = np.ndarray[tuple[Literal[3], Literal[3]], np.dtype[np.float32]]
+_RotMatrix: TypeAlias = np.ndarray[tuple[Literal[3], Literal[3]], np.dtype[np.float32]]
+
+
 class Quaternion(NamedTuple):
     '''
     A quaterhion with x, y, z, and w components. Used here to
@@ -243,7 +238,7 @@ class Quaternion(NamedTuple):
         rotation_quaternion = Quaternion(x, y, z, w)
         return Vector3(*translation), rotation_quaternion, scale(*_scale)
 
-    def to_matrix(self) -> Matrix[Literal[4]]:
+    def to_matrix(self) -> Matrix4:
         """
         Convert a quaternion (x, y, z, w) to a 4x4 rotation matrix.
 
@@ -289,11 +284,11 @@ class Quaternion(NamedTuple):
         mat = matrix(m).as_array()
 
         # Extract the rotation part
-        rot_mat: RotMatrix
+        rot_mat: _RotMatrix
         if mat.shape == (4, 4):
-            rot_mat = cast(RotMatrix, mat[:3, :3])
+            rot_mat = cast(_RotMatrix, mat[:3, :3])
         elif mat.shape == (3, 3):
-            rot_mat = cast(RotMatrix, mat)
+            rot_mat = cast(_RotMatrix, mat)
         else:
             raise ValueError("Input matrix must be 3x3 or 4x4.")
 
@@ -326,7 +321,7 @@ class Quaternion(NamedTuple):
                 y = (rot_mat[1, 2] + rot_mat[2, 1]) / s
                 z = 0.25 * s
 
-        q = np.array([x, y, z, w], dtype=dtype)
+        q = np.array([x, y, z, w], dtype=np.float32)
         norm = float(np.linalg.norm(q))
         return Quaternion(*(float(v / norm) for v in q))
     

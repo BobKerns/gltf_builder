@@ -11,7 +11,10 @@ In general, these functions take 4 types of parameters:
 '''
 
 from abc import abstractmethod
-from typing import Generic, NamedTuple, TypeAlias, Literal, TypeVar, cast, overload, Optional, Any, Self
+from typing import (
+    Generic, NamedTuple, TypeAlias, Literal, TypeVar,
+    cast, overload, Optional, Any, Self
+)
 from math import sqrt
 from collections.abc import Generator, Iterable, Callable, Sequence, Mapping
 

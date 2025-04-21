@@ -12,8 +12,8 @@ import math
 
 import pygltflib as gltf
 
-from gltf_builder.compile import Scope_
-from gltf_builder.holder import Holder_
+from gltf_builder.compile import _Compileable, _Scope
+from gltf_builder.holder import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, JsonObject,
     NPTypes, NameMode,
@@ -26,20 +26,20 @@ if TYPE_CHECKING:
         BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor,
     )
 
-class BufferViewKey(NamedTuple):
+class _BufferViewKey(NamedTuple):
     buffer: 'BBuffer'
     target: BufferViewTarget
     byteStride: int
     name: str
 
-class AttributeInfo(NamedTuple):
+class _AttributeInfo(NamedTuple):
     type: ElementType
     componentType: ComponentType
     btype: BTypeType
 
-class BNodeContainerProtocol(Protocol):
+class _BNodeContainerProtocol(Protocol):
     _parent: Optional['BNode'] = None
-    children: Holder_['BNode']
+    children: _Holder['BNode']
     descendants: dict[str, 'BNode']   
     @property
     def nodes(self):
@@ -122,23 +122,23 @@ class BNodeContainerProtocol(Protocol):
         ...
 
 @runtime_checkable
-class BuilderProtocol(BNodeContainerProtocol, Scope_, Protocol):
+class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     asset: gltf.Asset
     '''
     The asset information for the glTF file.
     '''
-    meshes: Holder_['BMesh']
+    meshes: _Holder['BMesh']
     '''
     The meshes in the glTF file.
     '''
-    buffers_: Holder_['BBuffer']
+    _buffers: _Holder['BBuffer']
     '''
     The buffers in the glTF file.'''
-    views_: Holder_['BBufferView']
+    _views: _Holder['BBufferView']
     '''
     The buffer views in the glTF file.
     '''
-    accessors_: Holder_['BAccessor[NPTypes, BType]']
+    _accessors: _Holder['BAccessor[NPTypes, BType]']
     '''
     The accessors in the glTF file.
     '''
@@ -150,7 +150,7 @@ class BuilderProtocol(BNodeContainerProtocol, Scope_, Protocol):
     '''
     The extensions for the glTF file.
     '''
-    index_size: int = 32
+    _index_size: int = 32
     '''
     Number of bits to use for indices. Default is 32.
     
@@ -166,7 +166,7 @@ class BuilderProtocol(BNodeContainerProtocol, Scope_, Protocol):
     This is only used when creating the indices buffer view.
 
     '''
-    attr_type_map: dict[str, AttributeInfo]
+    attr_type_map: dict[str, _AttributeInfo]
     '''
     The mapping of attribute names to their types.
     '''
@@ -206,14 +206,17 @@ class BuilderProtocol(BNodeContainerProtocol, Scope_, Protocol):
         ...
 
     @abstractmethod
-    def get_attrib_info(self, name: str) -> AttributeInfo:
+    def get_attrib_info(self, name: str) -> _AttributeInfo:
         ...
 
     @abstractmethod
-    def get_index_size_(self, max_value: int) -> ComponentType|Literal[-1]:
+    def _get_index_size(self, max_value: int) -> ComponentType|Literal[-1]:
         ...
 
-    def gen_name_(self, obj: str|None, gen_prefix: str|object='') -> str|None:
+    def _gen_name(self,
+                  obj: str|_Compileable[gltf.Property]|None,
+                  gen_prefix: str|object='',
+                  ) -> str:
         '''
         Generate a name for an object according to the current `NameMode` policy.
 
@@ -227,7 +230,7 @@ class BuilderProtocol(BNodeContainerProtocol, Scope_, Protocol):
         '''
         ...
 
-    def create_accessor_(self,
+    def _create_accessor(self,
                 elementType: ElementType,
                 componentType: ComponentType,
                 btype: type[BTYPE],

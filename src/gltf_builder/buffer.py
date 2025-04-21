@@ -7,26 +7,26 @@ from typing import Literal, NamedTuple, Optional, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compile import Collected, DoCompileReturn
+from gltf_builder.compile import _Collected, DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget,
 )
-from gltf_builder.protocols import BuilderProtocol
+from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.element import (
     BBuffer, BBufferView,
-    Scope_,
+    _Scope,
 )
-from gltf_builder.holder import Holder_
-from gltf_builder.view import BaseBufferVieW_
+from gltf_builder.holder import _Holder
+from gltf_builder.view import _BaseBufferVieW
 
 
-class ViewKey(NamedTuple):
+class _ViewKey(NamedTuple):
     target: BufferViewTarget
     byteStride: int
     name: str
 
 
-class Buffer_(BBuffer):
+class _Buffer(BBuffer):
     __buffer: bytearray
     @property
     def bytearray(self) -> bytearray:
@@ -39,12 +39,12 @@ class Buffer_(BBuffer):
             self.__blob = bytes(self.bytearray)
         return self.__blob
     
-    views: Holder_[BBufferView]
+    views: _Holder[BBufferView]
 
-    _views: dict[ViewKey, BBufferView]
+    _views: dict[_ViewKey, BBufferView]
     
     def __init__(self,
-                 builder: BuilderProtocol,
+                 builder: _BuilderProtocol,
                  /,
                  name: str='',
                  views: Iterable[BBufferView]=(),
@@ -57,36 +57,36 @@ class Buffer_(BBuffer):
             name=name,
             extras=extras,
             extensions=extensions)
-        Scope_.__init__(self,
+        _Scope.__init__(self,
                         builder=builder,
                         buffer=self,
                         is_accessor_scope=is_accessor_scope,
                         is_view_scope=is_view_scope,
                     )
         self.__buffer = bytearray()
-        self.views = Holder_(BBufferView, *views)
+        self.views = _Holder(BBufferView, *views)
         self._views = {}
 
     @overload
     def _do_compile(self,
-                    builder: BuilderProtocol,
-                    scope: Scope_,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
                     phase: Literal[Phase.COLLECT]
-                ) -> Iterable[Collected]: ...
+                ) -> Iterable[_Collected]: ...
     @overload
     def _do_compile(self,
-                    builder: BuilderProtocol,
-                    scope: Scope_,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
                     phase: Phase
                 ) -> DoCompileReturn[gltf.Buffer]: ...
     def _do_compile(self,
-                    builder: BuilderProtocol,
-                    scope: Scope_,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
                     phase: Phase
                 ) -> DoCompileReturn[gltf.Buffer]:
         match phase:
             case Phase.COLLECT:
-                builder.views_.add(*self.views) #type: ignore
+                builder._views.add(*self.views)
                 return (
                     view.compile(builder, scope, Phase.COLLECT)
                     for view in self.views
@@ -136,10 +136,10 @@ class Buffer_(BBuffer):
         Get a compatible buffer view. Specifying a name permits the use of distinct views
         for the same target and byteStride for possible optimizations.
         '''
-        key = ViewKey(target, byteStride, name)
+        key = _ViewKey(target, byteStride, name)
         view = self._views.get(key)
         if view is None:
-            view = BaseBufferVieW_(self, name, byteStride, target,
+            view = _BaseBufferVieW(self, name, byteStride, target,
                                     extras=extras,
                                     extensions=extensions)
             self._views[key] = view

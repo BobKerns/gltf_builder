@@ -10,33 +10,33 @@ from typing import Optional, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compile import Collected
+from gltf_builder.compile import _Collected
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
 from gltf_builder.element import (
     BBuffer, BBufferView, Element, BNode, BMesh, BPrimitive,
-    Scope_,
+    _Scope,
 )
 from gltf_builder.quaternions import QuaternionSpec, quaternion
-from gltf_builder.holder import Holder_
+from gltf_builder.holder import _Holder
 from gltf_builder.protocols import (
-    BNodeContainerProtocol, BuilderProtocol,
+    _BNodeContainerProtocol, _BuilderProtocol,
 )
 
 
-class BNodeContainer(BNodeContainerProtocol):
-    children: Holder_[BNode]
+class _BNodeContainer(_BNodeContainerProtocol):
+    children: _Holder[BNode]
     @property
     def nodes(self):
         return self.children
     @nodes.setter
-    def nodes(self, nodes: Holder_['BNode']):
+    def nodes(self, nodes: _Holder['BNode']):
         self.children = nodes
 
     @property
     @abstractmethod
-    def builder(self) -> BuilderProtocol: ...
+    def builder(self) -> _BuilderProtocol: ...
     
     def __init__(self, /,
                 buffer: BBuffer,
@@ -44,7 +44,7 @@ class BNodeContainer(BNodeContainerProtocol):
             ):
         self.buffer = buffer
         self._local_views = {}
-        self.children = Holder_(BNode, *children)
+        self.children = _Holder(BNode, *children)
         for c in children:
             if isinstance(self, BNode):
                 if c._parent is not None and c._parent is not self:
@@ -69,14 +69,14 @@ class BNodeContainer(BNodeContainerProtocol):
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 detached: bool=False,
-                ) -> 'Node_':
+                ) -> '_Node':
         '''
         Add a node to the builder or as a child of another node.
         if _detached_ is True, the node will not be added to the builder,
         but will be returned to serve as the root of an instancable object.
         '''
-        root = isinstance(self, BuilderProtocol) and not detached
-        node = Node_(name=name,
+        root = isinstance(self, _BuilderProtocol) and not detached
+        node = _Node(name=name,
                     root=root,
                     children=children,
                     mesh=mesh,
@@ -121,7 +121,7 @@ class BNodeContainer(BNodeContainerProtocol):
                 extensions=extensions,
             )
         def clone(node: BNode) -> BNode:
-            return Node_(
+            return _Node(
                 name=node.name,
                 children=[clone(child) for child in node.children],
                 mesh=node.mesh,
@@ -160,10 +160,10 @@ class BNodeContainer(BNodeContainerProtocol):
     def __len__(self) -> int:
         return len(self.children)
 
-class Node_(BNodeContainer, BNode):
-    __builder: BuilderProtocol
+class _Node(_BNodeContainer, BNode):
+    __builder: _BuilderProtocol
     @property
-    def builder(self) -> BuilderProtocol:
+    def builder(self) -> _BuilderProtocol:
         return self.__builder
     __detached: bool
     @property
@@ -175,7 +175,7 @@ class Node_(BNodeContainer, BNode):
         return self.__detached
     
     def __init__(self,
-                 builder: BuilderProtocol,
+                 builder: _BuilderProtocol,
                  name: str ='',
                  children: Iterable[BNode]=(),
                  mesh: Optional[BMesh]=None,
@@ -196,7 +196,7 @@ class Node_(BNodeContainer, BNode):
                          extensions=extensions,
                          index=index,
                         )
-        BNodeContainer.__init__(self,
+        _BNodeContainer.__init__(self,
                                 buffer=buffer or builder.buffer,
                                 children=children,
                             )
@@ -208,15 +208,15 @@ class Node_(BNodeContainer, BNode):
         self.rotation = quaternion(rotation) if rotation else None
         self.scale = to_scale(scale) if scale else None
         self.matrix = to_matrix(matrix) if matrix else None
-        self._local_views = Holder_(BBufferView)
+        self._local_views = _Holder(BBufferView)
         
-    def _do_compile(self, builder: BuilderProtocol, scope: Scope_, phase: Phase):
+    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
         match phase:
             case Phase.COLLECT:
                 self.builder.nodes.add(self)
                 if self.mesh:
                     return [self.mesh.compile(builder, scope, phase)]
-                return cast(list[Collected], [])
+                return cast(list[_Collected], [])
             case Phase.SIZES:
                 size = sum(
                     n.compile(builder, scope, phase)
@@ -230,8 +230,8 @@ class Node_(BNodeContainer, BNode):
                     self.mesh.compile(builder, scope, phase)
                 return gltf.Node(
                     name=self.name,
-                    mesh=self.mesh.index if self.mesh else None,
-                    children=[child.index for child in self.children],
+                    mesh=self.mesh._index if self.mesh else None,
+                    children=[child._index for child in self.children],
                     translation=list(self.translation) if self.translation else None,
                     rotation=list(self.rotation) if self.rotation else None,
                     scale=list(self.scale) if self.scale else None,

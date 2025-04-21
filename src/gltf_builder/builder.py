@@ -23,30 +23,30 @@ from gltf_builder.core_types import (
      ElementType, ComponentType, Scalar,
 )
 from gltf_builder.asset import BAsset, __version__
-from gltf_builder.holder import Holder_
-from gltf_builder.buffer import Buffer_
-from gltf_builder.view import BaseBufferVieW_
-from gltf_builder.accessor import Accessor_
-from gltf_builder.mesh import Mesh_
-from gltf_builder.node import Node_, BNodeContainer
-from gltf_builder.protocols import AttributeInfo, BuilderProtocol
+from gltf_builder.holder import _Holder
+from gltf_builder.buffer import _Buffer
+from gltf_builder.view import _BaseBufferVieW
+from gltf_builder.accessor import _Accessor
+from gltf_builder.mesh import _Mesh
+from gltf_builder.node import _Node, _BNodeContainer
+from gltf_builder.protocols import _AttributeInfo, _BuilderProtocol
 from gltf_builder.element import (
      BTYPE, BAccessor, BBuffer, BBufferView, BMesh, BNode, BPrimitive, Element,
 )
-from gltf_builder.compile import Compileable, Collected
+from gltf_builder.compile import _Compileable, _Collected
 from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
-class Builder(BNodeContainer, BuilderProtocol):
-    id_counters: dict[str, count] # type: ignore
+class Builder(_BNodeContainer, _BuilderProtocol):
+    _id_counters: dict[str, count] # type: ignore
     name: str = ''
     __ordered_views: list[BBufferView] = []
 
     @property
-    def builder(self) -> BuilderProtocol:
+    def builder(self) -> _BuilderProtocol:
         return self
     
     '''
@@ -54,42 +54,42 @@ class Builder(BNodeContainer, BuilderProtocol):
     '''
     def __init__(self, /,
                 asset: gltf.Asset= BAsset(),
-                meshes: Iterable[Mesh_]=(),
-                nodes: Iterable[Node_] = (),
-                buffers: Iterable[Buffer_]=(),
-                views: Iterable[BaseBufferVieW_]=(),
-                accessors: Iterable[Accessor_[NPTypes, BType]]=(),
+                meshes: Iterable[_Mesh]=(),
+                nodes: Iterable[_Node] = (),
+                buffers: Iterable[_Buffer]=(),
+                views: Iterable[_BaseBufferVieW]=(),
+                accessors: Iterable[_Accessor[NPTypes, BType]]=(),
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 index_size: int=32,
                 name_mode: NameMode=NameMode.AUTO,
         ):
         if not buffers:
-            buffers = [Buffer_(self, 'main')]
+            buffers = [_Buffer(self, 'main')]
         else:
             buffers = list(buffers)
         super().__init__(buffer=buffers[0], children=nodes)
         self.asset = asset
-        self.meshes = Holder_(BMesh, *meshes)
-        self.buffers_ = Holder_(BBuffer, *buffers)
-        self.views_ = Holder_(BBufferView, *views)
-        self.accessors_ = Holder_(BAccessor, *accessors)
-        self.index_size = index_size
+        self.meshes = _Holder(BMesh, *meshes)
+        self._buffers = _Holder(BBuffer, *buffers)
+        self._views = _Holder(BBufferView, *views)
+        self._accessors = _Holder(BAccessor, *accessors)
+        self._index_size = index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
         self.attr_type_map ={
-            'TANGENT': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[TangentSpec]),
-            'POSITION': AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
-            'NORMAL': AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
-            'COLOR': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
-            'TEXCOORD_0': AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
-            'TEXCOORD_1': AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
-            'COLOR_0': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
-            'JOINTS_0': AttributeInfo(gltf.VEC4, gltf.UNSIGNED_SHORT, type[JointSpec]),
-            'WEIGHTS_0': AttributeInfo(gltf.VEC4, gltf.FLOAT, type[WeightSpec]),
-            '__DEFAULT__': AttributeInfo(gltf.SCALAR, gltf.FLOAT, type[Scalar]),
+            'TANGENT': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[TangentSpec]),
+            'POSITION': _AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
+            'NORMAL': _AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
+            'COLOR': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
+            'TEXCOORD_0': _AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
+            'TEXCOORD_1': _AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
+            'COLOR_0': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
+            'JOINTS_0': _AttributeInfo(gltf.VEC4, gltf.UNSIGNED_SHORT, type[JointSpec]),
+            'WEIGHTS_0': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[WeightSpec]),
+            '__DEFAULT__': _AttributeInfo(gltf.SCALAR, gltf.FLOAT, type[Scalar]),
         }
-        self.id_counters = {}
+        self._id_counters = {}
         self.name_mode = name_mode
     
     def create_mesh(self,
@@ -100,7 +100,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                 extensions: Optional[JsonObject]=None,
                 detached: bool=False,
                 ):
-        mesh = Mesh_(name=name,
+        mesh = _Mesh(name=name,
                      primitives=primitives,
                      weights=weights,
                      extras=extras,
@@ -112,12 +112,12 @@ class Builder(BNodeContainer, BuilderProtocol):
     def compile(self, phase: Phase):
         match phase:
             case Phase.ENUMERATE:
-                def assign_index(items: Iterable[Compileable[gltf.Property]]):
+                def assign_index(items: Iterable[_Compileable[gltf.Property]]):
                     for i, n in enumerate(items):
-                        n.index = i
-                assign_index(self.buffers_)
+                        n._index = i
+                assign_index(self._buffers)
                 assign_index(self.__ordered_views)
-                assign_index(self.accessors_)
+                assign_index(self._accessors)
                 assign_index(self.meshes)
                 assign_index(self.nodes)
             case _: pass
@@ -127,16 +127,16 @@ class Builder(BNodeContainer, BuilderProtocol):
                 collected = [
                     *(n.compile(self, self, phase) for n in self.nodes),
                     *(m.compile(self, self, phase) for m in self.meshes),
-                    *(a.compile(self, self, phase) for a in self.accessors_),
-                    *(v.compile(self, self, phase) for v in self.views_),
-                    *(b.compile(self, self, phase) for b in self.buffers_),
+                    *(a.compile(self, self, phase) for a in self._accessors),
+                    *(v.compile(self, self, phase) for v in self._views),
+                    *(b.compile(self, self, phase) for b in self._buffers),
                 ]
-                ordered = sorted(list(self.views_),
+                ordered = sorted(list(self._views),
                                                 key=lambda v: v.byteStride or 4,
                                                 reverse=True)
                 self.__ordered_views = ordered
                 LOG.debug('Collected %s items.', len(collected))
-                def log_collcted(collected: Iterable[Collected], indent: int = 0):
+                def log_collcted(collected: Iterable[_Collected], indent: int = 0):
                     for item, children in collected:
                         LOG.debug('. ' * indent + str(item))
                         for child in children:
@@ -147,10 +147,10 @@ class Builder(BNodeContainer, BuilderProtocol):
             case Phase.SIZES:
                 for n in self.nodes:
                     n.compile(self, self, phase)
-                for v in self.buffers_:
+                for v in self._buffers:
                     v.compile(self, self, phase)
             case Phase.OFFSETS:
-                for b in self.buffers_:
+                for b in self._buffers:
                     b.compile(self, self, phase)
                 for n in self.nodes:
                     n.compile(self, self, phase)
@@ -159,11 +159,11 @@ class Builder(BNodeContainer, BuilderProtocol):
                     n.compile(self, self, phase)
                 for m in self.meshes:
                     m.compile(self, self, phase)
-                for a in self.accessors_:
+                for a in self._accessors:
                     a.compile(self, self, phase)
-                for v in self.__ordered_views if self.views_ else ():
+                for v in self.__ordered_views if self._views else ():
                     v.compile(self, self, phase)
-                for b in self.buffers_:
+                for b in self._buffers:
                     b.compile(self, self, phase)
     
     def build(self, /,
@@ -173,7 +173,7 @@ class Builder(BNodeContainer, BuilderProtocol):
         if name_mode is not None:
             self.name_mode = name_mode
         if index_size is not None:
-            self.index_size = index_size
+            self._index_size = index_size
         def flatten(node: BNode) -> Iterable[BNode]:
             yield node
             for n in node.children:
@@ -234,7 +234,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             ],
             accessors=[
                 a.compile(self, self, Phase.BUILD)
-                for a in self.accessors_
+                for a in self._accessors
                 if a.count > 0
             ],
             # Sort the buffer views by alignment.
@@ -244,7 +244,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             ],
             buffers=[
                 b.compile(self, self, Phase.BUILD)
-                for b in self.buffers_
+                for b in self._buffers
                 if len(b.blob) > 0
             ],
             scene=0,
@@ -252,15 +252,15 @@ class Builder(BNodeContainer, BuilderProtocol):
                 gltf.Scene(
                     name=self.name,
                     nodes=[
-                        n.index
+                        n._index
                         for n in self.nodes
                         if n.root
                     ]
                 )
             ]
         )
-        if len(self.buffers_) == 1 :
-            data = self.buffers_[0].blob
+        if len(self._buffers) == 1 :
+            data = self._buffers[0].blob
         else:
             raise ValueError("Only one buffer is supported by pygltfllib.")
         g.set_binary_blob(data) # type: ignore
@@ -281,16 +281,16 @@ class Builder(BNodeContainer, BuilderProtocol):
         - JOINTS_0: VEC4/UNSIGNED_SHORT
         - WEIGHTS_0: VEC4/FLOAT
         '''
-        self.attr_type_map[name] = AttributeInfo(type, componentType, btype)
+        self.attr_type_map[name] = _AttributeInfo(type, componentType, btype)
 
-    def get_attrib_info(self, name: str) -> AttributeInfo:
+    def get_attrib_info(self, name: str) -> _AttributeInfo:
         return self.attr_type_map.get(name) or self.attr_type_map['__DEFAULT__']
 
-    def get_index_size_(self, max_value: int) -> ComponentType|Literal[-1]:
+    def _get_index_size(self, max_value: int) -> ComponentType|Literal[-1]:
         '''
         Get the index size based on the configured size or the maximum value.
         '''
-        match self.index_size:
+        match self._index_size:
             case size if size > 16 and size <= 32:
                 if max_value < 4294967295:
                     return ComponentType.UNSIGNED_INT
@@ -317,12 +317,12 @@ class Builder(BNodeContainer, BuilderProtocol):
             case -1:
                 return -1
             case _:
-                raise ValueError(f'Invalid index size: {self.index_size}')
+                raise ValueError(f'Invalid index size: {self._index_size}')
 
     __names: set[str] = set()
 
-    def gen_name_(self,
-                  obj: str|Element[gltf.Property]|None,
+    def _gen_name(self,
+                  obj: str|_Compileable[gltf.Property]|None,
                   gen_prefix: str|object='',
                   ) -> str|None:
         '''
@@ -377,7 +377,7 @@ class Builder(BNodeContainer, BuilderProtocol):
             case _:
                 raise ValueError(f'Invalid name mode: {self.name_mode}')
 
-    def create_accessor_(self,
+    def _create_accessor(self,
                 elementType: ElementType,
                 componentType: ComponentType,
                 btype: type[BTYPE],
@@ -388,11 +388,11 @@ class Builder(BNodeContainer, BuilderProtocol):
                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
                 ) -> BAccessor[NPTypes, BTYPE]:
             dtype = decode_dtype(elementType, componentType)
-            return Accessor_(
+            return _Accessor(
                 elementType=elementType,
                 componentType=componentType,
                 btype=btype,
-                buffer=buffer or self.buffers_[0],
+                buffer=buffer or self._buffers[0],
                 name=name,
                 dtype=dtype,
                 count=count,
