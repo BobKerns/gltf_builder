@@ -88,7 +88,7 @@ class _BufferView(BBufferView):
                     buffer=self.buffer._index,
                     byteOffset=self.byteOffset,
                     byteLength=len(self),
-                    byteStride=self.byteStride,
+                    byteStride=self.byteStride or None,
                     target=self.target,
                 )
             case _: pass
