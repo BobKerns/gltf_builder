@@ -74,7 +74,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self._buffers = _Holder(BBuffer, *buffers)
         self._views = _Holder(BBufferView, *views)
         self._accessors = _Holder(BAccessor, *accessors)
-        self._index_size = index_size
+        self.index_size = index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
         self.attr_type_map ={
@@ -173,7 +173,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         if name_mode is not None:
             self.name_mode = name_mode
         if index_size is not None:
-            self._index_size = index_size
+            self.index_size = index_size
         def flatten(node: BNode) -> Iterable[BNode]:
             yield node
             for n in node.children:
@@ -290,7 +290,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         '''
         Get the index size based on the configured size or the maximum value.
         '''
-        match self._index_size:
+        match self.index_size:
             case size if size > 16 and size <= 32:
                 if max_value < 4294967295:
                     return ComponentType.UNSIGNED_INT
@@ -317,7 +317,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             case -1:
                 return -1
             case _:
-                raise ValueError(f'Invalid index size: {self._index_size}')
+                raise ValueError(f'Invalid index size: {self.index_size}')
 
     __names: set[str] = set()
 

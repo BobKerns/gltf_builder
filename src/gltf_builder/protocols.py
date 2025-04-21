@@ -147,9 +147,9 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The extensions for the glTF file.
     '''
-    _index_size: int = 32
+    index_size: int = -1
     '''
-    Number of bits to use for indices. Default is 32.
+    Number of bits to use for indices. Default is -, meaning no index.
     
     This is used to determine the component type of the indices.
     8 bits will use UNSIGNED_BYTE, 16 bits will use UNSIGNED_SHORT,

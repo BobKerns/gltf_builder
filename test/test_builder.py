@@ -39,10 +39,10 @@ class GeometryData:
         )
     @property
     def index_size(self):
-        return self.builder._index_size
+        return self.builder.index_size
     @index_size.setter
     def index_size(self, size):
-        self.builder._index_size = size
+        self.builder.index_size = size
 
 
 def test_empty_builder(save):
