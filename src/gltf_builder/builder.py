@@ -65,7 +65,7 @@ class Builder(BNodeContainer, BuilderProtocol):
                 name_mode: NameMode=NameMode.AUTO,
         ):
         if not buffers:
-            buffers = [Buffer_('main')]
+            buffers = [Buffer_(self, 'main')]
         else:
             buffers = list(buffers)
         super().__init__(buffer=buffers[0], children=nodes)

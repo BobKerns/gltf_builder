@@ -44,15 +44,25 @@ class Buffer_(BBuffer):
     _views: dict[ViewKey, BBufferView]
     
     def __init__(self,
+                 builder: BuilderProtocol,
+                 /,
                  name: str='',
                  views: Iterable[BBufferView]=(),
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
+                 is_accessor_scope: bool=False,
+                 is_view_scope: bool=False,
                  ):
         super().__init__(
             name=name,
             extras=extras,
             extensions=extensions)
+        Scope_.__init__(self,
+                        builder=builder,
+                        buffer=self,
+                        is_accessor_scope=is_accessor_scope,
+                        is_view_scope=is_view_scope,
+                    )
         self.__buffer = bytearray()
         self.views = Holder_(BBufferView, *views)
         self._views = {}
