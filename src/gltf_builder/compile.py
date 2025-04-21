@@ -288,6 +288,7 @@ class Scope_(Protocol):
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
             ) -> 'BBufferView':
+        from gltf_builder.protocols import BufferViewKey
         key = BufferViewKey(buffer, target, byteStride, name)
         view = self.__views.get(key, None)
         if view is None:
