@@ -147,7 +147,7 @@ class _Compileable(Generic[T], Protocol):
             self.__phases.append(phase)
             match phase:
                 case Phase.COLLECT:
-                    self.name = builder._gen_name(self) or '' #type: ignore
+                    self.name = builder._gen_name(self)
                     items = cast(_ReturnCollect, (self._do_compile(builder, scope, phase) or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:

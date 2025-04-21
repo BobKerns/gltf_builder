@@ -104,7 +104,7 @@ class _Primitive(BPrimitive):
                            data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, BType]:
             index = mesh.primitives.index(self)
-            name = buffer.builder._gen_name(self) or ''
+            name = buffer.builder._gen_name(self)
             prim_name = f'{mesh.name}:{self.mode.name}/{name}[{index}]'
             eltType, componentType, btype = builder.get_attrib_info(name)
             dtype = decode_dtype(eltType, componentType)
@@ -131,7 +131,7 @@ class _Primitive(BPrimitive):
                     )
                     self.__indices_accessor._add_data(indices)
             case Phase.COLLECT:
-                mesh.name = mesh.name or builder._gen_name(mesh.name) or ''       
+                mesh.name = mesh.name or builder._gen_name(mesh.name)     
                 self.__attrib_accessors = {
                     name: compile_attrib(name, cast(Sequence[BType], data))
                     for name, data in self.attribs.items()

@@ -324,18 +324,18 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     def _gen_name(self,
                   obj: str|_Compileable[gltf.Property]|None,
                   gen_prefix: str|object='',
-                  ) -> str|None:
+                  ) -> str:
         '''
         Generate a name according to the current name mode policy
         '''
         def get_count(obj: object) -> int:
             tname = type(obj).__name__[1:]
-            counters = self.id_counters # type: ignore
+            counters = self._id_counters
             if tname not in counters:
                 counters[tname] = count()
-            return next(counters[tname]) # type: ignore
+            return next(counters[tname])
             
-        def gen(obj: str|Element[gltf.Property]|None) -> str:
+        def gen(obj: str|_Compileable[gltf.Property]|None) -> str:
             match obj:
                 case str():
                     return obj
@@ -351,7 +351,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                         prefix = gen_prefix
                     return f'{prefix}{get_count(obj)}'
         
-        def register(name: object|None) -> str|None:
+        def register(name: object|None) -> str:
             match name:
                 case str():
                     name = name.strip()
@@ -360,7 +360,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 case _:
                     raise ValueError(f'Invalid name: {name}')
             if not name:
-                return None
+                return ''
             self.__names.add(name)
             return name
         match self.name_mode:
@@ -373,7 +373,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                     obj = gen(obj)
                 return register(obj)
             case NameMode.NONE:
-                return None
+                return ''
             case _:
                 raise ValueError(f'Invalid name mode: {self.name_mode}')
 
