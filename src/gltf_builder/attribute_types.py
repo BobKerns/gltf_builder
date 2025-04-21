@@ -963,7 +963,8 @@ def tangent(x: Scalar|TangentSpec,
               float()|int()|np.floating(), 
               -1|1
               ), None, None, -1|1:
-            return Tangent(float(x[0]), float(x[1]), float(x[2]), x[3])
+            w = 1 if x[3] == 1 else -1
+            return Tangent(float(x[0]), float(x[1]), float(x[2]), w)
         case np.ndarray(), None, None, -1|1 if (
             x.shape == (4,)
             and x[3] in (-1, 1)
@@ -976,6 +977,7 @@ def tangent(x: Scalar|TangentSpec,
             float()|int()|np.floating(),
             -1|1
         ):
+            w = 1 if w == 1 else -1
             return Tangent(float(x), float(y), float(z), w)
         case _:
             raise ValueError('Invalid tangent')

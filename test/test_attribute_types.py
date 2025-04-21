@@ -589,12 +589,15 @@ def test_tangent(data, tcase):
     '''
     Test the tangent type constructor.
     '''
-    expected = Tangent(float(data[0]), float(data[1]), float(data[2]), data[3])
-    args = tcase(Tangent, tuple(float(d) for d in data))
+    w = 1 if data[3] == 1 else -1
+    data = (float(data[0]), float(data[1]), float(data[2]), w)
+    expected = Tangent(*data)
+    args = tcase(Tangent, data)
     r = tangent(*args)
     assert tuple(r) == approx(tuple(expected))
     assert type(r) is Tangent
-    assert all(isinstance(v, float) for v in r)
+    assert all(isinstance(v, float) for v in r[:3])
+    assert isinstance(r[3], int)
 
 @mark.parametrize('size', [0, 1, 2])
 @mark.parametrize('data', [
