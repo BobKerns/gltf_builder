@@ -1360,13 +1360,22 @@ def _weightf(arg: Iterable[Scalar|None]) -> tuple[_Weightf, ...]:
     float32 weights. The weights are normalized to sum to 1.0.
     '''
     values = arg
-    if isinstance(arg, np.ndarray):
-        total = float(arg.sum())
-    else:
-        total = sum(
-            float(v or 0)
-            for v in arg
-        )
+    match arg:
+        case np.ndarray():
+            values = arg
+            total = float(arg.sum())
+        case Sequence():
+            values = arg
+            total = sum(
+                float(v or 0)
+                for v in values
+            )
+        case Iterable():
+            values = list(arg)
+            total = sum(
+                float(v or 0)
+                for v in values
+            )
     if abs(total) < EPSILON:
         raise ValueError('No meaningfully non-zero weightw')
     return tuple(_Weightf(*(c/total for c in chunk)) for chunk in chunk4(values))
