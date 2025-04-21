@@ -702,7 +702,7 @@ def test_weight(tcase,
         case type() if issubclass(expected, Exception):
             arg = tcase(t, argdata, **t_kwargs)
             with raises(expected):
-                c(arg, **kwargs)
+                c(*arg, **kwargs)
             return
     arg =  tcase(t, argdata, **t_kwargs)
     if zeropad:
