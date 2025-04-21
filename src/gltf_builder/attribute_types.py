@@ -160,13 +160,17 @@ class PointLike(NamedTuple, Generic[VEC]):
     @overload
     def __sub__(self: 'Point|UvPoint', other: 'Point|UvPoint') -> 'Vector2|Vector3': ...
     @overload
+    def __sub__(self: 'PointLike[VEC]', other: 'PointLike[VEC]') -> VEC: ...
+    @overload
     def __sub__(self: 'UvPoint', other: 'Vector2') -> 'Vector2': ...
     @overload
     def __sub__(self: 'Point', other: 'Vector3') -> 'Vector2': ...
     @overload
     def __sub__(self: 'Point|UvPoint', other: 'Vector3|Vector2') -> 'Vector2': ...
     @abstractmethod
-    def __sub__(self: 'PointLike|Point|UvPoint', other: 'Point|UvPoint|Vector2|Vector3') -> 'Point|UvPoint|Vector2|Vector3':
+    def __sub__(self: 'PointLike[VEC]|Point|UvPoint',
+                other: 'PointLike[VEC]|Point|UvPoint|Vector2|Vector3'
+                ) -> 'Point|UvPoint|Vector2|Vector3':
         '''Return a vector from one point to another.'''
         if type(other) is type(self):
             vargs = (a - b for a, b in zip(self, other))
