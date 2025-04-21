@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.compile import _Collected, DoCompileReturn
 from gltf_builder.core_types import (
-    JsonObject, Phase, BufferViewTarget,
+    JsonObject, Phase, BufferViewTarget, ScopeName,
 )
 from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
 from gltf_builder.element import (
@@ -21,6 +21,7 @@ from gltf_builder.view import _BufferView
 
 
 class _Buffer(BBuffer):
+    _scope_name = ScopeName.BUFFER
     __buffer: bytearray
     @property
     def bytearray(self) -> bytearray:

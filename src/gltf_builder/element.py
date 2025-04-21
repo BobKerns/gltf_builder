@@ -17,7 +17,7 @@ from gltf_builder.holder import _Holder
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
     ComponentType, JsonObject, PrimitiveMode,
-    BufferViewTarget, ElementType, NPTypes
+    BufferViewTarget, ElementType, NPTypes, ScopeName
 )
 from gltf_builder.attribute_types import (
     ColorSpec, JointSpec, Scale, TangentSpec, UvSpec,
@@ -71,6 +71,7 @@ class Element(_Compileable[T], Protocol):
 
 
 class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
+    _scope_name = ScopeName.BUFFER
     @property
     @abstractmethod
     def blob(self) -> bytes:
@@ -101,6 +102,7 @@ class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
 
 
 class BBufferView(Element[gltf.BufferView], Protocol):
+    _scope_name = ScopeName.BUFFER_VIEW
     buffer: BBuffer
     target: BufferViewTarget
     byteStride: int
@@ -121,6 +123,7 @@ NUM = TypeVar('NUM', bound=float|int, covariant=True)
 
 @runtime_checkable
 class BAccessor(Element[gltf.Accessor], Protocol, Generic[NP, BTYPE]):
+    _scope_name = ScopeName.ACCESSOR
     view: BBufferView
     data: list[BTYPE]
     __array: np.ndarray[tuple[int], np.dtype[NP]]|None = None
@@ -161,6 +164,7 @@ class BPrimitive(_Compileable[gltf.Primitive], Protocol):
     '''
     Base class for primitives
     '''
+    _scope_name = ScopeName.PRIMITIVE
     mode: PrimitiveMode
     points: Sequence[PointSpec]
     attribs: Mapping[str, Sequence[AttributeDataItem]]
@@ -170,6 +174,7 @@ class BPrimitive(_Compileable[gltf.Primitive], Protocol):
 
 @runtime_checkable
 class BMesh(Element[gltf.Mesh], _Scope, Protocol):
+    _scope_name = ScopeName.MESH
     primitives: list[BPrimitive]
     weights: list[float]
 
@@ -203,6 +208,7 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
 
 @runtime_checkable
 class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
+    _scope_name = ScopeName.NODE
     mesh: BMesh|None
     root: bool
     __translation: Optional[Vector3]

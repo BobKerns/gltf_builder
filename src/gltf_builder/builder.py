@@ -4,7 +4,7 @@ a glTF object.
 '''
 
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Literal, Optional
 from itertools import count
 from datetime import datetime
@@ -20,7 +20,7 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.core_types import (
      BufferViewTarget, JsonObject, NPTypes, NameMode, Phase,
-     ElementType, ComponentType, Scalar,
+     ElementType, ComponentType, Scalar, ScopeName, NameMode,
 )
 from gltf_builder.asset import BAsset, __version__
 from gltf_builder.holder import _Holder
@@ -40,8 +40,20 @@ from gltf_builder.log import GLTF_LOG
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
+DEFAULT_NAME_MODE = NameMode.AUTO
+DEFAULT_NAME_POLICY = {
+    ScopeName.NODE: NameMode.AUTO,
+    ScopeName.MESH: NameMode.AUTO,
+    ScopeName.PRIMITIVE: NameMode.AUTO,
+    ScopeName.ACCESSOR: NameMode.NONE,
+    ScopeName.ACCESSOR_INDEX: NameMode.NONE,
+    ScopeName.BUFFER: NameMode.NONE,
+    ScopeName.BUFFER_VIEW: NameMode.NONE,
+    ScopeName.BUILDER: NameMode.NONE,
+}
 class Builder(_BNodeContainer, _BuilderProtocol):
-    _id_counters: dict[str, count] # type: ignore
+    _scope_name = ScopeName.BUILDER
+    _id_counters: dict[str, count]
     name: str = ''
     __ordered_views: list[BBufferView] = []
 
@@ -62,8 +74,13 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 index_size: int=32,
-                name_mode: NameMode=NameMode.AUTO,
+                name_policy: Mapping[ScopeName, NameMode]|None = None
         ):
+        name_policy = name_policy or {}
+        self.name_policy = {
+            scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
+            for scope in ScopeName
+        }
         if not buffers:
             buffers = [_Buffer(self, 'main')]
         else:
@@ -90,7 +107,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             '__DEFAULT__': _AttributeInfo(gltf.SCALAR, gltf.FLOAT, type[Scalar]),
         }
         self._id_counters = {}
-        self.name_mode = name_mode
     
     def create_mesh(self,
                 name: str='',
@@ -322,34 +338,40 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     __names: set[str] = set()
 
     def _gen_name(self,
-                  obj: str|_Compileable[gltf.Property]|None,
-                  gen_prefix: str|object='',
+                  obj: _Compileable[gltf.Property], /, *,
+                  prefix: str|object='',
+                  scope: ScopeName|None=None,
+                  index: int|None=None,
+                  suffix: str|None=None,
                   ) -> str:
         '''
         Generate a name according to the current name mode policy
         '''
+        scope = scope or obj._scope_name
         def get_count(obj: object) -> int:
             tname = type(obj).__name__[1:]
             counters = self._id_counters
             if tname not in counters:
                 counters[tname] = count()
             return next(counters[tname])
-            
-        def gen(obj: str|_Compileable[gltf.Property]|None) -> str:
+        
+        def gen(obj: _Compileable[gltf.Property]) -> str:
+            nonlocal prefix, suffix
+            name_mode = self.name_policy[scope]
             match obj:
-                case str():
-                    return obj
-                case Element() if obj.name and self.name_mode != NameMode.UNIQUE:
+                case Element() if obj.name and name_mode != NameMode.UNIQUE:
                     # Increment the count anyway for stability.
                     # Naming one node should not affect the naming of another.
                     get_count(obj)
                     return obj.name
                 case _:
-                    if gen_prefix == '':
+                    if prefix == '':
                         prefix = type(obj).__name__[1:]
                     else:
-                        prefix = gen_prefix
-                    return f'{prefix}{get_count(obj)}'
+                        prefix = prefix
+                    if index is not None:
+                        suffix = f'{suffix}[{index}]'
+                    return f'{prefix}{get_count(obj)}{suffix}'
         
         def register(name: object|None) -> str:
             match name:
@@ -363,15 +385,16 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 return ''
             self.__names.add(name)
             return name
-        match self.name_mode:
+        match self.name_policy[scope]:
             case NameMode.AUTO:
                 return register(gen(obj))
             case NameMode.MANUAL:
                 return register(obj)
             case NameMode.UNIQUE:
+                name = gen(obj)
                 while obj in self.__names:
-                    obj = gen(obj)
-                return register(obj)
+                    name = gen(obj)
+                return register(name)
             case NameMode.NONE:
                 return ''
             case _:

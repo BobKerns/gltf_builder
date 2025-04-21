@@ -16,7 +16,7 @@ from gltf_builder.compile import _Compileable, _Scope
 from gltf_builder.holder import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, JsonObject,
-    NPTypes, NameMode,
+    NPTypes, NameMode, ScopeName,
 )
 from gltf_builder.attribute_types import Vector3Spec, BTYPE, BType, BTypeType
 from gltf_builder.matrix import Matrix4
@@ -120,6 +120,9 @@ class _BNodeContainerProtocol(Protocol):
 
 @runtime_checkable
 class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
+    '''
+    Abstract class for a Builder.  This exists to avoid circular dependencies.
+    '''
     asset: gltf.Asset
     '''
     The asset information for the glTF file.
@@ -167,9 +170,9 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The mapping of attribute names to their types.
     '''
-    name_mode: NameMode
+    name_policy: dict[ScopeName, NameMode]
     '''
-    The mode for handling names.
+    The mode for handling names, for each `ScopeName`
 
     AUTO: Automatically generate names for objects that do not have one.
     MANUAL: Use the name provided.
@@ -211,8 +214,11 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     def _gen_name(self,
-                  obj: str|_Compileable[gltf.Property]|None,
-                  gen_prefix: str|object='',
+                  obj: _Compileable[gltf.Property], /, *,
+                  prefix: str='',
+                  scope: ScopeName|None=None,
+                  index: Optional[int]=None,
+                  suffix: str=''
                   ) -> str:
         '''
         Generate a name for an object according to the current `NameMode` policy.

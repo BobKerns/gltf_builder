@@ -1,7 +1,7 @@
 
 from gltf_builder.core_types import (
     Scalar, ByteSize, ByteSizeAuto,
-    PrimitiveMode, ElementType,  ComponentType, NameMode,
+    PrimitiveMode, ElementType,  ComponentType, NameMode, ScopeName,
 )
 from gltf_builder.attribute_types import (
     PointSpec, TangentSpec, NormalSpec, VectorSpec, Vector2Spec, Vector3Spec, Vector4Spec, VectorLike,
@@ -82,6 +82,7 @@ __all__ = [
     'Scalar',
     'ScaleSpec',
     'scale',
+    'ScopeName',
     'TangentSpec',
     'UvSpec',
     'uv',

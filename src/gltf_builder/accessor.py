@@ -9,7 +9,7 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 from gltf_builder.core_types import (
-    ComponentType, ElementType, JsonObject, Phase, BufferViewTarget,
+    ComponentType, ElementType, JsonObject, Phase, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import BTYPE, BType
 from gltf_builder.protocols  import _BuilderProtocol
@@ -53,7 +53,8 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     )
         byteStride = decode_stride(elementType, componentType)
         self.dtype = cast(type[NP], decode_dtype(elementType, componentType))
-        self.view = buffer._get_view(buffer, target, byteStride=byteStride, name=name)
+        vname = buffer.builder._gen_name(self, scope=ScopeName.BUFFER_VIEW, suffix='/view')
+        self.view = buffer._get_view(buffer, target, byteStride=byteStride, name=vname)
         self.view._add_accessor(self)
         self.count = count
         self.elt_type = elementType
@@ -84,7 +85,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     ) -> DoCompileReturn[gltf.Accessor]:
         match phase:
             case Phase.COLLECT:
-                builder._accessors.add(self) # type: ignore
+                builder._accessors.add(self)
                 return [(self,())]
             case Phase.SIZES:
                 (

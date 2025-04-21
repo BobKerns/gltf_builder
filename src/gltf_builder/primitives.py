@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.compile import _Collected
 from gltf_builder.core_types import (
-    JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget,
+    JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
     AttributeDataItem, ColorSpec, JointSpec, PointSpec,
@@ -104,14 +104,17 @@ class _Primitive(BPrimitive):
                            data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, BType]:
             index = mesh.primitives.index(self)
-            name = buffer.builder._gen_name(self)
-            prim_name = f'{mesh.name}:{self.mode.name}/{name}[{index}]'
+            aname = buffer.builder._gen_name(self,
+                                            prefix=f'{mesh.name}:{self.mode.name}/',
+                                            scope=ScopeName.ACCESSOR,
+                                            index=index,
+                                            )
             eltType, componentType, btype = builder.get_attrib_info(name)
             dtype = decode_dtype(eltType, componentType)
             accessor = _Accessor(buffer, len(data), eltType, componentType,
                                  btype=btype,
                                  dtype=dtype, 
-                                 name=prim_name)
+                                 name=aname)
             accessor._add_data(data)
             accessor.compile(builder, scope, phase)
             return accessor
@@ -122,16 +125,22 @@ class _Primitive(BPrimitive):
                     indices = list(range(len(self.points)))
                     idtype = decode_dtype(gltf.SCALAR, index_size)
                     index = mesh.primitives.index(self)
+                    name = buffer.builder._gen_name(self,
+                                                   prefix=f'{mesh.name}:{self.mode.name}/',
+                                                   scope=ScopeName.ACCESSOR_INDEX,
+                                                   index=index,
+                                                   suffix='/indices',
+                                                   )
                     self.__indices_accessor = _Accessor(
                         buffer, len(indices), gltf.SCALAR, index_size,
                         btype=int,
                         dtype=idtype,
-                        name=f'{mesh.name}:{self.mode.name}/indices[{index}]',
+                        name=name,
                         target=BufferViewTarget.ELEMENT_ARRAY_BUFFER
                     )
                     self.__indices_accessor._add_data(indices)
             case Phase.COLLECT:
-                mesh.name = mesh.name or builder._gen_name(mesh.name)     
+                mesh.name = mesh.name or builder._gen_name(mesh)     
                 self.__attrib_accessors = {
                     name: compile_attrib(name, cast(Sequence[BType], data))
                     for name, data in self.attribs.items()

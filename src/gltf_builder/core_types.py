@@ -175,6 +175,42 @@ NPDType: TypeAlias = np.dtype[np.int8]|np.dtype[np.int16]|NPAttrDType
 The numpy dtypes used in the glTF file
 '''
 
+class ScopeName(StrEnum):
+    '''
+    Enum for the scope of a policy.
+    '''
+    PRIMITIVE = 'primitive'
+    '''
+    The policy applies to the primitives.
+    '''
+    MESH = 'mesh'
+    '''
+    The policy applies to the mesh.
+    '''
+    NODE = 'node'
+    '''
+    The policy applies to the node.
+    '''
+    BUFFER_VIEW = 'view'
+    '''
+    The policy applies to the buffer view.
+    '''
+    ACCESSOR = 'accessor'
+    '''
+    The policy applies to accessors.
+    '''
+    ACCESSOR_INDEX = 'accessor_index'
+    '''
+    The policy applies to the index of the primitive.
+    '''
+    BUFFER = 'buffer'
+    '''
+    The policy applies to the buffer.
+    '''
+    BUILDER = 'builder'
+    '''
+    The policy applies to the builder.
+    '''
 
 class NameMode(StrEnum):
     '''

@@ -131,7 +131,6 @@ def save(out_dir, request):
 def test_builder(request, save):
     builder = Builder(
         index_size=-1,
-        name_mode=NameMode.UNIQUE,
         extras={
             'gltf_builder': {
                 'test': {

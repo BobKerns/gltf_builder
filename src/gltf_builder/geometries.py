@@ -31,7 +31,7 @@ def make(name: str,
             'geometry': name,
         }
     }
-    b = Builder(index_size=index_size, name_mode=name_mode)
+    b = Builder(index_size=index_size)
     node = b.create_node(name,
                       detached=True,
                       extras=extras,

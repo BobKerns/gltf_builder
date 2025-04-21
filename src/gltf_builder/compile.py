@@ -14,7 +14,7 @@ import pygltflib as gltf
 
 from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, ElementType,
-    ComponentType, BufferViewTarget
+    ComponentType, BufferViewTarget, ScopeName
 )
 from gltf_builder.attribute_types import BType
 from gltf_builder.log import GLTF_LOG
@@ -51,6 +51,7 @@ class _Compileable(Generic[T], Protocol):
     __phases: list[Phase]
     __compiled: T|None = None
     _len: int = -1
+    _scope_name: ScopeName
 
     __byte_offset: int = -1
     @property
