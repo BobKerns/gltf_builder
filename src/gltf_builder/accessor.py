@@ -98,7 +98,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     len(d) if isinstance(d, (Sequence, np.ndarray)) else 1
                     for d in self.data
                 )
-                return ldata * self.byteStride
+                return ldata * self.componentSize
             case Phase.OFFSETS:
                 self.view.compile(builder, scope, phase)
                 self.__memory = self.view.memoryview(self.byteOffset, len(self))
