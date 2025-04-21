@@ -171,7 +171,7 @@ def test_instances_mesh(cube: GeometryData):
 
 def test_instances(cube):
     cube.index_size = -1
-    c = cube.builder.create_node(name='CUBE', mesh=cube.meshes['CUBE_MESH'])
+    c = cube.builder.create_node('CUBE', mesh=cube.meshes['CUBE_MESH'])
     n = cube.nodes['TOP']
     n.instantiate(c,
                   translation=(1.25, 1, 0),
