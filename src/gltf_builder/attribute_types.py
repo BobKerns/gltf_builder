@@ -1334,7 +1334,6 @@ def weight(*args: Iterable[Scalar|None]|_NPVector|Scalar|None,
             nargs = cast(Iterable[Scalar|None], args[0])
         case _:
             nargs = cast(Iterable[Scalar|None], args)
-    print(nargs)
     match precision:
         case 0|4:
             return _weightf(nargs)
@@ -1348,8 +1347,8 @@ def weight(*args: Iterable[Scalar|None]|_NPVector|Scalar|None,
 
 def _weightf(arg: Iterable[Scalar|None]) -> tuple[_Weightf, ...]:
     '''
-    Validate and return a set of canonicalized weight objects based on float32 weights.
-    The weights are normalized to sum to 1.0.
+    Validate and return a set of canonicalized weight objects based on
+    float32 weights. The weights are normalized to sum to 1.0.
     '''
     values = arg
     if isinstance(arg, np.ndarray):
@@ -1367,14 +1366,22 @@ def _weightf(arg: Iterable[Scalar|None]) -> tuple[_Weightf, ...]:
 def _weighti(arg: Iterable[Scalar|None],
              limit: int,
              fn: Callable[[int, int, int, int], Any]) -> tuple[Any, ...]:
-    values = arg
-    if isinstance(arg, np.ndarray):
-        total = float(arg.sum())
-    else:
-        total = sum(
-            float(v or 0)
-            for v in arg
-        )
+    match arg:
+        case np.ndarray():
+            values = arg
+            total = float(arg.sum())
+        case Sequence():
+            values = arg
+            total = sum(
+                float(v or 0)
+                for v in values
+            )
+        case Iterable():
+            values = list(arg)
+            total = sum(
+                float(v or 0)
+                for v in values
+            )
     if abs(total) < EPSILON:
         raise ValueError('No meaningfully non-zero weights')
     ivalues = [round((i or 0) * limit / total) for i in values]

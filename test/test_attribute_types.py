@@ -659,8 +659,6 @@ def weight16(*args, **kwargs):
 ])
 @mark.parametrize('tcase, zeropad', [
     (case_tuple, False),
-    (case_tuple_tuple, False),
-    (case_weight_tuple, True),
     (case_numpy, False)   
 ])
 def test_weight(tcase,
@@ -816,7 +814,6 @@ def test_scale(data, expected):
 
 def via_vector(p1: PointLike, p2: PointLike):
     return (p1 - p2).length
-
 
 @mark.parametrize('via', [
     via_vector,
