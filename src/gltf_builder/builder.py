@@ -25,7 +25,7 @@ from gltf_builder.core_types import (
 from gltf_builder.asset import BAsset, __version__
 from gltf_builder.holder import _Holder
 from gltf_builder.buffer import _Buffer
-from gltf_builder.view import _BaseBufferVieW
+from gltf_builder.view import _BufferView
 from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, _BNodeContainer
@@ -57,7 +57,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 meshes: Iterable[_Mesh]=(),
                 nodes: Iterable[_Node] = (),
                 buffers: Iterable[_Buffer]=(),
-                views: Iterable[_BaseBufferVieW]=(),
+                views: Iterable[_BufferView]=(),
                 accessors: Iterable[_Accessor[NPTypes, BType]]=(),
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,

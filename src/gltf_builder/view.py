@@ -16,7 +16,7 @@ from gltf_builder.protocols import BType, _BuilderProtocol
 from gltf_builder.holder import _Holder
 
 
-class _BaseBufferVieW(BBufferView):
+class _BufferView(BBufferView):
     __memory: memoryview
     
     __blob: bytes|None = None

@@ -17,7 +17,7 @@ from gltf_builder.element import (
     _Scope,
 )
 from gltf_builder.holder import _Holder
-from gltf_builder.view import _BaseBufferVieW
+from gltf_builder.view import _BufferView
 
 
 class _ViewKey(NamedTuple):
@@ -139,7 +139,7 @@ class _Buffer(BBuffer):
         key = _ViewKey(target, byteStride, name)
         view = self._views.get(key)
         if view is None:
-            view = _BaseBufferVieW(self, name, byteStride, target,
+            view = _BufferView(self, name, byteStride, target,
                                     extras=extras,
                                     extensions=extensions)
             self._views[key] = view
