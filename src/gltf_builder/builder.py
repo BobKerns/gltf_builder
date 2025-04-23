@@ -318,7 +318,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         m = _RE_ATTRIB_NAME.match(name)
         if m:
             attr = self.attr_type_map.get(m.group(1))
-        print(f'{name=} {m=} {attr=}')
         if attr is None:
             raise ValueError(f'Attribute {name} is not defined.')
         self.attr_type_map[name] = attr
@@ -420,7 +419,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             case NameMode.NONE:
                 return ''
             case _:
-                raise ValueError(f'Invalid name mode: {self.name_mode}')
+                raise ValueError(f'Invalid name mode: {self.name_mode}') # pragma: no cover
 
     def _create_accessor(self,
                 elementType: ElementType,
