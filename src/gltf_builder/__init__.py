@@ -2,6 +2,7 @@
 from gltf_builder.core_types import (
     Scalar, ByteSize, ByteSizeAuto,
     PrimitiveMode, ElementType,  ComponentType, NameMode, ScopeName, NamePolicy,
+    JsonObject, JsonArray, JsonData, JsonAtomic,
 )
 from gltf_builder.attribute_types import (
     PointSpec, TangentSpec, NormalSpec, VectorSpec, Vector2Spec, Vector3Spec, Vector4Spec, VectorLike,
@@ -59,6 +60,10 @@ __all__ = [
     'IDENTITY4',
     'joint',
     'joints',
+    'JsonArray',
+    'JsonAtomic',
+    'JsonData',
+    'JsonObject',
     'map_range',
     'matrix',
     'Matrix',
