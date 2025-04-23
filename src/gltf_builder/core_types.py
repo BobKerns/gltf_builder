@@ -251,3 +251,9 @@ JsonData: TypeAlias = JsonObject|JsonArray|JsonAtomic
 '''
 A JSON-compatible data type.
 '''
+
+NamePolicy: TypeAlias = dict[ScopeName, NameMode]
+'''
+A policy for how to handle or generate names for objects.
+The keys are the scope names, and the values are the name modes.
+'''

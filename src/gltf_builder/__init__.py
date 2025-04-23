@@ -1,7 +1,7 @@
 
 from gltf_builder.core_types import (
     Scalar, ByteSize, ByteSizeAuto,
-    PrimitiveMode, ElementType,  ComponentType, NameMode, ScopeName,
+    PrimitiveMode, ElementType,  ComponentType, NameMode, ScopeName, NamePolicy,
 )
 from gltf_builder.attribute_types import (
     PointSpec, TangentSpec, NormalSpec, VectorSpec, Vector2Spec, Vector3Spec, Vector4Spec, VectorLike,
@@ -32,6 +32,9 @@ from gltf_builder.quaternions import (
 from gltf_builder.vertices import (
     vertex, Vertex
 )
+from gltf_builder.geometries import (
+    get_geometry, define_geometry,
+)
 
 __all__ = [ 
     'AttributeDataSpec',
@@ -46,9 +49,11 @@ __all__ = [
     'ColorSpec',
     'color',
     'ComponentType',
+    'define_geometry',
     'distribute_floats',
     'distribute_ints',
     'ElementType',
+    'get_geometry',
     'IDENTITY2',
     'IDENTITY3',
     'IDENTITY4',
@@ -66,6 +71,7 @@ __all__ = [
     'Matrix3Spec',
     'Matrix4Spec',
     'NameMode',
+    'NamePolicy',
     'NormalSpec',
     'normalize',
     'PointSpec',

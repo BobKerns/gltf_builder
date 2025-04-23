@@ -3,21 +3,22 @@ Prepackaged geometries (nodes with meshes), mostly useful for testing.
 '''
 
 
+from abc import abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Protocol
 
 from gltf_builder.vertices import vertex
 from gltf_builder.attribute_types import color, point, uv, vector3
-from gltf_builder.core_types import JsonObject, NameMode, PrimitiveMode
+from gltf_builder.core_types import JsonObject, NameMode, NamePolicy, PrimitiveMode
 from gltf_builder.builder import Builder
 from gltf_builder.element import BNode
 
 
 @contextmanager
-def make(name: str,
-         name_mode: NameMode = NameMode.UNIQUE,
+def _make(name: str,
          index_size: int = -1,
+         name_policy: Optional[NamePolicy]=None,
          extras: Optional[JsonObject]=None,
          extensions: Optional[JsonObject]|None = None,
          ) -> Iterator[BNode]:
@@ -33,7 +34,9 @@ def make(name: str,
             'geometry': name,
         }
     }
-    b = Builder(index_size=index_size)
+    b = Builder(index_size=index_size,
+                name_policy=name_policy,
+                )
     node = b.create_node(name,
                       detached=True,
                       extras=extras,
@@ -90,18 +93,113 @@ _CUBE_VERTICES = tuple(
     for p in f
 )
 
-with make('CUBE') as cube:
+
+class GeometryFn(Protocol):
+    @abstractmethod
+    def __call__(self, node: BNode, /):
+        '''
+        Initialize a detached node with geometry.
+        '''
+        ...
+
+class _GeometryFn:
+    name: str
+    _fn: GeometryFn
+    index_size: int
+    name_policy: Optional[NamePolicy]
+    extras: Optional[JsonObject]
+    extensions: Optional[JsonObject]
+    __name__: str
+    __qualname__: str
+    __module__: str
+    node: BNode|None = None
+
+    def __init__(self, name: str,
+                 fn: GeometryFn, /, *,
+                 index_size: int = -1,
+                 name_policy: Optional[NamePolicy]=None,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject] = None,
+                 ):
+        self.name = name
+        self._fn = fn
+        self.__qualname__ = fn.__qualname__
+        self.__name__ = getattr(fn, '__name__', fn.__qualname__ )
+        self.__module__ = fn.__module__
+        self.index_size = index_size
+        self.name_policy = name_policy
+        extras = extras or {}
+        self.extras = {
+                **extras,
+                'gltf_builder': {
+                'geometry': name,
+            }
+        }
+        self.extensions = extensions or {}
+
+    def __call__(self) -> BNode:
+        if self.node is not None:
+            return self.node
+        b = Builder(index_size=self.index_size,
+                    name_policy=self.name_policy,
+                    )
+        node = b.create_node(self.name,
+                        detached=True,
+                        extras=self.extras,
+                        extensions=self.extensions,
+                        )
+        self._fn(node)
+        self.node = node
+        return node
+
+
+_GEOMETRIES: dict[str, _GeometryFn] = {}
+'''
+Predefined named geometry functions
+'''
+
+
+def define_geometry(name: str, fn: GeometryFn, /, *,
+                    index_size: int = -1,
+                    name_policy: Optional[NamePolicy]=None,
+                    extras: Optional[JsonObject]=None,
+                    extensions: Optional[JsonObject] = None,
+                    ) -> None:
+    '''
+    Define a detatched node to add geometry to.
+
+    Creation is deferred until first use
+    '''
+    if name in _GEOMETRIES:
+        raise ValueError(f'Geometry {name!r} already defined')
+    _GEOMETRIES[name] = _GeometryFn(name,
+                                    fn,
+                                    index_size=index_size,
+                                    name_policy=name_policy,
+                                    extras=extras,
+                                    extensions=extensions,
+                                    )
+
+def get_geometry(name: str) -> BNode:
+    '''
+    Get a predefined geometry node.
+    '''
+    if name not in _GEOMETRIES:
+        raise ValueError(f'Geometry {name!r} not defined')
+    return _GEOMETRIES[name]()
+
+
+def _cube(cube: BNode):
+    '''
+    Create a cube with 6 faces.
+    '''
     for i, (face, normal) in enumerate(_CUBE_FACES):
         name = f'FACE{i+1}'
         node = cube.create_node(name)
         mesh = node.create_mesh(name)
                
         uvx = uv(0.0, 0.0), uv(0.0, 1.0), uv(1.0, 1.0), uv(1.0, 0.0)
-        #mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in face],
-        #                   NORMAL=4 *(normal,),
-        #                   COLOR_0=[_CUBE_COLORS[i] for i in face],
-        #                   TEXCOORD_0= uvx
-        #                   )
         mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE_VERTICES[i] for i in face],)
     CUBE = cube
 
+define_geometry('CUBE', _cube)
