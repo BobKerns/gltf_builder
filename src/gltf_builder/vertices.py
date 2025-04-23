@@ -19,10 +19,10 @@ class Vertex:
     '''
     A vertex with position, normal, and texture coordinates and other attributes.
     '''
-   # __slots__ = (
-   #     'POSITION', 'NORMAL', 'TEXCOORD_0', 'TEXCOORD_1',
-   #     'TANGENT', 'COLOR_0', 'attributes',
-   #)
+    __slots__ = (
+        'POSITION', 'NORMAL', 'TEXCOORD_0', 'TEXCOORD_1',
+        'TANGENT', 'COLOR_0', 'attributes',
+   )
     POSITION: Point
     NORMAL: Optional[Vector3]
     TEXCOORD_0: Optional[UvPoint]
@@ -40,17 +40,17 @@ class Vertex:
                  COLOR_0: Optional[Color]=None,
                  **attribs: AttributeData):
         self.POSITION = POSITION
-        if NORMAL or True:
+        if NORMAL:
             self.NORMAL = NORMAL
-        if TEXCOORD_0 or True:
+        if TEXCOORD_0:
             self.TEXCOORD_0 = TEXCOORD_0
-        if TEXCOORD_1 or True:
+        if TEXCOORD_1:
             self.TEXCOORD_1 = TEXCOORD_1
-        if TANGENT or True:
+        if TANGENT:
            self.TANGENT = TANGENT
-        if COLOR_0 or True:
+        if COLOR_0:
             self.COLOR_0 = COLOR_0
-        if attribs or True:
+        if attribs:
             self.attributes = attribs
 
     def __iter__(self):
@@ -59,27 +59,37 @@ class Vertex:
             v = getattr(self, k, None)
             if v is not None:
                 yield k
-        yield from  self.attributes
+        if hasattr(self, 'attributes'):
+            yield from  self.attributes
 
     def __getitem__(self, key: str) -> AttributeData:
         if hasattr(self, key):
             val = getattr(self, key)
-            if val is None:
-                raise KeyError(f'{key} not found in vertex attributes')
-            return val
-        return self.attributes[key]
+            if val is not None:
+                return val
+        if hasattr(self, 'attributes'):
+            if key in self.attributes:
+                return self.attributes[key]
+        raise KeyError(f'{key} not found in vertex attributes')
 
     def __repr__(self):
         x, y, z = self.POSITION
+        def s(x: Any):
+            if isinstance(x, (float, np.floating)):
+                # Eliminate trailing zeros
+                if x == int(x):
+                    return f'{int(x)}'
+                if x * 10 == int(x * 10):
+                    return f'{x:.1f}'
+                if x * 100 == int(x * 100):
+                    return f'{x:.2f}'
+                return f'{x:.3f}'
+            return str(x)
         def val(v: AttributeData) -> str:
-            def s(x: Any):
-                if isinstance(x, (float, np.floating)):
-                    return f'{x:.3f}'
-                return str(x)
             if isinstance(v, (tuple, np.ndarray)):
                 return f"({','.join(s(x) for x in v)})"
             return s(v)
-        return (f'@<{x:.3f}, {y:.3f}, {z:.3f}>(' +
+        return (f'Vertex@<{s(x)},{s(y)},{s(z)}>(' +
                 ', '.join(
                         f'{k}={val(self[k])}'
                         for k in self
