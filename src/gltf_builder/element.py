@@ -8,7 +8,7 @@ from typing import (
     Generic, Protocol, Optional, Any, TypeVar, overload, runtime_checkable,
 )
 from abc import abstractmethod
-from collections.abc import Mapping, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 import numpy as np
 import pygltflib as gltf
@@ -16,13 +16,13 @@ import pygltflib as gltf
 from gltf_builder.holder import _Holder
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
-    ComponentType, JsonObject, PrimitiveMode,
+    ComponentType, ImageType, JsonObject, PrimitiveMode,
     BufferViewTarget, ElementType, NPTypes, ScopeName
 )
 from gltf_builder.attribute_types import (
-    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, ColorSpec, Point, Scale, TangentSpec, UvSpec,
+    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList,
+    ColorSpec, Point, Scale, TangentSpec, UvSpec,
     Vector3, Vector3Spec, PointSpec,
-    BTYPE_co, BType,
     vector3,
 )
 from gltf_builder.matrix import Matrix4
@@ -267,3 +267,22 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
         just create a `BMesh` and return it for later use.
         '''
         ...
+
+@runtime_checkable
+class BImage(Element[gltf.Image], Protocol):
+    imageType: ImageType
+    blob: Optional[bytes] = None
+    uri: Optional[str|Path] = None
+    view: Optional[BBufferView] = None
+    
+    @property
+    def mimeType(self) -> str:
+        '''
+        The MIME type for the image data.
+        '''
+        match self.imageType:
+            case ImageType.JPEG:
+                return 'image/jpeg'
+            case ImageType.PNG:
+                return 'image/png'
+    

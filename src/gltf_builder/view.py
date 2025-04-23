@@ -13,7 +13,7 @@ from gltf_builder.core_types import (
 from gltf_builder.element import (
     BAccessor, BBuffer, BBufferView, _Scope,
 )
-from gltf_builder.protocols import BType, _BuilderProtocol
+from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.holder import _Holder
 
 

@@ -12,12 +12,12 @@ from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
-AttributeData, AttributeDataIterable, AttributeDataList, AttributeDataSpec, PointSpec,
+    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, PointSpec,
      point,
 )
-from gltf_builder.protocols import BType, _BuilderProtocol
+from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.element import (
-    BTYPE_co, BAccessor, BPrimitive, BMesh, _Scope,
+    BAccessor, BPrimitive, BMesh, _Scope,
 )
 from gltf_builder.accessor import _Accessor
 from gltf_builder.utils import decode_dtype
@@ -61,7 +61,7 @@ class _Primitive(BPrimitive):
         assert mesh is not None
         buffer = builder._buffers[0]
         def compile_attrib(name: str,
-                           data: Sequence[BTYPE_co],
+                           data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, AttributeData]:
             index = mesh.primitives.index(self)
             aname = buffer.builder._gen_name(self,

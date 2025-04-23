@@ -211,6 +211,18 @@ class ScopeName(StrEnum):
     '''
     The policy applies to the builder.
     '''
+    IMAGE = 'image'
+    '''
+    The policy applies to the image.
+    '''
+    MATERIAL = 'material'
+    '''
+    The policy applies to the material.
+    '''
+    TEXTURE = 'texture'
+    '''
+    The policy applies to the texture.
+    '''
 
 class NameMode(StrEnum):
     '''
@@ -257,3 +269,18 @@ NamePolicy: TypeAlias = dict[ScopeName, NameMode]
 A policy for how to handle or generate names for objects.
 The keys are the scope names, and the values are the name modes.
 '''
+
+
+class  ImageType(StrEnum):
+    '''
+    Enum for the supported image types.
+    '''
+    PNG = 'image/png'
+    '''
+    PNG image type.
+    '''
+    JPEG = 'image/jpeg'
+    '''
+    JPEG image type.
+    '''
+

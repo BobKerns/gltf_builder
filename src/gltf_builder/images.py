@@ -1,0 +1,92 @@
+'''
+Image data for textures in glTF format.
+'''
+
+
+from typing import Optional, cast
+from pathlib import Path
+
+import pygltflib as gltf
+import numpy as np
+
+from gltf_builder.compile import _Scope, DoCompileReturn
+from gltf_builder.core_types import (
+    BufferViewTarget, ImageType, JsonObject, Phase, ScopeName
+)
+from gltf_builder.element import BImage
+from gltf_builder.protocols import _BuilderProtocol
+
+
+class _Image(BImage):
+    __memory: memoryview|None = None
+    _scope_name = ScopeName.IMAGE
+    
+    @property
+    def mimeType(self) -> str:
+        '''
+        The MIME type for the image data.
+        '''
+        match self.imageType:
+            case ImageType.JPEG:
+                return 'image/jpeg'
+            case ImageType.PNG:
+                return 'image/png'
+    
+
+    def __init__(self,
+                 /,
+                 name: str='',
+                 blob: Optional[bytes|np.ndarray[tuple[int], np.dtype[np.uint8]]]=None,
+                 uri: str|Path|None=None,
+                 imageType: ImageType=ImageType.PNG,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                ):
+        super().__init__(
+            name=name,
+            extras=extras,
+            extensions=extensions,
+        )
+        match blob:
+            case np.ndarray():
+                self.blob = blob.tobytes()
+            case bytes():
+                self.blob = blob
+        self.uri = uri
+        self.imageType = imageType
+
+    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase) -> DoCompileReturn[gltf.Image]:
+        match phase:
+            case Phase.COLLECT:
+                builder._images.add(self)
+                if self.blob is not None:
+                    name=builder._gen_name(self, scope=ScopeName.BUFFER_VIEW)
+                    self.view = builder._get_view(builder.buffer,
+                                      BufferViewTarget.ARRAY_BUFFER,
+                                      name=name,
+                    )
+                    return [self.view.compile(builder, scope, phase)]
+            case Phase.SIZES:
+                return len(self.blob) if self.blob is not None else 0
+            case Phase.OFFSETS:
+                if self.view is not None:
+                    assert self.blob is not None
+                    self.__memory = self.view.memoryview(0, len(self.blob))
+                return 0
+            case Phase.BUILD:
+                if self.view is not None:
+                    assert self.blob is not None
+                    assert self.__memory is not None
+                    self.__memory[:] = self.blob
+                    self.view.compile(builder, scope, Phase.BUILD)
+                img = gltf.Image(
+                        name=self.name,
+                        #pygltflib is sloppy about types
+                        uri=cast(str, self.uri),
+                        mimeType=self.mimeType,
+                        extras=self.extras,
+                        extensions=self.extensions,
+                    )
+                return img
+            case _: pass
+        

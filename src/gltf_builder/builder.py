@@ -16,12 +16,14 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.attribute_types import (
-    BTYPE_SPEC, BTYPE_SPEC_co, AttributeData, Color, ColorSpec, Joint, JointSpec, Point, Tangent, TangentSpec, UvPoint, UvSpec, Vector3, Vector3Spec, Weight, WeightSpec,
-    BType, color, joint, point, tangent, uv, vector3,
+    BTYPE, Color, Joint, Point, Tangent,
+    UvPoint, Vector3, Weight,
+    color, point, tangent, uv, vector3,
 )
 from gltf_builder.core_types import (
-     BufferViewTarget, JsonObject, NPTypes, NameMode, NamePolicy, Phase,
-     ElementType, ComponentType, Scalar, ScopeName, NameMode,
+     BufferViewTarget, ImageType, JsonObject,
+     NPTypes, NameMode, NamePolicy, Phase,
+     ElementType, ComponentType, ScopeName, NameMode,
 )
 from gltf_builder.asset import BAsset, __version__
 from gltf_builder.holder import _Holder
@@ -30,9 +32,10 @@ from gltf_builder.view import _BufferView
 from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, _BNodeContainer
+from gltf_builder.images import _Image
 from gltf_builder.protocols import _AttributeParser, AttributeType, _BuilderProtocol
 from gltf_builder.element import (
-     BTYPE_co, BAccessor, BBuffer, BBufferView, BMesh, BNode, BPrimitive, Element,
+     BAccessor, BBuffer, BBufferView, BImage, BMesh, BNode, BPrimitive, Element,
 )
 from gltf_builder.compile import _Compileable, _Collected
 from gltf_builder.utils import USERNAME, USER, decode_dtype
@@ -51,6 +54,9 @@ DEFAULT_NAME_POLICY: NamePolicy = {
     ScopeName.BUFFER: NameMode.NONE,
     ScopeName.BUFFER_VIEW: NameMode.NONE,
     ScopeName.BUILDER: NameMode.NONE,
+    ScopeName.IMAGE: NameMode.AUTO,
+    ScopeName.MATERIAL: NameMode.AUTO,
+    ScopeName.TEXTURE: NameMode.AUTO,
 }
 '''
 Default naming mode for each scope.
@@ -77,8 +83,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 meshes: Iterable[_Mesh]=(),
                 nodes: Iterable[_Node] = (),
                 buffers: Iterable[_Buffer]=(),
-                views: Iterable[_BufferView]=(),
-                accessors: Iterable[_Accessor[NPTypes, AttributeData]]=(),
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 index_size: int=32,
@@ -97,8 +101,9 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.asset = asset
         self.meshes = _Holder(BMesh, *meshes)
         self._buffers = _Holder(BBuffer, *buffers)
-        self._views = _Holder(BBufferView, *views)
-        self._accessors = _Holder(BAccessor, *accessors)
+        self._views = _Holder(BBufferView)
+        self._accessors = _Holder(BAccessor)
+        self._images = _Holder(BImage)
         self.index_size = index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
@@ -137,6 +142,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                         n._index = i
                 assign_index(self._buffers)
                 assign_index(self.__ordered_views)
+                assign_index(self._images)
                 assign_index(self._accessors)
                 assign_index(self.meshes)
                 assign_index(self.nodes)
@@ -148,6 +154,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                     *(n.compile(self, self, phase) for n in self.nodes),
                     *(m.compile(self, self, phase) for m in self.meshes),
                     *(a.compile(self, self, phase) for a in self._accessors),
+                    *(i.compile(self, self, phase) for i in self._images),
                     *(v.compile(self, self, phase) for v in self._views),
                     *(b.compile(self, self, phase) for b in self._buffers),
                 ]
@@ -290,8 +297,8 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                       name: str,
                       elementType: ElementType,
                       componentType: ComponentType,
-                      type: type[BTYPE_co],
-                      parser: _AttributeParser[BTYPE_co]|None=None,
+                      type: type[BTYPE],
+                      parser: _AttributeParser[BTYPE]|None=None,
                 ):
         '''
         Define the type of an attribute.
@@ -424,13 +431,13 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     def _create_accessor(self,
                 elementType: ElementType,
                 componentType: ComponentType,
-                btype: type[BTYPE_co],
+                btype: type[BTYPE],
                 name: str='',
                 normalized: bool=False,
                 buffer: Optional['BBuffer']=None,
                 count: int=0,
                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-                ) -> BAccessor[NPTypes, BTYPE_co]:
+                ) -> BAccessor[NPTypes, BTYPE]:
             dtype = decode_dtype(elementType, componentType)
             return _Accessor(
                 elementType=elementType,
@@ -443,3 +450,25 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 normalized=normalized,
                 target=target,
             )
+    
+    def create_image(self,
+                imageType: ImageType,
+                name: str='',
+                /, *,
+                blob: Optional[bytes]=None,
+                uri: Optional[str|Path]=None,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
+            ) -> BImage:
+        '''
+        Implementation of `BImage`.
+        '''
+        return _Image(
+            name=name,
+            blob=blob,
+            uri=uri,
+            imageType=imageType,
+            extras=extras,
+            extensions=extensions,
+        )
+    

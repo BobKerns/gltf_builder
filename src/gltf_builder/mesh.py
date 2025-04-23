@@ -114,8 +114,8 @@ class _Mesh(BMesh):
                 builder.meshes.add(self)
                 return (
                     prim.compile(builder, scope, Phase.COLLECT)
-                        for prim in self.primitives
-                    )
+                    for prim in self.primitives
+                )
             case Phase.SIZES:
                 return sum(
                     prim.compile(builder, scope, Phase.SIZES)

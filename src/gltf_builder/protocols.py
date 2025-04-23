@@ -3,6 +3,7 @@ Protocol classes to avoid circular imports.
 '''
 
 from abc import abstractmethod
+from pathlib import Path
 from typing import (
     Generic, Literal, NamedTuple, Protocol, TypeAlias, runtime_checkable,
     Optional, TYPE_CHECKING, Any
@@ -15,15 +16,17 @@ import pygltflib as gltf
 from gltf_builder.compile import _Compileable, _Scope
 from gltf_builder.holder import _Holder
 from gltf_builder.core_types import (
-    BufferViewTarget, ElementType, ComponentType, JsonObject,
+    BufferViewTarget, ElementType, ComponentType, ImageType, JsonObject,
     NPTypes, NameMode, ScopeName,
 )
-from gltf_builder.attribute_types import BTYPE_SPEC, BTYPE_SPEC_co, AttributeData, AttributeDataSpec, Vector3Spec, BTYPE, BType
+from gltf_builder.attribute_types import (
+    AttributeData, Vector3Spec, BTYPE
+)
 from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
     from gltf_builder.element import(
-        BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor,
+        BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor, BImage,
     )
 
 class _BufferViewKey(NamedTuple):
@@ -150,6 +153,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The accessors in the glTF file.
     '''
+    _images: _Holder['BImage']
     extras: dict[str, Any]
     '''
     The extras for the glTF file.
@@ -276,3 +280,31 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
             The created accessor.
         '''
         ...
+
+    def create_image(self,
+                imageType: ImageType,
+                name: str='',
+                /, *,
+                blob: Optional[bytes]=None,
+                uri: Optional[str|Path]=None,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
+            ) -> 'BImage':
+        '''
+        Create a `BImage` for the given image type.
+        PARAMETERS
+        ----------
+        imageType: ImageType
+            The image type for the image.
+        name: str
+            The name of the image.
+        blob: bytes
+            The image data as a byte array.
+        uri: str|Path
+            The URI for the image.
+        RETURNS
+        -------
+        BImage
+            The created image.
+        '''
+        ... 
