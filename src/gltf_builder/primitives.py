@@ -12,12 +12,12 @@ from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
-AttributeDataIterable, AttributeDataList, PointSpec,
+AttributeData, AttributeDataIterable, AttributeDataList, AttributeDataSpec, PointSpec,
      point,
 )
 from gltf_builder.protocols import BType, _BuilderProtocol
 from gltf_builder.element import (
-    BTYPE, BAccessor, BPrimitive, BMesh, _Scope,
+    BTYPE_co, BAccessor, BPrimitive, BMesh, _Scope,
 )
 from gltf_builder.accessor import _Accessor
 from gltf_builder.utils import decode_dtype
@@ -27,7 +27,7 @@ class _Primitive(BPrimitive):
     '''
     Base implementation class for primitives
     '''
-    __attrib_accessors: Mapping[str, BAccessor[NPTypes,BType]]
+    __attrib_accessors: Mapping[str, BAccessor[NPTypes, AttributeData]]
     __indices_accessor: Optional[BAccessor[NPTypes, int]] = None
     
     def __init__(self,
@@ -61,18 +61,20 @@ class _Primitive(BPrimitive):
         assert mesh is not None
         buffer = builder._buffers[0]
         def compile_attrib(name: str,
-                           data: Sequence[BTYPE],
-                        ) -> BAccessor[NPTypes, BType]:
+                           data: Sequence[BTYPE_co],
+                        ) -> BAccessor[NPTypes, AttributeData]:
             index = mesh.primitives.index(self)
             aname = buffer.builder._gen_name(self,
                                             prefix=f'{mesh.name}:{self.mode.name}/',
                                             scope=ScopeName.ACCESSOR,
                                             index=index,
                                             )
-            eltType, componentType, btype = builder.get_attrib_info(name)
-            dtype = decode_dtype(eltType, componentType)
-            accessor = _Accessor(buffer, len(data), eltType, componentType,
-                                 btype=btype,
+            attr_type = builder.get_attribute_type(name)
+            dtype = decode_dtype(attr_type.elementType, attr_type.componentType)
+            accessor = _Accessor(buffer, len(data),
+                                 attr_type.elementType,
+                                 attr_type.componentType,
+                                 btype=attr_type.type,
                                  dtype=dtype, 
                                  name=aname)
             accessor._add_data(data)
@@ -102,10 +104,12 @@ class _Primitive(BPrimitive):
             case Phase.COLLECT:
                 mesh.name = mesh.name or builder._gen_name(mesh)     
                 self.__attrib_accessors = {
-                    name: compile_attrib(name, cast(Sequence[BType], data))
+                    name: compile_attrib(name, cast(Sequence[AttributeData], data))
                     for name, data in self.attribs.items()
                 }
-                accessors: list[tuple[BAccessor[NPTypes, BType]|BAccessor[NPTypes, int], list[_Collected]]] = [
+                accessors: list[tuple[BAccessor[NPTypes,
+                                                AttributeData]
+                                     |BAccessor[NPTypes, int], list[_Collected]]] = [
                     (a, [a.compile(builder, scope, phase)])
                     for a in self.__attrib_accessors.values()
                 ]

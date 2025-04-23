@@ -10,16 +10,17 @@ from itertools import count
 from datetime import datetime
 import logging
 from pathlib import Path
+import re
 
 import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.attribute_types import (
-    ColorSpec, JointSpec, TangentSpec, UvSpec, Vector3Spec, WeightSpec,
-    BType, BTypeType,
+    BTYPE_SPEC, BTYPE_SPEC_co, AttributeData, Color, ColorSpec, Joint, JointSpec, Point, Tangent, TangentSpec, UvPoint, UvSpec, Vector3, Vector3Spec, Weight, WeightSpec,
+    BType, color, joint, point, tangent, uv, vector3,
 )
 from gltf_builder.core_types import (
-     BufferViewTarget, JsonObject, NPTypes, NameMode, Phase,
+     BufferViewTarget, JsonObject, NPTypes, NameMode, NamePolicy, Phase,
      ElementType, ComponentType, Scalar, ScopeName, NameMode,
 )
 from gltf_builder.asset import BAsset, __version__
@@ -29,9 +30,9 @@ from gltf_builder.view import _BufferView
 from gltf_builder.accessor import _Accessor
 from gltf_builder.mesh import _Mesh
 from gltf_builder.node import _Node, _BNodeContainer
-from gltf_builder.protocols import _AttributeInfo, _BuilderProtocol
+from gltf_builder.protocols import _AttributeParser, AttributeType, _BuilderProtocol
 from gltf_builder.element import (
-     BTYPE, BAccessor, BBuffer, BBufferView, BMesh, BNode, BPrimitive, Element,
+     BTYPE_co, BAccessor, BBuffer, BBufferView, BMesh, BNode, BPrimitive, Element,
 )
 from gltf_builder.compile import _Compileable, _Collected
 from gltf_builder.utils import USERNAME, USER, decode_dtype
@@ -41,7 +42,7 @@ from gltf_builder.log import GLTF_LOG
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
 DEFAULT_NAME_MODE = NameMode.AUTO
-DEFAULT_NAME_POLICY = {
+DEFAULT_NAME_POLICY: NamePolicy = {
     ScopeName.NODE: NameMode.AUTO,
     ScopeName.MESH: NameMode.AUTO,
     ScopeName.PRIMITIVE: NameMode.AUTO,
@@ -51,6 +52,13 @@ DEFAULT_NAME_POLICY = {
     ScopeName.BUFFER_VIEW: NameMode.NONE,
     ScopeName.BUILDER: NameMode.NONE,
 }
+'''
+Default naming mode for each scope.
+'''
+
+_RE_ATTRIB_NAME = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(?:_\d+)$')
+
+
 class Builder(_BNodeContainer, _BuilderProtocol):
     _scope_name = ScopeName.BUILDER
     _id_counters: dict[str, count]
@@ -70,7 +78,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 nodes: Iterable[_Node] = (),
                 buffers: Iterable[_Buffer]=(),
                 views: Iterable[_BufferView]=(),
-                accessors: Iterable[_Accessor[NPTypes, BType]]=(),
+                accessors: Iterable[_Accessor[NPTypes, AttributeData]]=(),
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 index_size: int=32,
@@ -94,18 +102,14 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.index_size = index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
-        self.attr_type_map ={
-            'TANGENT': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[TangentSpec]),
-            'POSITION': _AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
-            'NORMAL': _AttributeInfo(gltf.VEC3, gltf.FLOAT, type[Vector3Spec]),
-            'COLOR': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
-            'TEXCOORD_0': _AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
-            'TEXCOORD_1': _AttributeInfo(gltf.VEC2, gltf.FLOAT, type[UvSpec]),
-            'COLOR_0': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[ColorSpec]),
-            'JOINTS_0': _AttributeInfo(gltf.VEC4, gltf.UNSIGNED_SHORT, type[JointSpec]),
-            'WEIGHTS_0': _AttributeInfo(gltf.VEC4, gltf.FLOAT, type[WeightSpec]),
-            '__DEFAULT__': _AttributeInfo(gltf.SCALAR, gltf.FLOAT, type[Scalar]),
-        }
+        self.attr_type_map = {}
+        self.define_attrib('POSITION', gltf.VEC3, gltf.FLOAT, Point, point)
+        self.define_attrib('NORMAL', gltf.VEC3, gltf.FLOAT, Vector3, vector3)
+        self.define_attrib('COLOR', gltf.VEC4, gltf.FLOAT, Color, color)
+        self.define_attrib('TEXCOORD', gltf.VEC2, gltf.FLOAT, UvPoint, uv)
+        self.define_attrib('TANGENT', gltf.VEC4, gltf.FLOAT, Tangent, tangent)
+        self.define_attrib('JOINTS', gltf.VEC4, gltf.UNSIGNED_SHORT, Joint)
+        self.define_attrib('WEIGHTS', gltf.VEC4, gltf.FLOAT, Weight)
         self._id_counters = {}
     
     def create_mesh(self,
@@ -284,23 +288,41 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     
     def define_attrib(self,
                       name: str,
-                      type: ElementType,
+                      elementType: ElementType,
                       componentType: ComponentType,
-                      btype: BTypeType,
+                      type: type[BTYPE_co],
+                      parser: _AttributeParser[BTYPE_co]|None=None,
                 ):
         '''
-        Define the type of an attribute. The default is VEC3/FLOAT, except for the following:
-        - TANGENT: VEC4/FLOAT
+        Define the type of an attribute.
+        - TANGENT: VEC4/FLOAT/Tangent
         - TEXCOORD_0: VEC2/FLOAT
         - TEXCOORD_1: VEC2/FLOAT
         - COLOR_0: VEC4/FLOAT
         - JOINTS_0: VEC4/UNSIGNED_SHORT
         - WEIGHTS_0: VEC4/FLOAT
         '''
-        self.attr_type_map[name] = _AttributeInfo(type, componentType, btype)
+        self.attr_type_map[name] = AttributeType(name, elementType, componentType, type, parser)
 
-    def get_attrib_info(self, name: str) -> _AttributeInfo:
-        return self.attr_type_map.get(name) or self.attr_type_map['__DEFAULT__']
+    def get_attribute_type(self, name: str) -> AttributeType:
+        '''
+        Get the type information for an attribute by name.
+
+        If the attribute is not defined, but ends in _<digits>,
+        the suffix is stripped and the attribute is looked up again.
+        If the attribute is still not found, a ValueError is raised.
+        '''
+        attr = self.attr_type_map.get(name)
+        if attr:
+            return attr
+        m = _RE_ATTRIB_NAME.match(name)
+        if m:
+            attr = self.attr_type_map.get(m.group(1))
+        print(f'{name=} {m=} {attr=}')
+        if attr is None:
+            raise ValueError(f'Attribute {name} is not defined.')
+        self.attr_type_map[name] = attr
+        return attr
 
     def _get_index_size(self, max_value: int) -> ComponentType|Literal[-1]:
         '''
@@ -403,13 +425,13 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     def _create_accessor(self,
                 elementType: ElementType,
                 componentType: ComponentType,
-                btype: type[BTYPE],
+                btype: type[BTYPE_co],
                 name: str='',
                 normalized: bool=False,
                 buffer: Optional['BBuffer']=None,
                 count: int=0,
                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-                ) -> BAccessor[NPTypes, BTYPE]:
+                ) -> BAccessor[NPTypes, BTYPE_co]:
             dtype = decode_dtype(elementType, componentType)
             return _Accessor(
                 elementType=elementType,

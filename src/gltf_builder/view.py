@@ -6,6 +6,7 @@ from typing import Optional
 
 import pygltflib as gltf
 
+from gltf_builder.attribute_types import AttributeData
 from gltf_builder.core_types import (
     BufferViewTarget, JsonObject, NPTypes, Phase,
 )
@@ -39,9 +40,9 @@ class _BufferView(BBufferView):
         self.target = target
         buffer.views.add(self)
         self.byteStride = byteStride
-        self.accessors = _Holder(type_=BAccessor[NPTypes, BType],)        
+        self.accessors = _Holder(type_=BAccessor[NPTypes, AttributeData],)        
     
-    def _add_accessor(self, acc: BAccessor[NPTypes, BType]) -> None:
+    def _add_accessor(self, acc: BAccessor[NPTypes, AttributeData]) -> None:
         '''
         Add an accessor to the buffer view
         '''

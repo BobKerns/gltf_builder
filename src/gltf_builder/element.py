@@ -20,9 +20,9 @@ from gltf_builder.core_types import (
     BufferViewTarget, ElementType, NPTypes, ScopeName
 )
 from gltf_builder.attribute_types import (
-    AttributeDataIterable, AttributeDataList, ColorSpec, Point, Scale, TangentSpec, UvSpec,
+    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, ColorSpec, Point, Scale, TangentSpec, UvSpec,
     Vector3, Vector3Spec, PointSpec,
-    BTYPE, BType,
+    BTYPE_co, BType,
     vector3,
 )
 from gltf_builder.matrix import Matrix4
@@ -106,7 +106,7 @@ class BBufferView(Element[gltf.BufferView], Protocol):
     buffer: BBuffer
     target: BufferViewTarget
     byteStride: int
-    accessors: _Holder['BAccessor[NPTypes, BType]']
+    accessors: _Holder['BAccessor[NPTypes, AttributeData]']
 
     @property
     @abstractmethod
@@ -116,7 +116,7 @@ class BBufferView(Element[gltf.BufferView], Protocol):
     def memoryview(self, offset: int, size: int) -> memoryview: ...
 
     @abstractmethod
-    def _add_accessor(self, acc: 'BAccessor[NPTypes, BTYPE]') -> None: ...
+    def _add_accessor(self, acc: 'BAccessor[NPTypes, AttributeData]') -> None: ...
 
 NP = TypeVar('NP', bound=NPTypes)
 NUM = TypeVar('NUM', bound=float|int, covariant=True)

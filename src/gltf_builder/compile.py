@@ -16,7 +16,7 @@ from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, ElementType,
     ComponentType, BufferViewTarget, ScopeName
 )
-from gltf_builder.attribute_types import BType
+from gltf_builder.attribute_types import AttributeData, BType
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import decode_stride
 if TYPE_CHECKING:
@@ -218,7 +218,7 @@ class _Scope(Protocol):
     scope above them.
     '''
     __views: dict['_BufferViewKey', 'BBufferView']
-    __accessors: dict[_AccessorKey, 'BAccessor[NPTypes, BType]']
+    __accessors: dict[_AccessorKey, 'BAccessor[NPTypes, AttributeData]']
     __is_accessor_scope: bool = False
     __is_view_scope: bool = False
     __buffer: 'BBuffer'
@@ -247,13 +247,13 @@ class _Scope(Protocol):
     def _get_accessor(self, 
                     eltType: ElementType,
                     componenType: ComponentType,
-                    btype: type[BType],
+                    btype: type[AttributeData],
                     name: str = '',
                     normalized: bool=False,
                     BufferViewTarget: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
                     extras: Optional[JsonObject]=None,
                     extensions: Optional[JsonObject]=None,
-                ) -> 'BAccessor[NPTypes, BType]':
+                ) -> 'BAccessor[NPTypes, AttributeData]':
         key = _AccessorKey(eltType, componenType, normalized, name)
         byteStride = decode_stride(eltType, componenType)
         accessor = self.__accessors.get(key, None)

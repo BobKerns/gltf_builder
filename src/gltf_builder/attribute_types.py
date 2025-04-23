@@ -725,7 +725,7 @@ AttributeDataSpec: TypeAlias = (
 Valid types for an attribute data specification or item.
 '''
 
-AttributeDataItem: TypeAlias = (
+AttributeData: TypeAlias = (
     Point
     |Vector2
     |Vector3
@@ -1480,6 +1480,9 @@ def find_dtype(values: Iterable[IntScalar]) -> np.dtype[np.uint8]|np.dtype[np.ui
 
 
 BType: TypeAlias = type[AttributeDataSpec]|type[type[AttributeDataSpec]]|int|type[Scalar]|float
-BTypeType: TypeAlias = type[BType]
 
-BTYPE = TypeVar('BTYPE', bound=BType)
+BTYPE_co = TypeVar('BTYPE_co', bound=AttributeData, covariant=True)
+BTYPE = TypeVar('BTYPE', bound=AttributeData)
+BTYPE_SPEC_co = TypeVar('BTYPE_SPEC_co', bound=AttributeDataSpec, covariant=True)
+BTYPE_SPEC = TypeVar('BTYPE_SPEC', bound=AttributeDataSpec)
+

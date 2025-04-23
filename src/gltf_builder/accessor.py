@@ -11,7 +11,7 @@ import numpy as np
 from gltf_builder.core_types import (
     ComponentType, ElementType, JsonObject, Phase, BufferViewTarget, ScopeName,
 )
-from gltf_builder.attribute_types import BTYPE, BType
+from gltf_builder.attribute_types import BTYPE, BTYPE_co, BType
 from gltf_builder.protocols  import _BuilderProtocol
 from gltf_builder.element import (
     BAccessor, BBuffer, NP
@@ -38,7 +38,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                  elementType: ElementType,
                  componentType: ComponentType,
                  dtype: type[NP],
-                 btype: type[BTYPE],
+                 btype: type[BTYPE_co],
                  name: str='',
                  normalized: bool=False,
                  max: Optional[list[float]]=None,
@@ -64,6 +64,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.max = max
         self.min = min
         self.dtype = dtype
+        self.btype = btype
         self.data = []
 
     def log_offset(self):

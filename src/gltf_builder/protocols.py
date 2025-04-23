@@ -4,10 +4,10 @@ Protocol classes to avoid circular imports.
 
 from abc import abstractmethod
 from typing import (
-    Literal, NamedTuple, Protocol, runtime_checkable,
+    Generic, Literal, NamedTuple, Protocol, TypeAlias, runtime_checkable,
     Optional, TYPE_CHECKING, Any
 )
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 import math
 
 import pygltflib as gltf
@@ -18,7 +18,7 @@ from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, JsonObject,
     NPTypes, NameMode, ScopeName,
 )
-from gltf_builder.attribute_types import Vector3Spec, BTYPE, BType, BTypeType
+from gltf_builder.attribute_types import BTYPE_SPEC, BTYPE_SPEC_co, AttributeData, AttributeDataSpec, Vector3Spec, BTYPE, BType
 from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
@@ -32,10 +32,18 @@ class _BufferViewKey(NamedTuple):
     byteStride: int
     name: str
 
-class _AttributeInfo(NamedTuple):
-    type: ElementType
+
+_AttributeParser: TypeAlias = Callable[..., BTYPE]
+'''
+Parse the given data into an attribute data item.
+'''
+
+class AttributeType(NamedTuple):
+    name: str
+    elementType: ElementType
     componentType: ComponentType
-    btype: BTypeType
+    type: type
+    parser: _AttributeParser[AttributeData]|None = None
 
 class _BNodeContainerProtocol(Protocol):
     _parent: Optional['BNode'] = None
@@ -138,7 +146,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The buffer views in the glTF file.
     '''
-    _accessors: _Holder['BAccessor[NPTypes, BType]']
+    _accessors: _Holder['BAccessor[NPTypes, AttributeData]']
     '''
     The accessors in the glTF file.
     '''
@@ -166,7 +174,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     This is only used when creating the indices buffer view.
 
     '''
-    attr_type_map: dict[str, _AttributeInfo]
+    attr_type_map: dict[str, AttributeType]
     '''
     The mapping of attribute names to their types.
     '''
@@ -201,12 +209,15 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     @abstractmethod
-    def define_attrib(self, name: str, type: ElementType, componentType: ComponentType,
-                      btype: BTypeType):
+    def define_attrib(self, name: str,
+                      elementType: ElementType,
+                      componentType: ComponentType,
+                      type: type[BTYPE],
+                      parser: _AttributeParser[BTYPE]|None=None):
         ...
 
     @abstractmethod
-    def get_attrib_info(self, name: str) -> _AttributeInfo:
+    def get_attribute_type(self, name: str) -> AttributeType:
         ...
 
     @abstractmethod

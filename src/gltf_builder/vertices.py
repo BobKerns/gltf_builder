@@ -8,7 +8,7 @@ from typing import Any, Optional, cast, overload
 import numpy as np
 
 from gltf_builder.attribute_types import (
-    AttributeDataItem, AttributeDataSpec,
+    AttributeData, AttributeDataSpec,
     ColorSpec, JointMap, JointSpec, NormalSpec, PointSpec, TangentSpec, UvSpec,
     Vector3, Point, Tangent_, UvPoint, Color, Joint, Weight, WeightSpec,
     color, joint, joints, point, tangent, uv, vector3, weight,
@@ -19,15 +19,17 @@ class Vertex:
     '''
     A vertex with position, normal, and texture coordinates and other attributes.
     '''
+   # __slots__ = (
+   #     'POSITION', 'NORMAL', 'TEXCOORD_0', 'TEXCOORD_1',
+   #     'TANGENT', 'COLOR_0', 'attributes',
+   #)
     POSITION: Point
     NORMAL: Optional[Vector3]
     TEXCOORD_0: Optional[UvPoint]
     TEXCOORD_1: Optional[UvPoint]
     TANGENT: Optional[Tangent_]
     COLOR_0: Optional[Color]
-    JOINTS_0: Optional[Joint]
-    WEIGHTS_0: Optional[Weight]
-    attributes: dict[str, AttributeDataItem]
+    attributes: dict[str, AttributeData]
 
     def __init__(self,
                  POSITION: Point,
@@ -36,14 +38,20 @@ class Vertex:
                  TEXCOORD_1: Optional[UvPoint]=None,
                  TANGENT: Optional[Tangent_]=None,
                  COLOR_0: Optional[Color]=None,
-                 **attribs: AttributeDataItem):
+                 **attribs: AttributeData):
         self.POSITION = POSITION
-        self.NORMAL = NORMAL
-        self.TEXCOORD_0 = TEXCOORD_0
-        self.TEXCOORD_1 = TEXCOORD_1
-        self.TANGENT = TANGENT
-        self.COLOR_0 = COLOR_0
-        self.attributes = attribs
+        if NORMAL or True:
+            self.NORMAL = NORMAL
+        if TEXCOORD_0 or True:
+            self.TEXCOORD_0 = TEXCOORD_0
+        if TEXCOORD_1 or True:
+            self.TEXCOORD_1 = TEXCOORD_1
+        if TANGENT or True:
+           self.TANGENT = TANGENT
+        if COLOR_0 or True:
+            self.COLOR_0 = COLOR_0
+        if attribs or True:
+            self.attributes = attribs
 
     def __iter__(self):
         for k in ('POSITION', 'NORMAL', 'TEXCOORD_0', 'TEXCOORD_1',
@@ -53,7 +61,7 @@ class Vertex:
                 yield k
         yield from  self.attributes
 
-    def __getitem__(self, key: str) -> AttributeDataItem:
+    def __getitem__(self, key: str) -> AttributeData:
         if hasattr(self, key):
             val = getattr(self, key)
             if val is None:
@@ -63,7 +71,7 @@ class Vertex:
 
     def __repr__(self):
         x, y, z = self.POSITION
-        def val(v: AttributeDataItem) -> str:
+        def val(v: AttributeData) -> str:
             def s(x: Any):
                 if isinstance(x, (float, np.floating)):
                     return f'{x:.3f}'
@@ -89,7 +97,7 @@ def vertex(*,
            COLOR_0: Optional[ColorSpec]=None,
            JOINTS: Optional[JointSpec|JointMap]=None,
            WEIGHTS: Optional[WeightSpec]=None,
-           **attribs: AttributeDataItem) -> Vertex: ...
+           **attribs: AttributeData) -> Vertex: ...
 @overload
 def vertex(x: PointSpec, /, *,
            NORMAL: Optional[NormalSpec]=None,
@@ -99,7 +107,7 @@ def vertex(x: PointSpec, /, *,
            COLOR_0: Optional[ColorSpec]=None,
            JOINTS: Optional[JointSpec|JointMap]=None,
            WEIGHTS: Optional[WeightSpec]=None,
-           **attribs: AttributeDataItem) -> Vertex: ...
+           **attribs: AttributeData) -> Vertex: ...
 @overload
 def vertex(x: Optional[Scalar]=None, y: Optional[Scalar]=None, z: Optional[Scalar]=None, /, *,
            NORMAL: Optional[NormalSpec]=None,
@@ -109,7 +117,7 @@ def vertex(x: Optional[Scalar]=None, y: Optional[Scalar]=None, z: Optional[Scala
            COLOR_0: Optional[ColorSpec]=None,
            JOINTS: Optional[JointSpec|JointMap]=None,
            WEIGHTS: Optional[WeightSpec]=None,
-           **attribs: AttributeDataItem) -> Vertex: ...
+           **attribs: AttributeData) -> Vertex: ...
 def vertex(x: Optional[Scalar|PointSpec]=None, y: Optional[Scalar]=None, z: Optional[Scalar]=None, /, *,
             NORMAL: Optional[NormalSpec]=None,
             TEXCOORD_0: Optional[UvSpec]=None,
@@ -118,7 +126,7 @@ def vertex(x: Optional[Scalar|PointSpec]=None, y: Optional[Scalar]=None, z: Opti
             COLOR_0: Optional[ColorSpec]=None,
             JOINTS: Optional[JointSpec|JointMap]=None,
             WEIGHTS: Optional[WeightSpec]=None,
-            **attribs: AttributeDataSpec|AttributeDataItem|None) -> Vertex:
+            **attribs: AttributeDataSpec|AttributeData|None) -> Vertex:
     '''
     Create a vertex with position, normal, and texture coordinates and other attributes.
 
@@ -211,7 +219,7 @@ def vertex(x: Optional[Scalar|PointSpec]=None, y: Optional[Scalar]=None, z: Opti
                   TEXCOORD_1=TEXCOORD_1,
                   TANGENT=TANGENT,
                   COLOR_0=COLOR_0,
-                  **{k:cast(AttributeDataItem, v) for k, v in attribs.items() if v},
+                  **{k:cast(AttributeData, v) for k, v in attribs.items() if v},
                   **joint_map,
                   **weight_map,
     )
