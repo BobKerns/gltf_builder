@@ -2,8 +2,8 @@
 Builder representation of a mesh to be compiled.
 '''
 
-from collections.abc import Iterable
-from typing import Optional
+from collections.abc import Iterable, Sequence
+from typing import Optional, cast, overload
 
 import pygltflib as gltf
 
@@ -12,12 +12,13 @@ from gltf_builder.core_types import (
     JsonObject, Phase, PrimitiveMode,
 )
 from gltf_builder.attribute_types import (
-    PointSpec, Vector3Spec, JointSpec, WeightSpec,
-    TangentSpec, ColorSpec, UvSpec, AttributeDataItem,
+    AttributeDataIterable, PointSpec, Vector3Spec,
+    TangentSpec, ColorSpec, UvSpec, color, tangent, uv, vector3,
 )
 from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.element import BMesh, BPrimitive, _Scope
 from gltf_builder.primitives import _Primitive
+from gltf_builder.vertices import Vertex
 
 
 class _Mesh(BMesh):
@@ -41,32 +42,60 @@ class _Mesh(BMesh):
         else:
             self.weights = list(weights)
         self.__detached = detached
-        
-    def add_primitive(self, mode: PrimitiveMode,
+    
+    @overload
+    def add_primitive(self, mode: PrimitiveMode, /,
                       *points: PointSpec,
                       NORMAL: Optional[Iterable[Vector3Spec]]=None,
                       TANGENT: Optional[Iterable[TangentSpec]]=None,
                       TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
                       TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
                       COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                      JOINTS_0: Optional[Iterable[JointSpec]]=None,
-                      WEIGHTS_0: Optional[Iterable[WeightSpec]]=None,
                       extras: Optional[JsonObject]=None,
                       extensions: Optional[JsonObject]=None,
-                      **attribs: Iterable[AttributeDataItem]
+                      **attribs: AttributeDataIterable
+                    ) -> _Primitive: ...
+    @overload
+    def add_primitive(self, mode: PrimitiveMode, /,
+                      *vertices: Vertex,
+                      extras: Optional[JsonObject]=None,
+                      extensions: Optional[JsonObject]=None,
+                    ) -> _Primitive: ...
+    def add_primitive(self, mode: PrimitiveMode, /,
+                      *points: PointSpec|Vertex,
+                      NORMAL: Optional[Iterable[Vector3Spec]]=None,
+                      TANGENT: Optional[Iterable[TangentSpec]]=None,
+                      TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
+                      TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
+                      COLOR_0: Optional[Iterable[ColorSpec]]=None,
+                      extras: Optional[JsonObject]=None,
+                      extensions: Optional[JsonObject]=None,
+                      **attribs: AttributeDataIterable|None
                     ) -> _Primitive:
-        prim = _Primitive(mode, points,
-                          NORMAL=NORMAL,
-                          TANGENT=TANGENT,
-                          TEXCOORD_0=TEXCOORD_0,
-                          TEXCOORD_1=TEXCOORD_1,
-                          COLOR_0=COLOR_0,
-                          JOINTS_0=JOINTS_0,
-                          WEIGHTS_0=WEIGHTS_0,
-                          extras=extras,
-                          extensions=extensions,
-                          mesh=self,
-                          **attribs)
+        match points[0]:
+            case Vertex():
+                vertices = cast(Sequence[Vertex], points)
+                attrs = {
+                    k: [v[k] for v in vertices]
+                    for k in vertices[0]
+                }
+                prim = _Primitive(mode,
+                                    mesh=self,
+                                    extras=extras,
+                                    extensions=extensions,
+                                    **cast(dict[str, AttributeDataIterable],attrs),
+                                )
+            case _:
+                prim = _Primitive(mode, cast(Sequence[PointSpec], points),
+                                NORMAL=[vector3(n) for n in NORMAL or ()],
+                                TANGENT=[tangent(t) for t in TANGENT or ()],
+                                TEXCOORD_0=[uv(p) for p in TEXCOORD_0 or ()],
+                                TEXCOORD_1=[uv(p) for p in TEXCOORD_1 or ()],
+                                COLOR_0=[color(c) for c in COLOR_0 or ()],
+                                extras=extras,
+                                extensions=extensions,
+                                mesh=self,
+                                **attribs)
         self.primitives.append(prim)
         return prim
     

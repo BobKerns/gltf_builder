@@ -3,7 +3,7 @@ Definitions for GLTF primitives
 '''
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Optional, cast, overload
+from typing import Optional, cast
 
 import pygltflib as gltf
 
@@ -12,8 +12,8 @@ from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
-    AttributeDataItem, ColorSpec, JointSpec, PointSpec,
-    TangentSpec, UvSpec, Vector3Spec, WeightSpec, color, joint, point, tangent, uv, vector3, weight,
+AttributeDataIterable, AttributeDataList, PointSpec,
+     point,
 )
 from gltf_builder.protocols import BType, _BuilderProtocol
 from gltf_builder.element import (
@@ -32,64 +32,24 @@ class _Primitive(BPrimitive):
     
     def __init__(self,
                  mode: PrimitiveMode,
-                 points: Iterable[PointSpec],
-                 NORMAL: Optional[Iterable[Vector3Spec]]=None,
-                 TANGENT: Optional[Iterable[TangentSpec]]=None,
-                 TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
-                 TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
-                 COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                 JOINTS_0: Optional[Iterable[JointSpec]]=None,
-                 WEIGHTS_0: Optional[Iterable[WeightSpec]]=None,
+                 points: Iterable[PointSpec] = (), /, *,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
                  mesh: Optional[BMesh]=None,
-                 **attribs: Iterable[AttributeDataItem],
+                 **attribs: AttributeDataIterable|None,
             ):
         super().__init__(extras, extensions)
         self.mode = mode
-        self.points = list(points)
+        if not points:
+            points = cast(Iterable[PointSpec], attribs.pop('POSITION', None))
+        self.points = list(point(p) for p in points)
         self.indices = []
-        @overload
-        def collect_attrib(data: Iterable[AttributeDataItem]
-                        ) -> Sequence[AttributeDataItem]: ...
-        @overload
-        def collect_attrib(data: None) -> None: ...
-        @overload
-        def collect_attrib(data: Iterable[AttributeDataItem]|None
-                        ) -> Sequence[AttributeDataItem]|None: ...
-        def collect_attrib(data: Iterable[AttributeDataItem]|None
-                        ) -> Sequence[AttributeDataItem]|None:
-            '''
-            If only an Iterable is given, convert it to a list, as we
-            need to know the length of the data.
-            '''
-            if data is None:
-                return None
-            if isinstance(data, Sequence):
-                return data
-            return list(data)
-        explicit_attribs: dict[str, Iterable[AttributeDataItem]|None] = {
-            'NORMAL': [vector3(n) for n in NORMAL or ()],
-            'TANGENT': [tangent(t) for t in TANGENT or ()],
-            'TEXCOORD_0': [uv(u) for u in TEXCOORD_0 or ()],
-            'TEXCOORD_1': [uv(u) for u in TEXCOORD_1 or ()],
-            'COLOR_0': [color(c) for c in COLOR_0 or ()],
-            'JOINTS_0': [j for j0 in JOINTS_0 or () for j in joint(j0)],
-            'WEIGHTS_0': [w for w0 in WEIGHTS_0 or () for w in weight(w0)],
-        }
-        self.attribs: Mapping[str, Sequence[AttributeDataItem]] = {
-            'POSITION': [point(p) for p in self.points],
-            **{
-                n: collect_attrib(v)
-                for n, v in attribs.items()
-                if v
-            },
-            **{
-                k: collect_attrib(v)
-                for k, v in explicit_attribs.items()
-                if v
-            }
-        }
+        self.attribs = cast(dict[str, AttributeDataList], {
+            k: list(v)
+            for k,v in attribs.items()
+            if v
+        })
+        self.attribs['POSITION'] = self.points
         lengths = {len(v) for v in self.attribs.values() if v}
         if len(lengths) > 1:
             raise ValueError('All attributes must have the same length')

@@ -8,7 +8,7 @@ from gltf_builder.attribute_types import (
     ScaleSpec, UvSpec,
     ColorSpec, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
     point, scale, vector2, vector3, vector4, tangent, uv, joint, joints, weight,
-    AttributeDataItem,
+    AttributeDataSpec,
 
 )
 from gltf_builder.accessor import BAccessor
@@ -29,9 +29,12 @@ from gltf_builder.matrix import (
 from gltf_builder.quaternions import (
     QuaternionSpec, Quaternion, quaternion,
 )
+from gltf_builder.vertices import (
+    vertex, Vertex
+)
 
 __all__ = [ 
-    'AttributeDataItem',
+    'AttributeDataSpec',
     'BAccessor',
     'BAsset',
     'BMesh',
@@ -95,6 +98,8 @@ __all__ = [
     'Vector4Spec',
     'vector4',
     'VectorLike',
+    'Vertex',
+    'vertex',
     'weight',
     '__version__',
 ]

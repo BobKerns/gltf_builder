@@ -695,8 +695,11 @@ JointSpec: TypeAlias = Joint|_Int4Spec
 '''Specification for up to 4 joint nodes'''
 WeightSpec: TypeAlias = Weight|_Float4Spec|_Int4Spec
 '''Specification for up to 4 weights.'''
+JointMap: TypeAlias = Mapping[IntScalar, Scalar]|Iterable[tuple[IntScalar,Scalar]]
+'''A dictionary of joint indices and weights.'''
 
-AttributeDataItem: TypeAlias = (
+
+AttributeDataSpec: TypeAlias = (
     int
     |float
     |PointSpec
@@ -719,9 +722,55 @@ AttributeDataItem: TypeAlias = (
     |np.ndarray[tuple[int, ...], np.dtype[np.int16]]
 )
 '''
+Valid types for an attribute data specification or item.
+'''
+
+AttributeDataItem: TypeAlias = (
+    Point
+    |Vector2
+    |Vector3
+    |Vector4
+    |UvPoint
+    |Tangent
+    |Color
+    |Joint
+    |Weight
+    |Scalar
+)
+'''
 Valid types for an attribute data item.
 '''
 
+AttributeDataIterable: TypeAlias = (
+    Iterable[Point]
+    |Iterable[Vector2]
+    |Iterable[Vector3]
+    |Iterable[Vector4]
+    |Iterable[UvPoint]
+    |Iterable[Tangent]
+    |Iterable[Color]
+    |Iterable[Joint]
+    |Iterable[Weight]
+    |Iterable[Scalar]
+)
+'''
+Valid types for an iterable of attribute data items.
+'''
+
+
+AttributeDataList: TypeAlias = (
+    list[Point]
+    |list[Vector3]
+    |list[UvPoint]
+    |list[Tangent]
+    |list[Color]
+    |list[Joint]
+    |list[Weight]
+    |list[Scalar]
+)
+'''
+Valid types for an iterable of attribute data items.
+'''
 
 @overload
 def point() -> Point: ...
@@ -1113,22 +1162,22 @@ def rgb16(r: int, g: int, b: int, a: Optional[int]=None) -> RGB16|RGBA16:
     return RGBA16(clamp(r), clamp(g), clamp(b), clamp(a))
 
 
-def joints(weights: Mapping[IntScalar, Scalar]|Iterable[tuple[IntScalar,Scalar]], /,
+def joints(joint_map: JointMap, /,
            size: Literal[0, 1, 2]=0,
            precision: Literal[0, 1, 2, 4]=0,
         ) -> tuple[tuple[Joint, ...], tuple['Weight', ...]]:
     '''
     Validate and return tuples of `Joint` objects and `Weight` objects. Each object holds up to 4 valuies.
     '''
-    match weights:
+    match joint_map:
         case Mapping():
            # An Iterable[X] is incorrectliy promotted to a Mapping[X, Unknown]
-           w = cast(Mapping[IntScalar, Scalar], weights)
+           w = cast(Mapping[IntScalar, Scalar], joint_map)
            return joint(*w.keys(), size=size), weight(*w.values(), precision=precision)
         case Sequence():
-            return joint(*[i[0] for i in weights], size=size), weight([i[1] for i in weights], precision=precision)
+            return joint(*[i[0] for i in joint_map], size=size), weight([i[1] for i in joint_map], precision=precision)
         case Iterable():
-            return joints(tuple(weights), size=size, precision=precision)
+            return joints(tuple(joint_map), size=size, precision=precision)
 
 
 _NpIntDtype: TypeAlias = type[np.uint8]|type[np.uint16]
@@ -1430,24 +1479,7 @@ def find_dtype(values: Iterable[IntScalar]) -> np.dtype[np.uint8]|np.dtype[np.ui
     return dt
 
 
-AttributeDataList: TypeAlias = (
-    list[int]
-    |list[float]
-    |list[tuple[int, ...]]
-    |list[tuple[float, ...]]
-    |list[np.ndarray[tuple[int, ...], Any]]
-)
-'''
-List of attribute data in various formats. Lists of:
-- integers
-- floats
-- tuples of integers
-- tuples of floats
-- numpy arrays of integers
-- numpy arrays of floats
-'''
-
-BType: TypeAlias = type[AttributeDataItem]|type[type[AttributeDataItem]]|int|type[Scalar]|float
+BType: TypeAlias = type[AttributeDataSpec]|type[type[AttributeDataSpec]]|int|type[Scalar]|float
 BTypeType: TypeAlias = type[BType]
 
 BTYPE = TypeVar('BTYPE', bound=BType)

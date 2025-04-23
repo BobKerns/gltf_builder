@@ -5,7 +5,7 @@ in the glTF. This also holds the name, defaulting it by the index.
 
 from pathlib import Path
 from typing import (
-    Generic, Protocol, Optional, Any, TypeVar, runtime_checkable,
+    Generic, Protocol, Optional, Any, TypeVar, overload, runtime_checkable,
 )
 from abc import abstractmethod
 from collections.abc import Mapping, Iterable, Sequence
@@ -20,9 +20,8 @@ from gltf_builder.core_types import (
     BufferViewTarget, ElementType, NPTypes, ScopeName
 )
 from gltf_builder.attribute_types import (
-    ColorSpec, JointSpec, Scale, TangentSpec, UvSpec,
+    AttributeDataIterable, AttributeDataList, ColorSpec, Point, Scale, TangentSpec, UvSpec,
     Vector3, Vector3Spec, PointSpec,
-    AttributeDataItem, WeightSpec,
     BTYPE, BType,
     vector3,
 )
@@ -33,6 +32,7 @@ from gltf_builder.compile import (
 )
 from gltf_builder.protocols import _BNodeContainerProtocol
 from gltf_builder.log import GLTF_LOG
+from gltf_builder.vertices import Vertex
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
@@ -166,8 +166,8 @@ class BPrimitive(_Compileable[gltf.Primitive], Protocol):
     '''
     _scope_name = ScopeName.PRIMITIVE
     mode: PrimitiveMode
-    points: Sequence[PointSpec]
-    attribs: Mapping[str, Sequence[AttributeDataItem]]
+    points: list[Point]
+    attribs: dict[str, AttributeDataList]
     indices: Sequence[int]
     mesh: Optional['BMesh']
     
@@ -189,19 +189,37 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
         ...
 
 
-    @abstractmethod
-    def add_primitive(self, mode: PrimitiveMode,
+    @overload
+    def add_primitive(self, mode: PrimitiveMode, /,
                       *points: PointSpec,
                       NORMAL: Optional[Iterable[Vector3Spec]]=None,
                       TANGENT: Optional[Iterable[TangentSpec]]=None,
                       TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
                       TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
                       COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                      JOINTS_0: Optional[Iterable[JointSpec]]=None,
-                      WEIGHTS_0: Optional[Iterable[WeightSpec]]=None,
                       extras:  Optional[JsonObject]=None,
                       extensions:  Optional[JsonObject]=None,
-                      **attribs: Iterable[AttributeDataItem]
+                      **attribs: AttributeDataIterable,
+                    ) -> BPrimitive:
+        ...
+    @overload
+    def add_primitive(self, mode: PrimitiveMode, /,
+                      *vertices: Vertex,
+                      extras:  Optional[JsonObject]=None,
+                      extensions:  Optional[JsonObject]=None,
+                    ) -> BPrimitive:
+        ...
+    @abstractmethod
+    def add_primitive(self, mode: PrimitiveMode,
+                      *points: PointSpec|Vertex,
+                      NORMAL: Optional[Iterable[Vector3Spec]]=None,
+                      TANGENT: Optional[Iterable[TangentSpec]]=None,
+                      TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
+                      TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
+                      COLOR_0: Optional[Iterable[ColorSpec]]=None,
+                      extras:  Optional[JsonObject]=None,
+                      extensions:  Optional[JsonObject]=None,
+                      **attribs: AttributeDataIterable|None,
                     ) -> BPrimitive:
         ...
     

@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
+from gltf_builder.vertices import vertex
 from gltf_builder.attribute_types import color, point, uv, vector3
 from gltf_builder.core_types import JsonObject, NameMode, PrimitiveMode
 from gltf_builder.builder import Builder
@@ -79,6 +80,16 @@ _CUBE_FACES = (
         (_CUBE_FACE6, _CUBE_NORMAL6),
     )
 
+_CUBE_VERTICES = tuple(
+    vertex(_CUBE[p],
+           NORMAL=n,
+           COLOR_0=_CUBE_COLORS[p],
+          TEXCOORD_0=uv(p % 2, p // 2),
+    )
+    for f, n in _CUBE_FACES
+    for p in f
+)
+
 with make('CUBE') as cube:
     for i, (face, normal) in enumerate(_CUBE_FACES):
         name = f'FACE{i+1}'
@@ -86,10 +97,11 @@ with make('CUBE') as cube:
         mesh = node.create_mesh(name)
                
         uvx = uv(0.0, 0.0), uv(0.0, 1.0), uv(1.0, 1.0), uv(1.0, 0.0)
-        mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in face],
-                           NORMAL=4 *(normal,),
-                           COLOR_0=[_CUBE_COLORS[i] for i in face],
-                           TEXCOORD_0= uvx
-                           )
+        #mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in face],
+        #                   NORMAL=4 *(normal,),
+        #                   COLOR_0=[_CUBE_COLORS[i] for i in face],
+        #                   TEXCOORD_0= uvx
+        #                   )
+        mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE_VERTICES[i] for i in face],)
     CUBE = cube
 
