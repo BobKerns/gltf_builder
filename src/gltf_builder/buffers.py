@@ -100,8 +100,6 @@ class _Buffer(BBuffer):
                     view.compile(builder, scope, phase)
                     offset += len(view)
             case Phase.BUILD:
-                for view in self.views:
-                    view.compile(builder, self, phase)
                 namespec = {
                     'gltf_builder:name': self.name,
                 } if self.name else {}
