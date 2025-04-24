@@ -8,9 +8,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional, Protocol
 
+from gltf_builder.nodes import node
 from gltf_builder.vertices import vertex
 from gltf_builder.attribute_types import color, point, uv, vector3
-from gltf_builder.core_types import JsonObject, NameMode, NamePolicy, PrimitiveMode
+from gltf_builder.core_types import JsonObject,  NamePolicy, PrimitiveMode
 from gltf_builder.builder import Builder
 from gltf_builder.elements import BNode
 
@@ -140,18 +141,13 @@ class _GeometryFn:
     def __call__(self) -> BNode:
         if self.node is not None:
             return self.node
-        b = Builder(index_size=self.index_size,
-                    name_policy=self.name_policy,
-                    )
-        node = b.create_node(self.name,
-                        detached=True,
+        n = node(self.name,
                         extras=self.extras,
                         extensions=self.extensions,
                         )
-        self._fn(node)
-        node.detach()
-        self.node = node
-        return node
+        self._fn(n)
+        #self.node = n
+        return n
 
 
 _GEOMETRIES: dict[str, _GeometryFn] = {}

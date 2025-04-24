@@ -146,11 +146,14 @@ class _Compileable(Generic[T], Protocol):
                         Phase.PRIMITIVES,
                         Phase.PRIMITIVES,
                         Phase.VERTICES,
-                        Phase.BUFFERS
+                        Phase.BUFFERS,
+                        Phase.EXTENSIONS,
                     ],
             ) -> None: ...
+    
+
     def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase,
-                ) -> 'T|int|_Collected|None':
+                ) -> 'T|int|_Collected|set[str]|None':
         from gltf_builder.elements import BAccessor
         if phase in self.__phases:
             match phase:
@@ -194,12 +197,17 @@ class _Compileable(Generic[T], Protocol):
                         LOG.debug(f'{self} has offset {self.byteOffset}')
                         return self.byteOffset + self._len
                     return -1
+                case Phase.EXTENSIONS:
+                    if self.extensions:
+                        return set(self.extensions.keys())
+                    return None
                 case Phase.BUILD:
                     if self.__compiled is None:
                         self.__compiled = cast(T, self._do_compile(builder, scope, phase))
                     return self.__compiled
                 case _:
                     self._do_compile(builder, scope, phase)
+
 
     @abstractmethod
     def _do_compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase) -> DoCompileReturn[T]: ...

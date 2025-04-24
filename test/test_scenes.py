@@ -9,7 +9,7 @@ from gltf_builder.scenes import scene
 
 
 TEST_EXTRAS: JsonObject={"EXTRA": "DATA"}
-TEST_EXTENSIONS: JsonObject={"TEST": {"EXTRA": "DATA"}}
+TEST_EXTENSIONS: JsonObject={"TEST_extension": {"EXTRA": "DATA"}}
 
 def test_create_empty_scene():
     s = scene()

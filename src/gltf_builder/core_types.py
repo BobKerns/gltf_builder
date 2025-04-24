@@ -78,6 +78,10 @@ class Phase(StrEnum):
     '''
     Initialize buffer views to receive data
     '''
+    EXTENSIONS = 'extensions'
+    '''
+    Collect the set of used extensions for the glTF file.
+    '''
     BUILD = 'build'
     '''
     Construct the binary data for the glTF file.

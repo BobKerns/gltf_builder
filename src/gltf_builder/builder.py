@@ -5,12 +5,13 @@ a glTF object.
 
 import sys
 from collections.abc import Iterable, Mapping
-from typing import Literal, Optional
+from typing import Literal, Optional, cast
 from itertools import count
 from datetime import datetime
 import logging
 from pathlib import Path
 import re
+from warnings import warn
 
 import pygltflib as gltf
 import numpy as np
@@ -164,6 +165,23 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                      detached=detached,
         )
         return mesh
+    
+    def _elements(self) -> Iterable[Element[gltf.Property]]:
+        '''
+        Get all the elements in the builder.
+        '''
+        yield from self.nodes
+        yield from self.meshes
+        yield from self.cameras
+        yield from self.materials
+        yield from self.textures
+        yield from self.images
+        yield from self.samplers
+        yield from self.skins
+        yield from self.scenes
+        yield from self._accessors
+        yield from self._views
+        yield from self._buffers
 
     def compile(self, phase: Phase):
         def _do_compile(n):
@@ -224,6 +242,20 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 _do_compile_n(self.nodes, self._buffers)
             case Phase.OFFSETS:
                 _do_compile_n(self._buffers, self.nodes)
+            case Phase.EXTENSIONS:
+                actual = {
+                        s
+                        for elt in self._elements()
+                        for s in cast(set[str]|None, _do_compile(elt)) or ()
+                    }
+                specified = {
+                    *self.extensionsUsed,
+                    *self.extensionsRequired
+                }
+                unused = specified - actual
+                if unused:
+                    warn(f'Unused extensions: {unused}')
+                self.extensionsUsed = list(specified | actual)
             case _:
                 _do_compile_n(
                     self.scenes,
