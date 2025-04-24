@@ -287,7 +287,7 @@ def node(
     return _Node(
         name,
         children=[c.clone() for c in children],
-        mesh=mesh.clone() if mesh else None,
+        mesh=mesh.clone() if mesh is not None else None,
         camera=camera.clone() if camera else None,
         translation=translation,
         rotation=rotation,
