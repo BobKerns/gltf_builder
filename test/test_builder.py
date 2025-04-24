@@ -22,6 +22,7 @@ from gltf_builder.geometries import (
     _CUBE_NORMAL1, _CUBE_NORMAL2, _CUBE_NORMAL3,
     _CUBE_NORMAL4, _CUBE_NORMAL5, _CUBE_NORMAL6,
 )
+from gltf_builder.nodes import node
 
 @dataclass
 class GeometryData:
@@ -211,7 +212,7 @@ def test_normal(save):
                     *[_CUBE[i] for i in _CUBE_FACE6],
                     NORMAL=4 *(_CUBE_NORMAL6,))
     top = b.create_node('TOP')
-    cube = top.create_node('CUBE', mesh=m, detached=True)
+    cube = node('CUBE', mesh=m)
     top.instantiate(cube)
     g = b.build()
     save(g)
@@ -219,8 +220,4 @@ def test_normal(save):
     assert len(g.binary_blob()) ==  size
     assert len(g.bufferViews) == 1
     assert len(g.accessors) == 12
-    # nodes: TOP, CUBE, copy of CUBE, and instance of CUBE
-    # instance of cube is to hold the transforms without overwriting
-    # the original cube if it has transforms.
-    assert len(g.nodes) == 4
-    
+    assert len(g.nodes) == 3

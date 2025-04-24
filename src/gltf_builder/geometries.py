@@ -12,7 +12,6 @@ from gltf_builder.nodes import node
 from gltf_builder.vertices import vertex
 from gltf_builder.attribute_types import color, point, uv, vector3
 from gltf_builder.core_types import JsonObject,  NamePolicy, PrimitiveMode
-from gltf_builder.builder import Builder
 from gltf_builder.elements import BNode
 
 
@@ -35,15 +34,11 @@ def _make(name: str,
             'geometry': name,
         }
     }
-    b = Builder(index_size=index_size,
-                name_policy=name_policy,
-                )
-    node = b.create_node(name,
-                      detached=True,
-                      extras=extras,
-                      extensions=extensions,
-                      )
-    yield node
+    n = node(name,
+            extras=extras,
+            extensions=extensions,
+            )
+    yield n
 
 
 _CUBE = tuple(point(p) for p in (
