@@ -4,6 +4,7 @@ Compilation interfce for the glTF builder.
 
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
 from typing import (
     Literal, Optional, Self, TypeAlias, TypeVar, Protocol, Generic,
     Any, cast, overload, NamedTuple, TYPE_CHECKING
@@ -46,6 +47,20 @@ DoCompileReturn: TypeAlias = (
     _ReturnBuild[T]|
     _ReturnView
 )
+
+@dataclass
+class _CompileState(Generic[T]):
+    '''
+    State for compiling an element.
+    '''
+    element: '_Compileable[T]'
+    name: str
+    index: int
+    byteOffset: int = -1
+    len: int = -1
+    phases: list[Phase] = field(default_factory=list)
+    compiled: T|None = None
+    collected: _Collected|None = None
 
 class _Compileable(Generic[T], Protocol):
     __phases: list[Phase]
