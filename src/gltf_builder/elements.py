@@ -187,17 +187,6 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
     primitives: list[BPrimitive]
     weights: list[float]
 
-    @property
-    @abstractmethod
-    def detached(self) -> bool:
-        '''
-        A detached mesh is not added to the builder, but is returned
-        to be used as the root of an instanceable object, or to be added
-        to multiple nodes and thus to the builder later.
-        '''
-        ...
-
-
     @overload
     def add_primitive(self, primitive: BPrimitive, /, *,
                       extras: Optional[JsonObject]=None,
@@ -363,22 +352,6 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
     matrix: Optional[Matrix4]
     camera: Optional[BCamera]
 
-    @property
-    @abstractmethod
-    def detached(self) -> bool:
-        '''
-        A detached node is not added to the builder, but is returned
-        to be used as the root of an instancable object.
-        '''
-        ...
-
-    @abstractmethod
-    def detach(self):
-        '''
-        Detath this node and its children from the builder.
-        '''
-        ...
-
     @abstractmethod
     def create_mesh(self,
                 name: str='',
@@ -387,11 +360,26 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
                 weights: Optional[Iterable[float]]=None,
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
-                detached: bool=False,
             ) -> 'BMesh':
         '''
-        Create a `BMesh` for this `BNode`, or if `detached` is `True`,
-        just create a `BMesh` and return it for later use.
+        Create a `BMesh` and add it to this `BNode`.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the mesh.
+        primitives : Optional[Iterable[BPrimitive]], optional
+            The primitives of the mesh.
+        weights : Optional[Iterable[float]], optional
+            The weights of the mesh.
+        extras : Optional[JsonObject], optional
+            The extras of the mesh.
+        extensions : Optional[JsonObject], optional
+            The extensions of the mesh.
+        Returns
+        -------
+        BMesh
+            The created mesh.
         '''
         ...
 

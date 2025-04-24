@@ -69,7 +69,6 @@ class _BNodeContainerProtocol(Protocol):
                 matrix: Optional[Matrix4]=None,
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
-                detached: bool=False
                 ) -> 'BNode':
         ...
 
@@ -231,7 +230,9 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     UNIQUE: Ensure the name is unique.
     NONE: Do not use names.
     '''
-    buffer: 'BBuffer'
+    @property
+    @abstractmethod
+    def buffer(self) -> 'BBuffer': ...
     '''
     The primary `BBuffer` for the glTF file.
     '''
@@ -243,7 +244,6 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
                  weights: Optional[Iterable[float]]=None,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                 detached: bool=False,
             ) -> 'BMesh':
         
         ...
@@ -358,7 +358,6 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
                     matrix: Optional[Matrix4]=None,
                     extras: Optional[JsonObject]=None,
                     extensions: Optional[JsonObject]=None,
-                    detached: bool=False
                 ) -> 'BNode':
         '''
         Instantiate a node or mesh with the given parameters.
@@ -380,8 +379,6 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
             Extra data for the node.
         extensions: JsonObject
             Extensions for the node.
-        detached: bool
-            Whether the node is detached from the builder.
         RETURNS
         -------
         BNode

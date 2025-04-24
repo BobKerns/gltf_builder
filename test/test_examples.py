@@ -1,6 +1,8 @@
 import math
 
 from gltf_builder import Builder, PrimitiveMode, Quaternion as Q
+from gltf_builder.meshes import mesh
+from gltf_builder.nodes import node
 
 def test_example1(save):
     builder = Builder()
@@ -16,18 +18,17 @@ def test_example1(save):
     CUBE_FACE5 = (1, 2, 6, 5)
     CUBE_FACE6 = (1, 5, 6, 2)
 
-    mesh = builder.create_mesh('CUBE', detached=True)
-    mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1])
-    mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2])
-    mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
-    mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
-    mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
-    mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
+    msh = mesh('CUBE')
+    msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1])
+    msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2])
+    msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
+    msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
+    msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
+    msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
     top = builder.create_node('TOP')
-    cube = builder.create_node('CUBE',
-                            mesh=mesh,
-                            translation=(-0.5, -0.5, -0.5),
-                            detached=True, # Don't make it part of the scene
+    cube = node('CUBE',
+                mesh=msh,
+                translation=(-0.5, -0.5, -0.5),
     )
     # Instantiate it at the origin
     top.instantiate(cube)

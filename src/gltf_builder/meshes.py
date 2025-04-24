@@ -23,25 +23,17 @@ from gltf_builder.vertices import Vertex
 
 class _Mesh(BMesh):
     indicies: Optional[int]
-    __detatched: bool
-    @property
-    def detached(self):
-        return self.__detatched
+    
     def __init__(self,
                  name: str='', /,
                  primitives: Iterable[BPrimitive]=(),
                  weights: Iterable[float]=(),
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                 detached: bool=False,
             ):
         super().__init__(name, extras, extensions)
         self.primitives = list(primitives)
-        if weights is None:
-            self.weights = []
-        else:
-            self.weights = list(weights)
-        self.__detatched = detached
+        self.weights = list(weights or ())
 
     def _clone_attributes(self) -> dict[str, Any]:
         def clone_prim(prim: BPrimitive) -> BPrimitive:
@@ -195,5 +187,4 @@ def mesh(
                  weights=weights or (),
                  extras=extras,
                  extensions=extensions,
-                 detached=True,
                 )

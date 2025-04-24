@@ -29,7 +29,7 @@ from gltf_builder.core_types import (
 from gltf_builder.assets import BAsset, __version__
 from gltf_builder.holders import _Holder
 from gltf_builder.buffers import _Buffer
-from gltf_builder.matrix import Matrix4, Matrix4Spec
+from gltf_builder.matrix import Matrix4Spec
 from gltf_builder.quaternions import QuaternionSpec
 from gltf_builder.accessors import _Accessor
 from gltf_builder.meshes import _Mesh
@@ -81,13 +81,12 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     __ordered_views: list[BBufferView] = []
 
     @property
-    def builder(self) -> _BuilderProtocol:
-        return self
-    
-    @builder.setter
-    def builder(self, builder: _BuilderProtocol):
-        raise ValueError('Builder is already attached to itself')
-    
+    def buffer(self) -> 'BBuffer':
+        '''
+        The primary `BBuffer` for the glTF file.
+        '''
+        return self._buffers[0]
+
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
@@ -120,7 +119,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             buffers = [_Buffer(self, 'main')]
         else:
             buffers = list(buffers)
-        super().__init__(buffer=buffers[0], children=nodes)
+        super().__init__(children=nodes)
         self.asset = asset
         self.meshes = _Holder(BMesh, *meshes)
         self.cameras = _Holder(BCamera, *cameras)
@@ -155,14 +154,12 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 weights: Optional[Iterable[float]]=None,
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
-                detached: bool=False,
                 ):
         mesh = _Mesh(name,
                      primitives=primitives or (),
                      weights=weights or (),
                      extras=extras,
                      extensions=extensions,
-                     detached=detached,
         )
         return mesh
     
@@ -244,10 +241,10 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 _do_compile_n(self._buffers, self.nodes)
             case Phase.EXTENSIONS:
                 actual = {
-                        s
-                        for elt in self._elements()
-                        for s in cast(set[str]|None, _do_compile(elt)) or ()
-                    }
+                            s
+                            for elt in self._elements()
+                            for s in cast(set[str]|None, _do_compile(elt)) or ()
+                        }
                 specified = {
                     *self.extensionsUsed,
                     *self.extensionsRequired
@@ -559,7 +556,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                     matrix: Optional[Matrix4Spec]=None,
                     extras: Optional[JsonObject]=None,
                     extensions: Optional[JsonObject]=None,
-                    detached: bool=False,
                 ) -> 'BNode':
         node = super().instantiate(node_or_mesh,
                     name,
@@ -570,7 +566,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                     extras=extras,
                     extensions=extensions,
                 )
-        if not detached:
-            self.nodes.add(node)
+        self.nodes.add(node)
         return node
 

@@ -10,7 +10,7 @@ from typing import Any, Optional, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compile import _Collected
+from gltf_builder.compile import _CompileStates
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
@@ -18,6 +18,7 @@ from gltf_builder.elements import (
     BBuffer, BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
     _Scope,
 )
+from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
 from gltf_builder.holders import _Holder
 from gltf_builder.protocols import (
@@ -31,18 +32,10 @@ class _BNodeContainer(_BNodeContainerProtocol):
     @property
     def nodes(self):
         return self.children
-
-    @property
-    @abstractmethod
-    def builder(self) -> _BuilderProtocol: ...
-    @builder.setter
-    def builder(self, builder: _BuilderProtocol): ...
     
     def __init__(self, /,
-                buffer: BBuffer|None,
                 children: Iterable[BNode]=(),
             ):
-        self.buffer = buffer
         self._local_views = {}
         self.children = _Holder(BNode, *children)
         for c in children:
@@ -68,14 +61,35 @@ class _BNodeContainer(_BNodeContainerProtocol):
                 matrix: Optional[Matrix4Spec]=None,
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
-                detached: bool=False,
-                ) -> '_Node':
+                ) -> 'BNode':
         '''
         Add a node to the builder or as a child of another node.
-        if _detached_ is True, the node will not be added to the builder,
-        but will be returned to serve as the root of an instancable object.
+
+        Parameters
+        ----------
+        name : str
+            Name of the node.
+        children : Iterable[BNode]
+            Children of the node.
+        mesh : Optional[BMesh]
+            Mesh of the node.
+        translation : Optional[Vector3Spec]
+            Translation of the node.
+        rotation : Optional[QuaternionSpec]
+            Rotation of the node.
+        scale : Optional[Vector3Spec]
+            Scale of the node.
+        matrix : Optional[Matrix4Spec]
+            Matrix of the node.
+        extras : Optional[JsonObject]
+            Extra data to be added to the node.
+        extensions : Optional[JsonObject]
+            Extensions to be added to the node.
+        Returns
+        -------
+        BNode
         '''
-        root = isinstance(self, _BuilderProtocol) and not detached
+        root = isinstance(self, _BuilderProtocol)
         node = _Node(name,
                     root=root,
                     children=children,
@@ -86,17 +100,14 @@ class _BNodeContainer(_BNodeContainerProtocol):
                     matrix=matrix,
                     extras=extras,
                     extensions=extensions,
-                    builder=self.builder,
-                    detached=detached,
                 )
-        if not detached:
-            self.children.add(node)
-            if name:
-                n = self
-                while n is not None:
-                    if name not in n.descendants:
-                        n.descendants[name] = node
-                    n = n._parent
+        self.children.add(node)
+        if name:
+            n = self
+            while n is not None:
+                if name not in n.descendants:
+                    n.descendants[name] = node
+                n = n._parent
         return node
 
     def instantiate(self, node_or_mesh: BNode|BMesh,
@@ -146,45 +157,11 @@ class _BNodeContainer(_BNodeContainerProtocol):
         return len(self.children)
 
 class _Node(_BNodeContainer, BNode):
-    __builder: Optional[_BuilderProtocol]
-    @property
-    def builder(self) -> _BuilderProtocol:
-        if self.__builder is None:
-            raise ValueError('Node is not attached to a builder')
-        return self.__builder
-    
-    @builder.setter
-    def builder(self, builder: _BuilderProtocol):
-        if self.__builder == builder:
-            return
-        if self.__builder is not None:
-            raise ValueError('Node is already attached to a builder')
-        self.__builder = builder
-        for c in self.children:
-            n = cast(_BNodeContainer, c)
-            n.builder = builder
-
-    def detach(self):
-        self.__detatched = True
-        self.__builder = None
-        def flatten(n: _Node):
-            yield n
-            for c in n.children:
-                yield from flatten(cast(_Node, c))
-        for n in flatten(self):
-            n.__builder = None
-    __detached: bool
-    @property
-    def detached(self) -> bool:
-        '''
-        A detached node is not added to the builder, but is returned
-        to be used as the root of an instanceable object.
-        '''
-        return self.__detached
-    
+    '''
+    Implementation class for `BNode`.
+    '''    
     def __init__(self,
                  name: str ='', /,
-                 builder: Optional[_BuilderProtocol]=None,
                  children: Iterable[BNode]=(),
                  mesh: Optional[BMesh]=None,
                  camera: Optional[BCamera]=None,
@@ -195,9 +172,7 @@ class _Node(_BNodeContainer, BNode):
                  matrix: Optional[Matrix4Spec]=None,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                 buffer: Optional[BBuffer]=None,
                  index: int=-1,
-                 detached: bool=False,
                  ):
         super(Element, self).__init__(
                          name,
@@ -205,14 +180,9 @@ class _Node(_BNodeContainer, BNode):
                          extensions=extensions,
                          index=index,
                         )
-        if buffer is None and builder is not None:
-            buffer = builder.buffer
         _BNodeContainer.__init__(self,
-                                buffer=buffer,
                                 children=children,
                             )
-        self.__builder = builder
-        self.__detached = detached
         self.root = root or False
         self.mesh = mesh
         self.camera = camera
@@ -232,14 +202,12 @@ class _Node(_BNodeContainer, BNode):
             scale=self.scale,
             matrix=self.matrix,
             root=self.root,
-            detached=self.root or self.detached,
         )
         
     def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
         match phase:
             case Phase.COLLECT:
-                self.builder = builder
-                self.builder.nodes.add(self)
+                builder.nodes.add(self)
                 return [
                     c.compile(builder, scope, phase)
                     for c in (self.mesh, self.camera, *self.children)
@@ -280,19 +248,15 @@ class _Node(_BNodeContainer, BNode):
                  weights: Optional[Iterable[float]]=None,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                 detached: bool=False,
             ) -> 'BMesh':
-        mesh = self.builder.create_mesh(name=name,
-                                    primitives=primitives,
-                                    weights=weights,
-                                    extras=extras,
-                                    extensions=extensions,
-                                    detached=detached or self.detached,
-                                )
-        if detached:
-            return mesh
-        self.mesh = mesh
-        return mesh
+        m = mesh(name=name,
+                    primitives=primitives,
+                    weights=weights,
+                    extras=extras,
+                    extensions=extensions,
+                )
+        self.mesh = m
+        return m
     
     def __repr__(self):
         return std_repr(self, (
@@ -331,6 +295,4 @@ def node(
         matrix=matrix,
         extras=extras,
         extensions=extensions,
-        builder=None,  # type: ignore
-        detached=True
     )
