@@ -65,7 +65,7 @@ class _Image(BImage):
     def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase) -> DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
-                builder._images.add(self)
+                builder.images.add(self)
                 if self.blob is not None:
                     name=builder._gen_name(self, scope=ScopeName.BUFFER_VIEW)
                     self.view = builder._get_view(builder.buffer,

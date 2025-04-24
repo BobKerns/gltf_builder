@@ -235,6 +235,10 @@ class ScopeName(StrEnum):
     '''
     The policy applies to the skin.
     '''
+    SCENE = 'scene'
+    '''
+    The policy applies to the scene.
+    '''
 
 class NameMode(StrEnum):
     '''

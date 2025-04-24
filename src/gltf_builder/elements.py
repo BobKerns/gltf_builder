@@ -22,7 +22,7 @@ from gltf_builder.core_types import (
 from gltf_builder.attribute_types import (
     BTYPE, AttributeData, AttributeDataIterable, AttributeDataList,
     ColorSpec, Point, Scale, TangentSpec, UvSpec,
-    Vector3, Vector3Spec, PointSpec,
+    Vector3, Vector3Spec, PointSpec, Vector4,
     vector3,
 )
 from gltf_builder.matrix import Matrix4
@@ -373,11 +373,18 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     @abstractmethod
+    def detach(self):
+        '''
+        Detath this node and its children from the builder.
+        '''
+        ...
+
+    @abstractmethod
     def create_mesh(self,
                 name: str='',
                 /, *,
-                primitives: Iterable['BPrimitive']=(),
-                weights: Iterable[float]|None=(),
+                primitives: Optional[Iterable['BPrimitive']]=None,
+                weights: Optional[Iterable[float]]=None,
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 detached: bool=False,
@@ -449,4 +456,19 @@ class BMaterial(Element[gltf.Material], Protocol):
     alphaMode: AlphaMode
     alphaCutoff: Optional[float]
     doubleSided: bool
+
+class BScene(Element[gltf.Scene], Protocol):
+    '''
+    Scene for glTF.
+    '''
+    _scope_name = ScopeName.SCENE
+    nodes: list[BNode]
+
+class BSkin(Element[gltf.Skin], Protocol):
+    '''
+    Skin for a glTF model.
+    '''
+    inverseBindMatrices: Optional[Matrix4]
+    skeleton: BNode
+    joints: list[BNode]
 

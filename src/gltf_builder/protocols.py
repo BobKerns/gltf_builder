@@ -27,7 +27,7 @@ from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
     from gltf_builder.elements import(
         BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor, BImage,
-        BSampler, BTexture,
+        BSampler, BTexture, BScene, BSkin, BMaterial, BCamera,
     )
 
 class _BufferViewKey(NamedTuple):
@@ -143,6 +143,10 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The meshes in the glTF file.
     '''
+    cameras: _Holder['BCamera']
+    '''
+    The cameras in the glTF file.
+    '''
     _buffers: _Holder['BBuffer']
     '''
     The buffers in the glTF file.'''
@@ -154,17 +158,29 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The accessors in the glTF file.
     '''
-    _images: _Holder['BImage']
+    images: _Holder['BImage']
     '''
     The images in the glTF file.
     '''
-    _samplers: _Holder['BSampler']
+    materials: _Holder['BMaterial']
+    '''
+    The materials in the glTF file.
+    '''
+    samplers: _Holder['BSampler']
     '''
     The samplers in the glTF file.
     '''
-    _textures: _Holder['BTexture']
+    textures: _Holder['BTexture']
     '''
     The textures in the glTF file.
+    '''
+    scenes: _Holder['BScene']
+    '''
+    The scenes in the glTF file.
+    '''
+    skins: _Holder['BSkin']
+    '''
+    The skins in the glTF File
     '''
     extras: dict[str, Any]
     '''
@@ -173,6 +189,18 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     extensions: dict[str, Any]
     '''
     The extensions for the glTF file.
+    '''
+    scene: Optional['BScene']
+    '''
+    The initial scene.
+    '''
+    extensionsUsed: list[str]
+    '''
+    The extensions used in this file
+    '''
+    extensionsRequired: list[str]
+    '''
+    The extensions required to load this file.
     '''
     index_size: int = -1
     '''
@@ -211,8 +239,8 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     @abstractmethod
     def create_mesh(self,
                  name: str='',
-                 primitives: Iterable['BPrimitive']=(),
-                 weights: Iterable[float]=(),
+                 primitives: Optional[Iterable['BPrimitive']]=None,
+                 weights: Optional[Iterable[float]]=None,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
                  detached: bool=False,

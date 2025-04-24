@@ -149,6 +149,7 @@ class _GeometryFn:
                         extensions=self.extensions,
                         )
         self._fn(node)
+        node.detach()
         self.node = node
         return node
 

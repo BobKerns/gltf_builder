@@ -10,6 +10,10 @@ import pygltflib as gltf
 __version__  = version('gltf-builder')
 
 GENERATOR = f'gltf-builder@v{__version__}/pygltflib@v{gltf.__version__}'
+'''
+The default value for the `generator` field in the `Asset`.
+'''
+
 
 class BAsset(gltf.Asset):
     '''

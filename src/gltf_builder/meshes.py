@@ -27,10 +27,10 @@ class _Mesh(BMesh):
     @property
     def detached(self):
         return self.__detatched
-    def __init__(self, /,
-                 name: str='',
+    def __init__(self,
+                 name: str='', /,
                  primitives: Iterable[BPrimitive]=(),
-                 weights: Iterable[float]|None=(),
+                 weights: Iterable[float]=(),
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
                  detached: bool=False,
@@ -158,8 +158,8 @@ class _Mesh(BMesh):
 
 def mesh(
     name: str='',
-    primitives: Iterable[BPrimitive]=(),
-    weights: Iterable[float]|None=(),
+    primitives: Optional[Iterable[BPrimitive]]=None,
+    weights: Optional[Iterable[float]]=None,
     extras: Optional[JsonObject]=None,
     extensions: Optional[JsonObject]=None
 ) -> BMesh:
@@ -190,4 +190,10 @@ def mesh(
     BMesh
         A mesh object with the given name and primitives.
     '''
-    return _Mesh(name, primitives, weights, extras, extensions, True)
+    return _Mesh(name,
+                 primitives=primitives or (),
+                 weights=weights or (),
+                 extras=extras,
+                 extensions=extensions,
+                 detached=True,
+                )

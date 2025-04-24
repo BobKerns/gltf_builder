@@ -164,12 +164,21 @@ class _Node(_BNodeContainer, BNode):
             n = cast(_BNodeContainer, c)
             n.builder = builder
 
+    def detach(self):
+        self.__detatched = True
+        self.__builder = None
+        def flatten(n: _Node):
+            yield n
+            for c in n.children:
+                yield from flatten(cast(_Node, c))
+        for n in flatten(self):
+            n.__builder = None
     __detached: bool
     @property
     def detached(self) -> bool:
         '''
         A detached node is not added to the builder, but is returned
-        to be used as the root of an instancable object.
+        to be used as the root of an instanceable object.
         '''
         return self.__detached
     
@@ -231,9 +240,11 @@ class _Node(_BNodeContainer, BNode):
             case Phase.COLLECT:
                 self.builder = builder
                 self.builder.nodes.add(self)
-                if self.mesh:
-                    return [self.mesh.compile(builder, scope, phase)]
-                return cast(list[_Collected], [])
+                return [
+                    c.compile(builder, scope, phase)
+                    for c in (self.mesh, self.camera)
+                    if c is not None
+                ]
             case Phase.SIZES:
                 size = sum(
                     n.compile(builder, scope, phase)
@@ -265,14 +276,15 @@ class _Node(_BNodeContainer, BNode):
     def create_mesh(self,
                  name: str='',
                   /, *,
-                 primitives: Iterable['BPrimitive']=(),
-                 weights: Iterable[float]|None=(),
+                 primitives: Optional[Iterable['BPrimitive']]=None,
+                 weights: Optional[Iterable[float]]=None,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
                  detached: bool=False,
             ) -> 'BMesh':
         mesh = self.builder.create_mesh(name=name,
                                     primitives=primitives,
+                                    weights=weights,
                                     extras=extras,
                                     extensions=extensions,
                                     detached=detached or self.detached,
