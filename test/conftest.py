@@ -2,14 +2,19 @@
 Test fixtures
 '''
 import re
+from typing import Optional
+import warnings
 
 from pygltflib import BufferFormat, ImageFormat
+import pygltflib as gltf
 import pytest
 
 from pathlib import Path
 
-from gltf_builder import Builder, NameMode
+from gltf_builder import Builder
+from gltf_builder.core_types import NamePolicy
 from gltf_builder.elements import GLTF_LOG
+from gltf_builder.protocols import _BuilderProtocol
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -94,6 +99,36 @@ def sanitize(name: str):
     '''
     return RE_PARAAM.sub(r'_\1', name)
 
+class ProxyBuilder(Builder):
+    result: gltf.GLTF2|None = None
+    '''
+    A proxy builder that can be used to test the builder interface.
+    '''
+    def __init__(self, /, *,
+                    index_size: int = -1,
+                    name_policy: Optional[NamePolicy]=None,
+                    extras: Optional[dict] = None,
+                    extensions: Optional[dict] = None,
+                    ) -> None:
+        super().__init__(
+            index_size=index_size,
+            name_policy=name_policy,
+            extras=extras,
+            extensions=extensions,
+        )
+        self._result: Optional[gltf.GLTF2] = None
+
+
+    def build(self, /,
+              index_size: Optional[int]=None,
+              ) -> gltf.GLTF2:
+            if self._result is not None:
+                return self._result
+            warnings.simplefilter("error")
+            result = super().build(index_size=index_size)
+            self._result = result
+            return result
+
 
 @pytest.fixture
 def save(out_dir, request):
@@ -110,9 +145,11 @@ def save(out_dir, request):
     out = out_dir / sanitize(request.node.name)
     gltf = out.with_suffix('.gltf')
     glb = out.with_suffix('.glb')
-    def save(g, **params):
-        if isinstance(g, Builder):
-            g = g.build(**params)
+    def save(b: '_BuilderProtocol|gltf.GLTF2', **params):
+        if isinstance(b, _BuilderProtocol):
+            g = b.build(**params)
+        else:
+            g = b
         g.convert_images(ImageFormat.BUFFERVIEW)
         g.convert_buffers(BufferFormat.DATAURI)
 
@@ -129,7 +166,7 @@ def save(out_dir, request):
 
 @pytest.fixture
 def test_builder(request, save):
-    builder = Builder(
+    builder = ProxyBuilder(
         index_size=-1,
         extras={
             'gltf_builder': {
