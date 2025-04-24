@@ -102,14 +102,15 @@ fred = [n for n in builder if n.name == 'Fred']
 
 ## Naming
 
-`name_mode` is a configuration option on the `Builder` that determines how names are applied to elements within the GLTF builder. It can be set to different modes to control the naming behavior:
+`name_policy` is a configuration option on the `Builder` that determines how names are applied to elements within the GLTF builder. For each naming scope, it can be set to different modes to control the naming behavior:
+
 - `explicit`: Names are only applied to elements that you explicitly name.
 - `auto`: Names are automatically generated and applied to all elements.
 - `mixed`: A combination of explicit and automatic naming is used.
 
-Adjusting the `name_mode` allows for greater flexibility and control over the naming conventions used in your GLTF files.
+Adjusting the `name_policy` allows for greater flexibility and control over the naming conventions used in your GLTF files.
 
-## Matricies, Vector types, colors, etc.
+## Matrices, Vector types, colors, etc.
 
 This includes types and functions for creating vectors, colors, etc. These are useful for providing attribute values, but if you provide the appropriate `tuple` or `np.ndarray` of values, they will be converted with the apporpriate constructor function.
 
