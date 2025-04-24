@@ -322,6 +322,9 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             for key, value in self.asset.extras.items()
             if value is not None
         }
+        # Add a default scene if none provided.
+        if len(self.scenes) == 0:
+            self.scenes.add(scene('DEFAULT', *(n for n in self.nodes if n.root)))
         for phase in Phase:
             if phase != Phase.BUILD:
                self.compile(phase)
@@ -342,9 +345,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         accessors = build_list(a for a in self._accessors if a.count > 0)
         bufferViews = build_list(self.__ordered_views)
         buffers = build_list(b for b in self._buffers if len(b.blob) > 0)
-        # Add a default scene if none provided.
-        if len(self.scenes) == 0:
-            self.scenes.add(scene('DEFAULT', *self.nodes))
         scenes = build_list(self.scenes)
         _scene = self.scene or self.scenes[0]
         g = gltf.GLTF2(

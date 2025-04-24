@@ -47,6 +47,9 @@ class _Scene(BScene):
                     extras=self.extras,
                     extensions=self.extensions,
                 )
+            case _:
+                for n in self.nodes:
+                    n.compile(builder, scope, phase)
 
 def scene(name: str='', /,
           *nodes: BNode,

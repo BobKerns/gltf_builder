@@ -242,7 +242,7 @@ class _Node(_BNodeContainer, BNode):
                 self.builder.nodes.add(self)
                 return [
                     c.compile(builder, scope, phase)
-                    for c in (self.mesh, self.camera)
+                    for c in (self.mesh, self.camera, *self.children)
                     if c is not None
                 ]
             case Phase.SIZES:
