@@ -36,31 +36,35 @@ _Collected: TypeAlias = tuple[
 
 
 _ReturnCollect: TypeAlias = Iterable[_Collected]|None
-_ReturnSize: TypeAlias = int|None
-_ReturnOffset: TypeAlias = int|None
+_ReturnSizes: TypeAlias = int|None
+_ReturnOffsets: TypeAlias = int|None
 _ReturnBuild: TypeAlias = T|None
 _ReturnView: TypeAlias = None
-DoCompileReturn: TypeAlias = (
+_ReturnExtensions: TypeAlias = set[str]|None
+_DoCompileReturn: TypeAlias = (
     _ReturnCollect|
-    _ReturnSize|
-    _ReturnOffset|
+    _ReturnSizes|
+    _ReturnOffsets|
     _ReturnBuild[T]|
-    _ReturnView
+    _ReturnView|
+    _ReturnExtensions
 )
 
 @dataclass
-class _CompileState(Generic[T]):
+class _CompileState:
     '''
     State for compiling an element.
     '''
-    element: '_Compileable[T]'
+    element: '_Compileable[gltf.Property]'
     name: str
     index: int
     byteOffset: int = -1
     len: int = -1
     phases: list[Phase] = field(default_factory=list)
-    compiled: T|None = None
+    compiled: gltf.Property|None = None
     collected: _Collected|None = None
+
+_CompileStates: TypeAlias = dict[int, _CompileState]
 
 class _Compileable(Generic[T], Protocol):
     __phases: list[Phase]
@@ -142,15 +146,39 @@ class _Compileable(Generic[T], Protocol):
         if self.byteOffset >= 0:
             LOG.debug(f'{self} has offset {self.byteOffset}')
     
+
     @overload
-    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.COLLECT]
+    def compile(self,
+                builder: '_BuilderProtocol',
+                scope: '_Scope',
+                phase: Literal[Phase.COLLECT],
+                states: _CompileStates,
+                /
                 ) -> _Collected: ...
     @overload
-    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.SIZES]) -> int: ...
+    def compile(self,
+                builder: '_BuilderProtocol',
+                scope: '_Scope',
+                phase: Literal[Phase.SIZES],
+                states: _CompileStates,
+                /
+            ) -> int: ...
     @overload
-    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.OFFSETS]) -> int: ...
+    def compile(self, builder:
+                '_BuilderProtocol',
+                scope: '_Scope',
+                phase: Literal[Phase.OFFSETS],
+                states: _CompileStates,
+                /
+            ) -> int: ...
     @overload
-    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Literal[Phase.BUILD]) -> T: ...
+    def compile(self,
+                builder: '_BuilderProtocol',
+                scope: '_Scope',
+                phase: Literal[Phase.BUILD],
+                states: _CompileStates,
+                /
+                ) -> T: ...
     @overload
     def compile(self,
                 builder: '_BuilderProtocol', 
@@ -164,10 +192,15 @@ class _Compileable(Generic[T], Protocol):
                         Phase.BUFFERS,
                         Phase.EXTENSIONS,
                     ],
+                states: _CompileStates,
+                /
             ) -> None: ...
-    
-
-    def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase,
+    def compile(self,
+                builder: '_BuilderProtocol',
+                scope: '_Scope',
+                phase: Phase,
+                states: _CompileStates,
+                /
                 ) -> 'T|int|_Collected|set[str]|None':
         from gltf_builder.elements import BAccessor
         if phase in self.__phases:
@@ -188,21 +221,24 @@ class _Compileable(Generic[T], Protocol):
                     return None
         else:
             LOG.debug('Compiling %s in phase %s', self, phase)
+
+            def _do_compile(n: _Compileable[T]):
+                return n._do_compile(builder, scope, phase, states)
             self.__phases.append(phase)
             match phase:
                 case Phase.COLLECT:
                     self.name = builder._gen_name(self)
-                    items = cast(_ReturnCollect, (self._do_compile(builder, scope, phase) or ()))
+                    items = cast(_ReturnCollect, (_do_compile(self) or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
-                    bytelen = cast(_ReturnSize, self._do_compile(builder, scope, phase))
+                    bytelen = cast(_ReturnSizes, _do_compile(self) or 0)
                     if bytelen is not None:
                         self._len = bytelen
                         LOG.debug('%s has length %s', self, self._len)
                         return bytelen
                     return 0
                 case Phase.OFFSETS:
-                    self._do_compile(builder, scope, phase)
+                    _do_compile(self)
                     if self.byteOffset >= 0:
                         LOG.debug('%s has offset %d(+%d)',
                                 self, self.byteOffset,
@@ -218,14 +254,20 @@ class _Compileable(Generic[T], Protocol):
                     return None
                 case Phase.BUILD:
                     if self.__compiled is None:
-                        self.__compiled = cast(T, self._do_compile(builder, scope, phase))
+                        self.__compiled = cast(T, _do_compile(self))
                     return self.__compiled
                 case _:
-                    self._do_compile(builder, scope, phase)
+                    _do_compile(self)
 
 
     @abstractmethod
-    def _do_compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase) -> DoCompileReturn[T]: ...
+    def _do_compile(self,
+                    builder: '_BuilderProtocol',
+                    scope: '_Scope',
+                    phase: Phase,
+                    states: _CompileStates,
+                    /
+                ) -> _DoCompileReturn[T]: ...
 
     def __len__(self) -> int:
         return self._len

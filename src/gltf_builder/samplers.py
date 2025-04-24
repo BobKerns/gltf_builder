@@ -6,8 +6,10 @@ from typing import Any, Optional
 
 import pygltflib as gltf
 
+from gltf_builder.compile import _Scope, _CompileStates
 from gltf_builder.core_types import MagFilter, MinFilter, Phase, WrapMode
 from gltf_builder.elements import BSampler
+from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
 
 
@@ -41,7 +43,12 @@ class _Sampler(BSampler):
             wrapT=self.wrapT,
         )
 
-    def _do_compile(self, builder, scope, phase):
+    def _do_compile(self,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
+                    phase: Phase,
+                    states: _CompileStates,
+                    /):
         match phase:
             case Phase.BUILD:
                 return gltf.Sampler(

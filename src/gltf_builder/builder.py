@@ -42,7 +42,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
      Element, T,
 )
-from gltf_builder.compile import _Compileable, _Collected
+from gltf_builder.compile import _Compileable, _Collected, _CompileStates
 from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 
@@ -180,13 +180,13 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         yield from self._views
         yield from self._buffers
 
-    def compile(self, phase: Phase):
+    def compile(self, phase: Phase, states: _CompileStates):
         def _do_compile(n):
-            return n.compile(self, self, phase)
+            return n.compile(self, self, phase, states)
         def _do_compile_n(*n: Iterable[Element[gltf.Property]]):
             for g in n:
                 for e in g:
-                    e.compile(self, self, phase)
+                    e.compile(self, self, phase, states)
                     
         match phase:
             case Phase.COLLECT:
@@ -319,13 +319,14 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         # Add a default scene if none provided.
         if len(self.scenes) == 0:
             self.scenes.add(scene('DEFAULT', *(n for n in self.nodes if n.root)))
+        states: _CompileStates = {}
         for phase in Phase:
             if phase != Phase.BUILD:
-               self.compile(phase)
+               self.compile(phase, states)
         
         def build_list(l: Iterable[Element[T]]) -> list[T]:
             return [
-                v.compile(self, self, Phase.BUILD)
+                v.compile(self, self, Phase.BUILD, states)
                 for v in l
             ]
         nodes = build_list(self.nodes)

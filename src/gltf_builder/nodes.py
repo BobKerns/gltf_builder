@@ -204,26 +204,31 @@ class _Node(_BNodeContainer, BNode):
             root=self.root,
         )
         
-    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
+    def _do_compile(self,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
+                    phase: Phase,
+                    states: _CompileStates,
+                    /):
         match phase:
             case Phase.COLLECT:
                 builder.nodes.add(self)
-                return [
-                    c.compile(builder, scope, phase)
+                return (
+                    c.compile(builder, scope, phase, states)
                     for c in (self.mesh, self.camera, *self.children)
                     if c is not None
-                ]
+                )
             case Phase.SIZES:
                 size = sum(
-                    n.compile(builder, scope, phase)
+                    n.compile(builder, scope, phase, states)
                     for n in self.children
                 )
                 if self.mesh is not None:
-                    size += self.mesh.compile(builder, scope, phase)
+                    size += self.mesh.compile(builder, scope, phase, states)
                 return size
             case Phase.BUILD:
                 if self.mesh is not None:
-                    self.mesh.compile(builder, scope, phase)
+                    self.mesh.compile(builder, scope, phase, states)
                 return gltf.Node(
                     name=self.name,
                     mesh=self.mesh._index if self.mesh else None,
@@ -237,9 +242,9 @@ class _Node(_BNodeContainer, BNode):
                 )
             case _:
                 if self.mesh is not None:
-                    self.mesh.compile(builder, scope, phase)
+                    self.mesh.compile(builder, scope, phase, states)
                 for child in self.children:
-                    child.compile(builder, scope, phase)
+                    child.compile(builder, scope, phase, states)
 
     def create_mesh(self,
                  name: str='',

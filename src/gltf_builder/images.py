@@ -9,7 +9,7 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 
-from gltf_builder.compile import _Scope, DoCompileReturn
+from gltf_builder.compile import _Scope, _DoCompileReturn, _CompileStates
 from gltf_builder.core_types import (
     BufferViewTarget, ImageType, JsonObject, Phase, ScopeName
 )
@@ -62,7 +62,12 @@ class _Image(BImage):
             imageType=self.imageType,
         )
 
-    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase) -> DoCompileReturn[gltf.Image]:
+    def _do_compile(self,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
+                    phase: Phase,
+                    states: _CompileStates,
+                    /) -> _DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
                 builder.images.add(self)
@@ -72,7 +77,7 @@ class _Image(BImage):
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,
                     )
-                    return [self.view.compile(builder, scope, phase)]
+                    return [self.view.compile(builder, scope, phase, states)]
             case Phase.SIZES:
                 return len(self.blob) if self.blob is not None else 0
             case Phase.OFFSETS:
@@ -85,7 +90,7 @@ class _Image(BImage):
                     assert self.blob is not None
                     assert self.__memory is not None
                     self.__memory[:] = self.blob
-                    self.view.compile(builder, scope, Phase.BUILD)
+                    self.view.compile(builder, scope, Phase.BUILD, states)
                 img = gltf.Image(
                         name=self.name,
                         #pygltflib is sloppy about types

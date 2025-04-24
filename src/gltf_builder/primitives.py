@@ -3,11 +3,11 @@ Definitions for GLTF primitives
 '''
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Optional, cast
+from typing import Any, Optional, Self, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compile import _Collected
+from gltf_builder.compile import T, _Collected, _CompileStates
 from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
@@ -17,7 +17,7 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.elements import (
-    BAccessor, BPrimitive, BMesh, _Scope,
+    BAccessor, BPrimitive, BMesh, _Scope, Element,
 )
 from gltf_builder.accessors import _Accessor
 from gltf_builder.utils import decode_dtype
@@ -75,7 +75,17 @@ class _Primitive(BPrimitive):
             extensions={**self.extensions, **(extensions or {})},
         )
 
-    def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
+
+    def _do_compile(self,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
+                    phase: Phase,
+                    states: _CompileStates,
+                    /
+                ):
+        def _compile(elt: Element[T]):
+            return elt.compile(builder, scope, phase, states)
+        
         mesh = self.mesh
         assert mesh is not None
         buffer = builder._buffers[0]
@@ -97,7 +107,7 @@ class _Primitive(BPrimitive):
                                  dtype=dtype, 
                                  name=aname)
             accessor._add_data(data)
-            accessor.compile(builder, scope, phase)
+            _compile(accessor)
             return accessor
         match phase:
             case Phase.PRIMITIVES:
@@ -129,26 +139,26 @@ class _Primitive(BPrimitive):
                 accessors: list[tuple[BAccessor[NPTypes,
                                                 AttributeData]
                                      |BAccessor[NPTypes, int], list[_Collected]]] = [
-                    (a, [a.compile(builder, scope, phase)])
+                    (a, [a.compile(builder, scope, phase, states)])
                     for a in self.__attrib_accessors.values()
                 ]
                 ia = self.__indices_accessor
                 if ia:
-                    accessors.append((ia, [ia.compile(builder, scope, phase)]))
+                    accessors.append((ia, [ia.compile(builder, scope, phase, states)]))
                 return accessors
             case phase.SIZES:
                 size = sum(
-                    acc.compile(builder, scope, phase)
+                    cast(int, _compile(acc))
                     for acc in self.__attrib_accessors.values()
                 )
                 if self.__indices_accessor:
-                    size += self.__indices_accessor.compile(builder, scope, phase)
+                    size += cast(int, _compile(self.__indices_accessor))
                 return size
             case Phase.OFFSETS:
                 for acc in self.__attrib_accessors.values():
-                    acc.compile(builder, scope, phase)
+                    _compile(acc)
                 if self.__indices_accessor:
-                    self.__indices_accessor.compile(builder, scope, phase)
+                    _compile(self.__indices_accessor)
             case Phase.BUILD:
                 attributes = {
                     name: acc._index
@@ -162,9 +172,9 @@ class _Primitive(BPrimitive):
                 )
             case _:
                 for acc in self.__attrib_accessors.values():
-                    acc.compile(builder, scope, phase)
+                    acc.compile(builder, scope, phase, states)
                 if self.__indices_accessor:
-                    self.__indices_accessor.compile(builder, scope, phase)
+                    self.__indices_accessor.compile(builder, scope, phase, states)
                 return None
             
     def __repr__(self):

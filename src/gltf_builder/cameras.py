@@ -8,7 +8,9 @@ import pygltflib as gltf
 
 from gltf_builder.core_types import CameraType, JsonObject, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
+from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
+from gltf_builder.compile import _CompileStates, _Scope
 
 
 class _PerspectiveCanera(BPerspectiveCamera):
@@ -39,7 +41,13 @@ class _PerspectiveCanera(BPerspectiveCamera):
         self.type_extras=dict(type_extras or ())
         self.type_extensions=dict(type_extensions or ())
                  
-    def _do_compile(self, builder, scope, phase: Phase):
+    def _do_compile(self,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
+                    phase: Phase,
+                    states: _CompileStates,
+                    /
+                ):
         match phase:
             case Phase.BUILD:
                 return gltf.Camera(
@@ -98,7 +106,12 @@ class _OrthographicCampera(BOrthographicCamera):
             type_extensions=dict(self.type_extensions),
         )
 
-    def _do_compile(self, builder, scope, phase):
+    def _do_compile(self,
+                    builder: _BuilderProtocol,
+                    scope: _Scope,
+                    phase: Phase,
+                    states: _CompileStates,
+                    ):
         match phase:
             case Phase.BUILD:
                 return gltf.Camera(

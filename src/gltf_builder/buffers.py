@@ -3,18 +3,18 @@ Builder representation of a glTF Buffer
 '''
 
 from collections.abc import Iterable
-from typing import Literal, NamedTuple, Optional, overload
+from typing import Literal, Optional, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compile import _Collected, DoCompileReturn
+from gltf_builder.compile import T, _Collected, _CompileStates, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget, ScopeName,
 )
 from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
 from gltf_builder.elements import (
     BBuffer, BBufferView,
-    _Scope,
+    _Scope, Element,
 )
 from gltf_builder.holders import _Holder
 from gltf_builder.views import _BufferView
@@ -66,29 +66,40 @@ class _Buffer(BBuffer):
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
-                    phase: Literal[Phase.COLLECT]
+                    phase: Literal[Phase.COLLECT],
+                    states: _CompileStates,
+                    /
                 ) -> Iterable[_Collected]: ...
     @overload
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
-                    phase: Phase
-                ) -> DoCompileReturn[gltf.Buffer]: ...
+                    phase: Phase,
+                    states: _CompileStates,
+                    /
+                ) -> _DoCompileReturn[gltf.Buffer]: ...
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
-                    phase: Phase
-                ) -> DoCompileReturn[gltf.Buffer]:
+                    phase: Phase,
+                    states: _CompileStates,
+                    /
+                ) -> _DoCompileReturn[gltf.Buffer]:
+        def _compile1(elt: Element[T]):
+            return elt.compile(builder, scope, phase, states)
+        def _compile_views():
+            for view in self.views:
+                _compile1(view)
         match phase:
             case Phase.COLLECT:
                 builder._views.add(*self.views)
                 return (
-                    view.compile(builder, scope, Phase.COLLECT)
+                    view.compile(builder, scope, Phase.COLLECT, states)
                     for view in self.views
                 )
             case Phase.SIZES:
                 bytelen = sum(
-                    view.compile(builder, scope, Phase.SIZES)
+                    view.compile(builder, scope, Phase.SIZES, states)
                     for view in self.views
                 )
                 self.__buffer = self.__buffer.zfill(bytelen)
@@ -97,7 +108,7 @@ class _Buffer(BBuffer):
                 offset = 0
                 for view in self.views:
                     view.byteOffset = offset
-                    view.compile(builder, scope, phase)
+                    _compile1(view)
                     offset += len(view)
             case Phase.BUILD:
                 namespec = {
@@ -114,8 +125,7 @@ class _Buffer(BBuffer):
                     )
                 return b
             case _:
-                for view in self.views:
-                    view.compile(builder, self, phase)
+                _compile_views()
 
     def create_view(self,
                   target: BufferViewTarget,

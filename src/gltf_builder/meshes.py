@@ -3,11 +3,11 @@ Builder representation of a mesh to be compiled.
 '''
 
 from collections.abc import Iterable, Sequence
-from typing import Any, Optional, cast, overload
+from typing import Any, Optional, Self, cast, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compile import  DoCompileReturn
+from gltf_builder.compile import  _CompileStates, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, PrimitiveMode,
 )
@@ -119,36 +119,38 @@ class _Mesh(BMesh):
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
-                    phase: Phase
-                ) -> DoCompileReturn[gltf.Mesh]:
+                    phase: Phase,
+                    states: _CompileStates,
+                    /
+                ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:
             case Phase.PRIMITIVES:
                 builder.meshes.add(self)
                 for i, prim in enumerate(self.primitives):
                     prim._index = i
-                    prim.compile(builder, scope, phase)
+                    prim.compile(builder, scope, phase, states)
             case Phase.COLLECT:
                 builder.meshes.add(self)
                 return (
-                    prim.compile(builder, scope, Phase.COLLECT)
+                    prim.compile(builder, scope, Phase.COLLECT, states)
                     for prim in self.primitives
                 )
             case Phase.SIZES:
                 return sum(
-                    prim.compile(builder, scope, Phase.SIZES)
+                    prim.compile(builder, scope, Phase.SIZES, states)
                     for prim in self.primitives
                 )
             case Phase.BUILD:
                 return gltf.Mesh(
                     name=self.name,
                     primitives=[
-                        p.compile(builder, scope, phase)
+                        p.compile(builder, scope, phase, states)
                         for p in self.primitives
                     ]
                 )
             case _:
                 for prim in self.primitives:
-                    prim.compile(builder, scope, phase)
+                    prim.compile(builder, scope, phase, states)
 
     def _repr_additional(self) -> str:
         return f'{len(self.primitives)} primitives'
