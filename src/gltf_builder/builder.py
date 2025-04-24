@@ -17,7 +17,7 @@ import numpy as np
 
 from gltf_builder.attribute_types import (
     BTYPE, Color, Joint, Point, Tangent,
-    UvPoint, Vector3, Weight,
+    UvPoint, Vector3, Vector3Spec, Weight,
     color, point, tangent, uv, vector3,
 )
 from gltf_builder.core_types import (
@@ -25,17 +25,19 @@ from gltf_builder.core_types import (
      NPTypes, NameMode, NamePolicy, Phase,
      ElementType, ComponentType, ScopeName, NameMode,
 )
-from gltf_builder.asset import BAsset, __version__
-from gltf_builder.holder import _Holder
-from gltf_builder.buffer import _Buffer
-from gltf_builder.view import _BufferView
-from gltf_builder.accessor import _Accessor
-from gltf_builder.mesh import _Mesh
-from gltf_builder.node import _Node, _BNodeContainer
+from gltf_builder.assets import BAsset, __version__
+from gltf_builder.holders import _Holder
+from gltf_builder.buffers import _Buffer
+from gltf_builder.matrix import Matrix4, Matrix4Spec
+from gltf_builder.quaternions import QuaternionSpec
+from gltf_builder.views import _BufferView
+from gltf_builder.accessors import _Accessor
+from gltf_builder.meshes import _Mesh
+from gltf_builder.nodes import _Node, _BNodeContainer
 from gltf_builder.images import _Image
 from gltf_builder.protocols import _AttributeParser, AttributeType, _BuilderProtocol
-from gltf_builder.element import (
-     BAccessor, BBuffer, BBufferView, BImage, BMesh, BNode, BPrimitive, Element,
+from gltf_builder.elements import (
+     BAccessor, BBuffer, BBufferView, BImage, BMesh, BNode, BPrimitive, BSampler, BTexture, Element,
 )
 from gltf_builder.compile import _Compileable, _Collected
 from gltf_builder.utils import USERNAME, USER, decode_dtype
@@ -57,6 +59,9 @@ DEFAULT_NAME_POLICY: NamePolicy = {
     ScopeName.IMAGE: NameMode.AUTO,
     ScopeName.MATERIAL: NameMode.AUTO,
     ScopeName.TEXTURE: NameMode.AUTO,
+    ScopeName.SAMPLER: NameMode.AUTO,
+    ScopeName.CAMERA: NameMode.AUTO,
+    ScopeName.SKIN: NameMode.AUTO,
 }
 '''
 Default naming mode for each scope.
@@ -74,6 +79,10 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     @property
     def builder(self) -> _BuilderProtocol:
         return self
+    
+    @builder.setter
+    def builder(self, builder: _BuilderProtocol):
+        raise ValueError('Builder is already attached to itself')
     
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
@@ -104,6 +113,8 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self._views = _Holder(BBufferView)
         self._accessors = _Holder(BAccessor)
         self._images = _Holder(BImage)
+        self._samplers = _Holder(BSampler)
+        self._textures = _Holder(BTexture)
         self.index_size = index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
@@ -472,3 +483,26 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             extensions=extensions,
         )
     
+    def instantiate(self, node_or_mesh: 'BNode|BMesh',
+                    name: str='', /,
+                    translation: Optional[Vector3Spec]=None,
+                    rotation: Optional[QuaternionSpec]=None,
+                    scale: Optional[Vector3Spec]=None,
+                    matrix: Optional[Matrix4Spec]=None,
+                    extras: Optional[JsonObject]=None,
+                    extensions: Optional[JsonObject]=None,
+                    detached: bool=False,
+                ) -> 'BNode':
+        node = super().instantiate(node_or_mesh,
+                    name,
+                    translation=translation,
+                    rotation=rotation,
+                    scale=scale,
+                    matrix=matrix,
+                    extras=extras,
+                    extensions=extensions,
+                )
+        if not detached:
+            self.nodes.add(node)
+        return node
+

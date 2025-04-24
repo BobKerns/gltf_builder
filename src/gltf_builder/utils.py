@@ -2,6 +2,8 @@
 Internal utilities for the glTF builder.
 '''
 
+from collections.abc import Iterable
+from enum import Enum
 from math import floor
 import os
 import sys
@@ -11,7 +13,7 @@ import ctypes.wintypes
 import subprocess
 import getpass
 from itertools import chain, repeat
-from typing import  overload
+from typing import  Any, Optional, overload
 
 import numpy as np
 
@@ -19,7 +21,7 @@ from gltf_builder.core_types import (
     ElementType, ComponentType, BufferType, ComponentSize, ElementSize, NPTypes,
 )
 from gltf_builder.attribute_types import (
-    VectorSpec, Vector4Spec, Vector3Spec, Vector2Spec, Vector4, Vector3, Vector2, VectorLike,
+    AttributeData, VectorSpec, Vector4Spec, Vector3Spec, Vector2Spec, Vector4, Vector3, Vector2, VectorLike,
     Tangent,
 )
 
@@ -233,6 +235,66 @@ def map_range(value: float|int,
         return round(new_value)
     return new_value
 
+
+def simple_num(x: Any, /) -> str:
+    if isinstance(x, Enum):
+        return x.name
+    if isinstance(x, (float, np.floating)):
+        # Eliminate trailing zeros
+        if x == int(x):
+            return f'{int(x)}'
+        if x * 10 == int(x * 10):
+            return f'{x:.1f}'
+        if x * 100 == int(x * 100):
+            return f'{x:.2f}'
+        return f'{x:.3f}'
+    return str(x)
+
+
+def std_repr(self: object, keys: Iterable[str], /, id_: Optional[str]=None) -> str:
+    '''
+    Generic tool for `__repr__` methods.
+    Generates a string representation of the object with the given keys.
+
+    The format is:
+    <ClassName>@id[key1=value1, key2=value2, ...]
+
+    where `id` is optional and can be None.
+
+    PARAMETERS
+    ----------
+    self: object
+        The object to generate a representation for.
+    keys: Iterable[str]
+        The keys to include in the representation.
+    id: Optional[str]
+        The id to include in the representation. If None, no id is included.
+    '''
+    def val(v: AttributeData) -> str:
+        if isinstance(v, (tuple, np.ndarray)):
+            return f"({','.join(simple_num(x) for x in v)})"
+        return simple_num(v)
+    typ = type(self).__name__.lstrip('_')
+    def get(key: str):
+        if hasattr(self, key):
+            val = getattr(self, key)
+            return val
+        if hasattr(self, 'attributes'):
+            attrs = getattr(self, 'attributes', {})
+            if key in attrs:
+                return attrs[key]
+        return self[key] # type: ignore
+        raise KeyError(f'{key} not found in vertex attributes')
+    if id_ is not None:
+        id_ = f'@{id_}'
+    else:
+        id_ = ''
+    return (f'''{typ}{id_}[{
+            ", ".join(
+                    f"{k}={val(get(k))}"
+                    for k in keys
+                    )
+            }]''')
 
 def _get_human_name():
     """

@@ -3,7 +3,7 @@ Image data for textures in glTF format.
 '''
 
 
-from typing import Optional, cast
+from typing import Any, Optional, cast
 from pathlib import Path
 
 import pygltflib as gltf
@@ -13,8 +13,9 @@ from gltf_builder.compile import _Scope, DoCompileReturn
 from gltf_builder.core_types import (
     BufferViewTarget, ImageType, JsonObject, Phase, ScopeName
 )
-from gltf_builder.element import BImage
+from gltf_builder.elements import BImage
 from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.utils import std_repr
 
 
 class _Image(BImage):
@@ -31,7 +32,6 @@ class _Image(BImage):
                 return 'image/jpeg'
             case ImageType.PNG:
                 return 'image/png'
-    
 
     def __init__(self,
                  /,
@@ -54,6 +54,13 @@ class _Image(BImage):
                 self.blob = blob
         self.uri = uri
         self.imageType = imageType
+
+    def _clone_attributes(self) -> dict[str, Any]:
+        return dict(
+            blob=self.blob,
+            uri=self.uri,
+            imageType=self.imageType,
+        )
 
     def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase) -> DoCompileReturn[gltf.Image]:
         match phase:
@@ -89,4 +96,50 @@ class _Image(BImage):
                     )
                 return img
             case _: pass
-        
+    
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            'uri',
+            'imageType',
+        ))
+    
+def image(
+    name: str='', /,
+    blob: Optional[bytes|np.ndarray[tuple[int], np.dtype[np.uint8]]]=None,
+    uri: str|Path|None=None,
+    imageType: ImageType=ImageType.PNG,
+    extras: Optional[JsonObject]=None,
+    extensions: Optional[JsonObject]=None,
+) -> _Image:
+    '''
+    Create an image for a texture.
+    
+    Parameters
+    ----------
+    name : str, optional
+        The name of the image.
+    blob : bytes or numpy.ndarray, optional
+        The image data as a byte string or a numpy array.
+    uri : str or Path, optional
+        The URI of the image.
+    imageType : ImageType, optional
+        The type of the image (JPEG or PNG).
+    extras : dict, optional
+        Extra data to be stored with the image.
+    extensions : dict, optional
+        Extensions to be stored with the image.
+    
+    Returns
+    -------
+    _Image
+        An instance of _Image containing the provided data.
+    '''
+    return _Image(
+        name=name,
+        blob=blob,
+        uri=uri,
+        imageType=imageType,
+        extras=extras,
+        extensions=extensions,
+    )

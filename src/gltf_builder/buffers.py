@@ -12,12 +12,12 @@ from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget, ScopeName,
 )
 from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
-from gltf_builder.element import (
+from gltf_builder.elements import (
     BBuffer, BBufferView,
     _Scope,
 )
-from gltf_builder.holder import _Holder
-from gltf_builder.view import _BufferView
+from gltf_builder.holders import _Holder
+from gltf_builder.views import _BufferView
 
 
 class _Buffer(BBuffer):

@@ -14,7 +14,7 @@ import pygltflib as gltf
 from gltf_builder import (
     Builder, PrimitiveMode, BMesh, Quaternion as Q,
 )
-from gltf_builder.element import BNode
+from gltf_builder.elements import BNode
 from gltf_builder.geometries import (
     _CUBE,
     _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3,
@@ -182,7 +182,7 @@ def test_instances(cube):
                   rotation=Q.from_axis_angle((1, 1, 0), math.radians(-30)),
                   scale=(0.5, 0.5, 0.5),
     )
-    cube.builder.print_hierarchy()
+    #cube.builder.print_hierarchy()
     g = cube.build()
     assert len(g.bufferViews) == 1
     assert len(g.nodes) == 7

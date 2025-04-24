@@ -13,11 +13,11 @@ from collections.abc import Iterable, Sequence
 import numpy as np
 import pygltflib as gltf
 
-from gltf_builder.holder import _Holder
-from gltf_builder.quaternions import Quaternion
+from gltf_builder.holders import _Holder
+from gltf_builder.quaternions import Quaternion, QuaternionSpec
 from gltf_builder.core_types import (
-    ComponentType, ImageType, JsonObject, PrimitiveMode,
-    BufferViewTarget, ElementType, NPTypes, ScopeName
+    AlphaMode, CameraType, ComponentType, ImageType, JsonObject, MagFilter, MinFilter, PrimitiveMode,
+    BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
 )
 from gltf_builder.attribute_types import (
     BTYPE, AttributeData, AttributeDataIterable, AttributeDataList,
@@ -45,9 +45,9 @@ class Element(_Compileable[T], Protocol):
                 index: int=-1,
             ):
         super().__init__(
+            name,
             extras=extras,
             extensions=extensions,
-            name=name,
             index=index,
         )
     
@@ -57,17 +57,25 @@ class Element(_Compileable[T], Protocol):
     def __eq__(self, other: Any):
         return self is other
     
+    def _repr_additional(self) -> str:
+        return ''
+    
     def __repr__(self):
-        return f'<{type(self).__name__} {self!s}>'
+        typ = type(self).__name__.lstrip('_')
+        idx = f'[{self._index}]' if self._index != -1 else ''
+        name = self.name or id(self)
+        more = self._repr_additional()
+        if more:
+            return f'<{typ} {name}{idx} {more}>'
+        return f'<{typ} {name}{idx}>'
     
     def __str__(self):
-        if self.name == '':
-            if self._index == -1:
-                return f'{type(self).__name__}-?'
-            else:
-                return f'{type(self).__name__}-{self._index}'
+        typ = type(self).__name__.lstrip('_')
+        if self._index == -1:
+            idx = ''
         else:
-            return f'{type(self).__name__}-{self.name}'
+            idx=f'[{self._index}]'
+        return f'{typ}-{self.name or "?"}{idx}'
 
 
 class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
@@ -159,7 +167,8 @@ class BAccessor(Element[gltf.Accessor], Protocol, Generic[NP, BTYPE]):
     @abstractmethod
     def _add_data_item(self, data: BTYPE) -> None:
         ...
-        
+
+@runtime_checkable
 class BPrimitive(_Compileable[gltf.Primitive], Protocol):
     '''
     Base class for primitives
@@ -190,6 +199,10 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
 
 
     @overload
+    def add_primitive(self, primitive: BPrimitive, /, *,
+                      extras: Optional[JsonObject]=None,
+                      extensions: Optional[JsonObject]=None,) -> BPrimitive: ...
+    @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *points: PointSpec,
                       NORMAL: Optional[Iterable[Vector3Spec]]=None,
@@ -210,7 +223,7 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
                     ) -> BPrimitive:
         ...
     @abstractmethod
-    def add_primitive(self, mode: PrimitiveMode,
+    def add_primitive(self, mode: PrimitiveMode|BPrimitive, /,
                       *points: PointSpec|Vertex,
                       NORMAL: Optional[Iterable[Vector3Spec]]=None,
                       TANGENT: Optional[Iterable[TangentSpec]]=None,
@@ -222,6 +235,112 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
                       **attribs: AttributeDataIterable|None,
                     ) -> BPrimitive:
         ...
+
+
+@runtime_checkable
+class BCamera(Element[gltf.Camera], Protocol):
+    '''
+    Camera for glTF.
+    '''
+    _scope_name = ScopeName.CAMERA
+    @property
+    @abstractmethod
+    def type(self) -> CameraType: ...
+
+    type_extras: JsonObject
+    type_extensions: JsonObject
+
+    
+
+@runtime_checkable
+class BOrthographicCamera(BCamera, Protocol):
+    '''
+    Orthographic camera for glTF.
+    '''
+    xmag: float
+    ymag: float
+    zfar: float
+    znear: float
+
+    @property
+    def type(self) -> CameraType:
+        return CameraType.ORTHOGRAPHIC
+    @property
+    def orthographic(self) -> gltf.Orthographic:
+        return gltf.Orthographic(
+            xmag=self.xmag,
+            ymag=self.ymag,
+            zfar=self.zfar,
+            znear=self.znear,
+        )
+    @property
+    def perspective(self) -> Optional[gltf.Perspective]:
+        return None
+    
+    def _init__(self,
+                name: str='',
+                /, *,
+                xmag: float=1.0,
+                ymag: float=1.0,
+                znear: float=0.1,
+                zfar: float=100.0,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
+            ):
+        super().__init__(
+            name=name,
+            extras=extras,
+            extensions=extensions
+        )
+        self.xmag = xmag
+        self.ymag = ymag
+        self.znear = znear
+        self.zfar = zfar
+
+
+@runtime_checkable
+class BPerspectiveCamera(BCamera, Protocol):
+    '''
+    Perspective camera for glTF.
+    '''
+    aspectRatio: Optional[float]
+    yfov: float
+    zfar: Optional[float]
+    znear: float
+    @property
+    def type(self) -> CameraType:
+        return CameraType.PERSPECTIVE
+    @property
+    def orthographic(self) -> Optional[gltf.Orthographic]:
+        return None
+    @property
+    def perspective(self) -> gltf.Perspective:
+        return gltf.Perspective(
+            aspectRatio=self.aspectRatio,
+            yfov=self.yfov,
+            zfar=self.zfar,
+            znear=self.znear,
+        )
+    
+    def __init__(self,
+                 name: str='',
+                 /, *,
+                 yfov: float=1.0,
+                 znear: float=0.1,
+                 zfar: float=100.0,
+                 aspectRatio: float|None=None,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                ):
+        super().__init__(
+            name=name,
+            extras=extras,
+            extensions=extensions
+        )
+        self.yfov = yfov
+        self.znear = znear
+        self.zfar = zfar
+        self.aspectRatio = aspectRatio
     
 
 @runtime_checkable
@@ -242,6 +361,7 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
     rotation: Optional[Quaternion]
     scale: Optional[Scale]
     matrix: Optional[Matrix4]
+    camera: Optional[BCamera]
 
     @property
     @abstractmethod
@@ -268,8 +388,13 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
         '''
         ...
 
+
 @runtime_checkable
 class BImage(Element[gltf.Image], Protocol):
+    '''
+    Image for glTF.
+    '''
+    _scope_name = ScopeName.IMAGE
     imageType: ImageType
     blob: Optional[bytes] = None
     uri: Optional[str|Path] = None
@@ -285,4 +410,43 @@ class BImage(Element[gltf.Image], Protocol):
                 return 'image/jpeg'
             case ImageType.PNG:
                 return 'image/png'
-    
+
+@runtime_checkable
+class BSampler(Element[gltf.Sampler], Protocol):
+    '''
+    Texture samplers for glTF.
+    '''
+    _scope_name = ScopeName.SAMPLER
+    magFilter: Optional[MagFilter]
+    minFilter: Optional[MinFilter]
+    wrapS: Optional[WrapMode]
+    wrapT: Optional[WrapMode]
+
+@runtime_checkable
+class BTexture(Element[gltf.Texture], Protocol):
+    '''
+    Texture for glTF.
+    '''
+    _scope_name = ScopeName.TEXTURE
+    sampler: BSampler
+    source: BImage
+
+@runtime_checkable
+class BMaterial(Element[gltf.Material], Protocol):
+    '''
+    Material for glTF.
+    '''
+    _scope_name = ScopeName.MATERIAL
+    baseColorFactor: Optional[tuple[float, float, float, float]]
+    baseColorTexture: Optional[BTexture]
+    metallicFactor: Optional[float]
+    roughnessFactor: Optional[float]
+    metallicRoughnessTexture: Optional[BTexture]
+    normalTexture: Optional[BTexture]
+    occlusionTexture: Optional[BTexture]
+    emissiveFactor: Optional[tuple[float, float, float]]
+    emissiveTexture: Optional[BTexture]
+    alphaMode: AlphaMode
+    alphaCutoff: Optional[float]
+    doubleSided: bool
+

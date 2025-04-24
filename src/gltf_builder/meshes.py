@@ -3,7 +3,7 @@ Builder representation of a mesh to be compiled.
 '''
 
 from collections.abc import Iterable, Sequence
-from typing import Optional, cast, overload
+from typing import Any, Optional, cast, overload
 
 import pygltflib as gltf
 
@@ -16,7 +16,7 @@ from gltf_builder.attribute_types import (
     TangentSpec, ColorSpec, UvSpec, color, tangent, uv, vector3,
 )
 from gltf_builder.protocols import _BuilderProtocol
-from gltf_builder.element import BMesh, BPrimitive, _Scope
+from gltf_builder.elements import BMesh, BPrimitive, _Scope
 from gltf_builder.primitives import _Primitive
 from gltf_builder.vertices import Vertex
 
@@ -41,8 +41,22 @@ class _Mesh(BMesh):
             self.weights = []
         else:
             self.weights = list(weights)
-        self.__detached = detached
+        self.__detatched = detached
+
+    def _clone_attributes(self) -> dict[str, Any]:
+        def clone_prim(prim: BPrimitive) -> BPrimitive:
+            return prim.clone(
+                mesh=self,
+            )
+        return dict(
+            weights=list(self.weights),
+            primtives=[clone_prim(p) for p in self.primitives],
+        )
     
+    @overload
+    def add_primitive(self, primitive: BPrimitive, /, *,
+                      extras: Optional[JsonObject]=None,
+                      extensions: Optional[JsonObject]=None,) -> BPrimitive: ...
     @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *points: PointSpec,
@@ -54,14 +68,14 @@ class _Mesh(BMesh):
                       extras: Optional[JsonObject]=None,
                       extensions: Optional[JsonObject]=None,
                       **attribs: AttributeDataIterable
-                    ) -> _Primitive: ...
+                    ) -> BPrimitive: ...
     @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *vertices: Vertex,
                       extras: Optional[JsonObject]=None,
                       extensions: Optional[JsonObject]=None,
-                    ) -> _Primitive: ...
-    def add_primitive(self, mode: PrimitiveMode, /,
+                    ) -> BPrimitive: ...
+    def add_primitive(self, mode: PrimitiveMode|BPrimitive, /,
                       *points: PointSpec|Vertex,
                       NORMAL: Optional[Iterable[Vector3Spec]]=None,
                       TANGENT: Optional[Iterable[TangentSpec]]=None,
@@ -71,7 +85,13 @@ class _Mesh(BMesh):
                       extras: Optional[JsonObject]=None,
                       extensions: Optional[JsonObject]=None,
                       **attribs: AttributeDataIterable|None
-                    ) -> _Primitive:
+                    ) -> BPrimitive:
+        if isinstance(mode, BPrimitive):
+            prim = mode
+            prim.mesh = self
+            prim.extras = dict(extras or ())
+            prim.extensions = dict(extensions or ())
+            return prim
         match points[0]:
             case Vertex():
                 vertices = cast(Sequence[Vertex], points)
@@ -132,3 +152,42 @@ class _Mesh(BMesh):
             case _:
                 for prim in self.primitives:
                     prim.compile(builder, scope, phase)
+
+    def _repr_additional(self) -> str:
+        return f'{len(self.primitives)} primitives'
+
+def mesh(
+    name: str='',
+    primitives: Iterable[BPrimitive]=(),
+    weights: Iterable[float]|None=(),
+    extras: Optional[JsonObject]=None,
+    extensions: Optional[JsonObject]=None
+) -> BMesh:
+    '''
+    Create a mesh with the given name and primitives.
+
+    Additional primitives can be added to the mesh using the
+    :meth:`BMesh.add_primitive`
+    method.
+
+    The mesh can be attached to one or more nodes, or added to the Builder.
+
+    Parameters
+    ----------
+    name : str
+        Name of the mesh.
+    primitives : Iterable[BPrimitive]
+        List of primitives to be added to the mesh.
+    weights : Iterable[float]|None
+        List of weights for the mesh.
+    extras : Optional[JsonObject]
+        Extra data to be added to the mesh.
+    extensions : Optional[JsonObject]
+        Extensions to be added to the mesh.
+    
+    Returns
+    -------
+    BMesh
+        A mesh object with the given name and primitives.
+    '''
+    return _Mesh(name, primitives, weights, extras, extensions, True)

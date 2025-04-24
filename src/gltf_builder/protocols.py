@@ -5,7 +5,7 @@ Protocol classes to avoid circular imports.
 from abc import abstractmethod
 from pathlib import Path
 from typing import (
-    Generic, Literal, NamedTuple, Protocol, TypeAlias, runtime_checkable,
+    Literal, NamedTuple, Protocol, TypeAlias, runtime_checkable,
     Optional, TYPE_CHECKING, Any
 )
 from collections.abc import Callable, Iterable
@@ -14,7 +14,7 @@ import math
 import pygltflib as gltf
 
 from gltf_builder.compile import _Compileable, _Scope
-from gltf_builder.holder import _Holder
+from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, ImageType, JsonObject,
     NPTypes, NameMode, ScopeName,
@@ -25,8 +25,9 @@ from gltf_builder.attribute_types import (
 from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
-    from gltf_builder.element import(
+    from gltf_builder.elements import(
         BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor, BImage,
+        BSampler, BTexture,
     )
 
 class _BufferViewKey(NamedTuple):
@@ -71,7 +72,7 @@ class _BNodeContainerProtocol(Protocol):
                 detached: bool=False
                 ) -> 'BNode':
         ...
-    
+
     @abstractmethod
     def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
                     name: str='',
@@ -86,7 +87,7 @@ class _BNodeContainerProtocol(Protocol):
 
     def print_hierarchy(self, indent:int=0):
         """Prints the node hierarchy in a readable format."""
-        from gltf_builder.element import BNode
+        from gltf_builder.elements import BNode
         pre = '| ' * indent
         print(f'{pre}Node: {self}')
         if isinstance(self, BNode):
@@ -154,6 +155,17 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     The accessors in the glTF file.
     '''
     _images: _Holder['BImage']
+    '''
+    The images in the glTF file.
+    '''
+    _samplers: _Holder['BSampler']
+    '''
+    The samplers in the glTF file.
+    '''
+    _textures: _Holder['BTexture']
+    '''
+    The textures in the glTF file.
+    '''
     extras: dict[str, Any]
     '''
     The extras for the glTF file.
@@ -307,4 +319,44 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         BImage
             The created image.
         '''
-        ... 
+        ...
+
+    @abstractmethod
+    def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
+                    name: str='',
+                    translation: Optional[Vector3Spec]=None,
+                    rotation: Optional[QuaternionSpec]=None,
+                    scale: Optional[Vector3Spec]=None,
+                    matrix: Optional[Matrix4]=None,
+                    extras: Optional[JsonObject]=None,
+                    extensions: Optional[JsonObject]=None,
+                    detached: bool=False
+                ) -> 'BNode':
+        '''
+        Instantiate a node or mesh with the given parameters.
+        PARAMETERS
+        ----------
+        node_or_mesh: BNode|BMesh
+            The node or mesh to instantiate.
+        name: str
+            The name of the node.
+        translation: Vector3Spec
+            The translation of the node.
+        rotation: QuaternionSpec
+            The rotation of the node.
+        scale: Vector3Spec
+            The scale of the node.
+        matrix: Matrix4
+            The transformation matrix of the node.
+        extras: JsonObject
+            Extra data for the node.
+        extensions: JsonObject
+            Extensions for the node.
+        detached: bool
+            Whether the node is detached from the builder.
+        RETURNS
+        -------
+        BNode
+            The instantiated node.
+        '''
+        ...

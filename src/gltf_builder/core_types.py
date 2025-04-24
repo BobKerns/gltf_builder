@@ -223,6 +223,18 @@ class ScopeName(StrEnum):
     '''
     The policy applies to the texture.
     '''
+    CAMERA = 'camera'
+    '''
+    The policy applies to the camera.
+    '''
+    SAMPLER = 'sampler'
+    '''
+    The policy applies to the sampler.
+    '''
+    SKIN = 'skin'
+    '''
+    The policy applies to the skin.
+    '''
 
 class NameMode(StrEnum):
     '''
@@ -284,3 +296,149 @@ class  ImageType(StrEnum):
     JPEG image type.
     '''
 
+class MagFilter(IntEnum):
+    '''
+    Enum for the supported magnification filters.
+    '''
+    NEAREST = gltf.NEAREST
+    '''
+    Nearest neighbor filter.
+    '''
+    LINEAR = gltf.LINEAR
+    '''
+    Linear filter.
+    '''
+
+class MinFilter(IntEnum):
+    '''
+    Enum for the supported minification filters.
+    '''
+    NEAREST = gltf.NEAREST
+    '''
+    Nearest neighbor filter.
+    '''
+    LINEAR = gltf.LINEAR
+    '''
+    Linear filter.
+    '''
+    NEAREST_MIPMAP_NEAREST = gltf.NEAREST_MIPMAP_NEAREST
+    '''
+    Nearest neighbor filter with mipmaps.
+    '''
+    LINEAR_MIPMAP_NEAREST = gltf.LINEAR_MIPMAP_NEAREST
+    '''
+    Linear filter with mipmaps.
+    '''
+    NEAREST_MIPMAP_LINEAR = gltf.NEAREST_MIPMAP_LINEAR
+    '''
+    Nearest neighbor filter with linear mipmaps.
+    '''
+    LINEAR_MIPMAP_LINEAR = gltf.LINEAR_MIPMAP_LINEAR
+    '''
+    Linear filter with linear mipmaps.
+    '''
+
+class WrapMode(IntEnum):
+    '''
+    Enum for the supported wrap modes.
+    '''
+    CLAMP_TO_EDGE = gltf.CLAMP_TO_EDGE
+    '''
+    Clamp to edge wrap mode.
+    '''
+    MIRRORED_REPEAT = gltf.MIRRORED_REPEAT
+    '''
+    Mirrored repeat wrap mode.
+    '''
+    REPEAT = gltf.REPEAT
+    '''
+    Repeat wrap mode.
+    '''
+
+
+class AlphaMode(StrEnum):
+    '''
+    Enum for the supported alpha modes.
+    '''
+    OPAQUE = 'OPAQUE'
+    '''
+    Opaque alpha mode.
+    '''
+    MASK = 'MASK'
+    '''
+    Masked alpha mode.
+    '''
+    BLEND = 'BLEND'
+    '''
+    Blended alpha mode.
+    '''
+
+class AnimationInterpolation(StrEnum):
+    '''
+    Enum for the supported animation interpolation modes.
+    '''
+    LINEAR = 'LINEAR'
+    '''
+    Linear interpolation mode.
+    '''
+    STEP = 'STEP'
+    '''
+    Step interpolation mode.
+    '''
+    CUBICSPLINE = 'CUBICSPLINE'
+    '''
+    Cubic spline interpolation mode.
+    '''
+
+
+class AnimationTargetPath(StrEnum):
+    '''
+    Enum for the supported animation target paths.
+    '''
+    TRANSLATION = 'translation'
+    '''
+    Translation target path.
+    '''
+    ROTATION = 'rotation'
+    '''
+    Rotation target path.
+    '''
+    SCALE = 'scale'
+    '''
+    Scale target path.
+    '''
+    WEIGHTS = 'weights'
+    '''
+    Weights target path.
+    '''
+    
+
+class AnimationSamplerInterpolation(StrEnum):
+    '''
+    Enum for the supported animation sampler interpolation modes.
+    '''
+    LINEAR = 'LINEAR'
+    '''
+    Linear interpolation mode.
+    '''
+    STEP = 'STEP'
+    '''
+    Step interpolation mode.
+    '''
+    CUBICSPLINE = 'CUBICSPLINE'
+    '''
+    Cubic spline interpolation mode.
+    '''
+
+class CameraType(StrEnum):
+    '''
+    Enum for the supported camera types.
+    '''
+    PERSPECTIVE = 'perspective'
+    '''
+    Perspective camera type.
+    '''
+    ORTHOGRAPHIC = 'orthographic'
+    '''
+    Orthographic camera type.
+    '''

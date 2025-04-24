@@ -13,7 +13,7 @@ from gltf_builder.core_types import (
 )
 from gltf_builder.attribute_types import BTYPE, BTYPE_co, BType
 from gltf_builder.protocols  import _BuilderProtocol
-from gltf_builder.element import (
+from gltf_builder.elements import (
     BAccessor, BBuffer, NP
 )
 from gltf_builder.compile import DoCompileReturn, _Scope

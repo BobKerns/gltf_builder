@@ -3,7 +3,7 @@ Definitions for GLTF primitives
 '''
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Optional, cast
+from typing import Any, Optional, cast
 
 import pygltflib as gltf
 
@@ -16,10 +16,10 @@ from gltf_builder.attribute_types import (
      point,
 )
 from gltf_builder.protocols import _BuilderProtocol
-from gltf_builder.element import (
+from gltf_builder.elements import (
     BAccessor, BPrimitive, BMesh, _Scope,
 )
-from gltf_builder.accessor import _Accessor
+from gltf_builder.accessors import _Accessor
 from gltf_builder.utils import decode_dtype
 
 
@@ -38,7 +38,7 @@ class _Primitive(BPrimitive):
                  mesh: Optional[BMesh]=None,
                  **attribs: AttributeDataIterable|None,
             ):
-        super().__init__(extras, extensions)
+        super().__init__(extras=extras, extensions=extensions)
         self.mode = mode
         if not points:
             points = cast(Iterable[PointSpec], attribs.pop('POSITION', None))
@@ -55,6 +55,14 @@ class _Primitive(BPrimitive):
             raise ValueError('All attributes must have the same length')
         self.mesh = mesh
         self.__attrib_accessors = {}
+
+    def _clone_attributes(self) -> dict[str, Any]:
+        return dict(
+            points=list(self.points),
+            attribs={k: list(v) for k, v in self.attribs.items()},
+            mode=self.mode,
+            indices=self.indices,
+        )
 
     def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
         mesh = self.mesh
@@ -149,7 +157,39 @@ class _Primitive(BPrimitive):
                 return None
             
     def __repr__(self):
-        return f'<{self.mode.name} {self.mesh}[{self._index}]'
+        builder = self.mesh.builder if self.mesh else None
+        if builder and builder._get_index_size(len(self.points)) > 0:
+            indexed = 'indexed '
+        else:
+            indexed = ''
+        return f'<{self.mode.name} {indexed}{self.mesh}[{self._index}]'
 
     def __str__(self):
         return f'{self.mesh}[{self._index}]({self.mode.name})'
+    
+def primitive(
+    mode: PrimitiveMode,
+    points: Iterable[PointSpec] = (), /, *,
+    extras: Optional[JsonObject]=None,
+    extensions: Optional[JsonObject]=None,
+    **attribs: AttributeDataIterable|None,
+) -> _Primitive:
+    '''
+    Create a detached primitive with the given attributes.
+
+    Parameters
+    ----------
+    mode : PrimitiveMode
+        The primitive mode.
+    points : Iterable[PointSpec], optional
+        The points of the primitive.
+    extras : Optional[JsonObject], optional
+        Extra data to be attached to the primitive.
+    extensions : Optional[JsonObject], optional
+        Extensions to be attached to the primitive.
+    '''
+    return _Primitive(mode, points,
+                      extras=extras,
+                      extensions=extensions,
+                      mesh=None,
+                      **attribs)

@@ -5,7 +5,7 @@ Compilation interfce for the glTF builder.
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from typing import (
-    Literal, Optional, TypeAlias, TypeVar, Protocol, Generic,
+    Literal, Optional, Self, TypeAlias, TypeVar, Protocol, Generic,
     Any, cast, overload, NamedTuple, TYPE_CHECKING
 )
 from pathlib import Path
@@ -21,7 +21,7 @@ from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import decode_stride
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
-    from gltf_builder.element import BAccessor, BBufferView, BBuffer
+    from gltf_builder.elements import BAccessor, BBufferView, BBuffer
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 
@@ -87,9 +87,9 @@ class _Compileable(Generic[T], Protocol):
         self.__index = index
 
     def __init__(self,
+                 name: str='', /,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                 name: str='',
                 index: int=-1,
                 ):
         self.__phases = []
@@ -97,6 +97,31 @@ class _Compileable(Generic[T], Protocol):
         self.extras = dict(extras) if extras else {}
         self.name = name
         self.__index = index
+
+    def _clone_attributes(self) -> dict[str, Any]:
+        '''
+        Clone the attributes of the object.
+        '''
+        return {}
+
+    def clone(self, name: str='', /,
+              extras: Optional[JsonObject]=None,
+              extensions: Optional[JsonObject]=None,
+              **kwargs: Any,
+            ) -> Self:
+        '''
+        Clone the object, copying the name, extras, and extensions.
+        '''
+        kwargs = {
+            'extras': {**self.extras, **(extras or {})},
+            'extensions': {**self.extensions, **(extensions or {})},
+            **self._clone_attributes(),
+            **kwargs,
+        }
+        return self.__class__(
+            name or self.name,
+            **kwargs,
+        )
 
     def log_offset(self):
         if self.byteOffset >= 0:
@@ -126,7 +151,7 @@ class _Compileable(Generic[T], Protocol):
             ) -> None: ...
     def compile(self, builder: '_BuilderProtocol', scope: '_Scope', phase: Phase,
                 ) -> 'T|int|_Collected|None':
-        from gltf_builder.element import BAccessor
+        from gltf_builder.elements import BAccessor
         if phase in self.__phases:
             match phase:
                 case Phase.COLLECT:

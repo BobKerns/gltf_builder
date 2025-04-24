@@ -10,11 +10,11 @@ from gltf_builder.attribute_types import AttributeData
 from gltf_builder.core_types import (
     BufferViewTarget, JsonObject, NPTypes, Phase,
 )
-from gltf_builder.element import (
+from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView, _Scope,
 )
 from gltf_builder.protocols import _BuilderProtocol
-from gltf_builder.holder import _Holder
+from gltf_builder.holders import _Holder
 
 
 class _BufferView(BBufferView):

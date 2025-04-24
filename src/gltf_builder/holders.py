@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from typing import TypeVar, Any, TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
-    from gltf_builder.element import Element
+    from gltf_builder.elements import Element
     T = TypeVar('T', bound=Element[Any])
 else:
     T = TypeVar('T')

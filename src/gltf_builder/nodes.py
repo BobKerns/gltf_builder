@@ -6,7 +6,7 @@ the build phase.
 
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import Optional, cast
+from typing import Any, Optional, cast
 
 import pygltflib as gltf
 
@@ -14,15 +14,16 @@ from gltf_builder.compile import _Collected
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
-from gltf_builder.element import (
-    BBuffer, BBufferView, Element, BNode, BMesh, BPrimitive,
+from gltf_builder.elements import (
+    BBuffer, BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
     _Scope,
 )
 from gltf_builder.quaternions import QuaternionSpec, quaternion
-from gltf_builder.holder import _Holder
+from gltf_builder.holders import _Holder
 from gltf_builder.protocols import (
     _BNodeContainerProtocol, _BuilderProtocol,
 )
+from gltf_builder.utils import std_repr
 
 
 class _BNodeContainer(_BNodeContainerProtocol):
@@ -34,9 +35,11 @@ class _BNodeContainer(_BNodeContainerProtocol):
     @property
     @abstractmethod
     def builder(self) -> _BuilderProtocol: ...
+    @builder.setter
+    def builder(self, builder: _BuilderProtocol): ...
     
     def __init__(self, /,
-                buffer: BBuffer,
+                buffer: BBuffer|None,
                 children: Iterable[BNode]=(),
             ):
         self.buffer = buffer
@@ -73,7 +76,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         but will be returned to serve as the root of an instancable object.
         '''
         root = isinstance(self, _BuilderProtocol) and not detached
-        node = _Node(name=name,
+        node = _Node(name,
                     root=root,
                     children=children,
                     mesh=mesh,
@@ -96,9 +99,8 @@ class _BNodeContainer(_BNodeContainerProtocol):
                     n = n._parent
         return node
 
-    
-    def instantiate(self, node_or_mesh: BNode|BMesh, /,
-                    name: str='',
+    def instantiate(self, node_or_mesh: BNode|BMesh,
+                    name: str='', /,
                     translation: Optional[Vector3Spec]=None,
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
@@ -109,7 +111,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         if isinstance(node_or_mesh, BMesh):
             return self.create_node(
                 name,
-                mesh=node_or_mesh,
+                mesh=node_or_mesh.clone(),
                 translation=translation,
                 rotation=rotation,
                 scale=scale,
@@ -117,29 +119,15 @@ class _BNodeContainer(_BNodeContainerProtocol):
                 extras=extras,
                 extensions=extensions,
             )
-        def clone(node: BNode) -> BNode:
-            return _Node(
-                name=node.name,
-                children=[clone(child) for child in node.children],
-                mesh=node.mesh,
-                translation=node.translation,
-                rotation=node.rotation,
-                scale=node.scale,
-                matrix=node.matrix,
-                extras=node.extras,
-                extensions=node.extensions,
-                builder=self.builder,
-            )
         return self.create_node(
             name,
+            children=[node_or_mesh.clone()],
             translation=translation,
             rotation=rotation,
             scale=scale,
             matrix=matrix,
             extras=extras,
             extensions=extensions,
-            children=[clone(node_or_mesh)],
-            detached=False,
         )
 
     def __getitem__(self, name: str) -> BNode:
@@ -158,10 +146,24 @@ class _BNodeContainer(_BNodeContainerProtocol):
         return len(self.children)
 
 class _Node(_BNodeContainer, BNode):
-    __builder: _BuilderProtocol
+    __builder: Optional[_BuilderProtocol]
     @property
     def builder(self) -> _BuilderProtocol:
+        if self.__builder is None:
+            raise ValueError('Node is not attached to a builder')
         return self.__builder
+    
+    @builder.setter
+    def builder(self, builder: _BuilderProtocol):
+        if self.__builder == builder:
+            return
+        if self.__builder is not None:
+            raise ValueError('Node is already attached to a builder')
+        self.__builder = builder
+        for c in self.children:
+            n = cast(_BNodeContainer, c)
+            n.builder = builder
+
     __detached: bool
     @property
     def detached(self) -> bool:
@@ -172,10 +174,11 @@ class _Node(_BNodeContainer, BNode):
         return self.__detached
     
     def __init__(self,
-                 builder: _BuilderProtocol,
-                 name: str ='',
+                 name: str ='', /,
+                 builder: Optional[_BuilderProtocol]=None,
                  children: Iterable[BNode]=(),
                  mesh: Optional[BMesh]=None,
+                 camera: Optional[BCamera]=None,
                  root: Optional[bool]=None,
                  translation: Optional[Vector3Spec]=None,
                  rotation: Optional[QuaternionSpec]=None,
@@ -188,28 +191,45 @@ class _Node(_BNodeContainer, BNode):
                  detached: bool=False,
                  ):
         super(Element, self).__init__(
-                         name=name,
+                         name,
                          extras=extras,
                          extensions=extensions,
                          index=index,
                         )
+        if buffer is None and builder is not None:
+            buffer = builder.buffer
         _BNodeContainer.__init__(self,
-                                buffer=buffer or builder.buffer,
+                                buffer=buffer,
                                 children=children,
                             )
         self.__builder = builder
         self.__detached = detached
         self.root = root or False
         self.mesh = mesh
+        self.camera = camera
         self.translation = vector3(translation) if translation else None
         self.rotation = quaternion(rotation) if rotation else None
         self.scale = to_scale(scale) if scale else None
         self.matrix = to_matrix(matrix) if matrix else None
         self._local_views = _Holder(BBufferView)
+
+    def _clone_attributes(self) -> dict[str, Any]:
+        return dict(
+            children=[c.clone() for c in self.children],
+            mesh=self.mesh,
+            camera=self.camera.clone() if self.camera else None,
+            translation=self.translation,
+            rotation=self.rotation,
+            scale=self.scale,
+            matrix=self.matrix,
+            root=self.root,
+            detached=self.root or self.detached,
+        )
         
     def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):
         match phase:
             case Phase.COLLECT:
+                self.builder = builder
                 self.builder.nodes.add(self)
                 if self.mesh:
                     return [self.mesh.compile(builder, scope, phase)]
@@ -261,3 +281,44 @@ class _Node(_BNodeContainer, BNode):
             return mesh
         self.mesh = mesh
         return mesh
+    
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            'mesh',
+            'camera',
+            'translation',
+            'rotation',
+            'scale',
+            'matrix',
+        ))
+
+def node(
+    name: str='',
+    children: Iterable[BNode]=(),
+    mesh: Optional[BMesh]=None,
+    camera: Optional[BCamera]=None,
+    translation: Optional[Vector3Spec]=None,
+    rotation: Optional[QuaternionSpec]=None,
+    scale: Optional[Vector3Spec]=None,
+    matrix: Optional[Matrix4Spec]=None,
+    extras: Optional[JsonObject]=None,
+    extensions: Optional[JsonObject]=None,
+) -> _Node:
+    '''
+    Create a detached node with the given attributes.
+    '''
+    return _Node(
+        name,
+        children=[c.clone() for c in children],
+        mesh=mesh.clone() if mesh else None,
+        camera=camera.clone() if camera else None,
+        translation=translation,
+        rotation=rotation,
+        scale=scale,
+        matrix=matrix,
+        extras=extras,
+        extensions=extensions,
+        builder=None,  # type: ignore
+        detached=True
+    )

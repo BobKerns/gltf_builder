@@ -9,7 +9,7 @@ import pytest
 from pathlib import Path
 
 from gltf_builder import Builder, NameMode
-from gltf_builder.element import GLTF_LOG
+from gltf_builder.elements import GLTF_LOG
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 

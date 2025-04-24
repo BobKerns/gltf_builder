@@ -14,6 +14,7 @@ from gltf_builder.attribute_types import (
     color, joint, joints, point, tangent, uv, vector3, weight,
 )
 from gltf_builder.core_types import Scalar
+from gltf_builder.utils import simple_num, std_repr
 
 class Vertex:
     '''
@@ -74,27 +75,10 @@ class Vertex:
 
     def __repr__(self):
         x, y, z = self.POSITION
-        def s(x: Any):
-            if isinstance(x, (float, np.floating)):
-                # Eliminate trailing zeros
-                if x == int(x):
-                    return f'{int(x)}'
-                if x * 10 == int(x * 10):
-                    return f'{x:.1f}'
-                if x * 100 == int(x * 100):
-                    return f'{x:.2f}'
-                return f'{x:.3f}'
-            return str(x)
-        def val(v: AttributeData) -> str:
-            if isinstance(v, (tuple, np.ndarray)):
-                return f"({','.join(s(x) for x in v)})"
-            return s(v)
-        return (f'Vertex@<{s(x)},{s(y)},{s(z)}>(' +
-                ', '.join(
-                        f'{k}={val(self[k])}'
-                        for k in self
-                        if k != 'POSITION'
-                ) + ')')
+        s = simple_num
+        id_ = f'<{s(x)},{s(y)},{s(z)}>'
+        return std_repr(self, (k for k in self if k != 'POSITION'),
+                        id_=id_)
     
 
 @overload
