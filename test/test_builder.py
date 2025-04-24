@@ -219,4 +219,8 @@ def test_normal(save):
     assert len(g.binary_blob()) ==  size
     assert len(g.bufferViews) == 1
     assert len(g.accessors) == 12
-    assert len(g.nodes) == 3
+    # nodes: TOP, CUBE, copy of CUBE, and instance of CUBE
+    # instance of cube is to hold the transforms without overwriting
+    # the original cube if it has transforms.
+    assert len(g.nodes) == 4
+    
