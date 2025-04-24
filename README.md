@@ -6,11 +6,11 @@ In this document, we will generalliy refer to  the `pygltflib` library with the 
 
 You start by creating a `Builder` instance. There are abstract types corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classe are compiled to the corresponding `gltf` clases with the `compile()` method, which returns a `pygltflib.GLTF2` instance.
 
-The `BXxxxx` names are abstract; the implementation classes bea`r names like `_Xxxxx`.
+The `BXxxxx` names are abstract; the implementation classes bear names like `_Xxxxx`.
 
 Compilation and collection of the pieces is performed by the `Builder.build()` method.
 
-# Quaternions (Rotatioins)
+## Quaternions (Rotations)
 
 Because `pygltflib` uses quaternions of the form (X, Y, Z, W) instead of the form (W, X, Y, Z) used by `scipy`, and to avoid introducing heavyweight and potentially incompatible libraries, we provide (courtesy of ChatGPT to my specifications) an implementation of various quaternion routines relating to rotations.
 
@@ -110,7 +110,7 @@ fred = [n for n in builder if n.name == 'Fred']
 
 Adjusting the `name_policy` allows for greater flexibility and control over the naming conventions used in your GLTF files.
 
-## Matrices, Vector types, colors, etc.
+## Matrices, Vector types, colors, etc
 
 This includes types and functions for creating vectors, colors, etc. These are useful for providing attribute values, but if you provide the appropriate `tuple` or `np.ndarray` of values, they will be converted with the apporpriate constructor function.
 
@@ -118,52 +118,50 @@ Using the provided functions gives error and range checking, and may inform the 
 
 ### Constructor Functions
 
-* `point` -> `Point`
-* `vector2` -> `Vector2`
-* `vector3` -> `Vector3`
-* `vector4` -> `Vector4`
-* `uv` -> `UvPoint` (comes in 8-bit, 16bit, and floating versions)
-* `tangent` -> `Tangent`
-* `scale` -> `Scale`
-* `quaternion` -> `Quaternion`
-* `matrix2` -> `Matrix2`
-* `matrix3` -> `Matrix3`
-* `matrix4` -> `Matrix4`
-* `color` -> `Color` (comes in 8-bit, 16-bit, and floating versions)
-* * Floating: `RGB` and `RGBA`
-* * 8-Bit -> `RGB8` and `RGBA8`
-* * 16 Bit -> `RGB16`and `RGBA16`
-* `rgb` -> `RGB`
-* `rgba` -> `RGBA`
-* `rgb8` -> `RGB8`
-* `rgba8` -> `RGBA8`
-* `rgb16` -> `RGB16`
-* `rgba16` -> `RGBA16`
+- `point` -> `Point`
+- `vector2` -> `Vector2`
+- `vector3` -> `Vector3`
+- `vector4` -> `Vector4`
+- `uv` -> `UvPoint` (comes in 8-bit, 16bit, and floating versions)
+- `tangent` -> `Tangent`
+- `scale` -> `Scale`
+- `quaternion` -> `Quaternion`
+- `matrix2` -> `Matrix2`
+- `matrix3` -> `Matrix3`
+- `matrix4` -> `Matrix4`
+- `color` -> `Color` (comes in 8-bit, 16-bit, and floating versions)
+- - Floating: `RGB` and `RGBA`
+- - 8-Bit -> `RGB8` and `RGBA8`
+- - 16 Bit -> `RGB16`and `RGBA16`
+- `rgb` -> `RGB`
+- `rgba` -> `RGBA`
+- `rgb8` -> `RGB8`
+- `rgba8` -> `RGBA8`
+- `rgb16` -> `RGB16`
+- `rgba16` -> `RGBA16`
 
 These take the expected values, with the following notes:
 
-* All functions, if provided an instance of their constructed type, will return it unchanged.
-* `color` takes values betwee 0..1 inlusive. The `size=` keyword argument specifies the data format used, 1, 2, or 4 bytes. 4 bytes uses `np.float32` format.
-* `rgb` and `rgba` takes values between 0..1 inclusive, like color, and always uses the `np.float32` format.
-* `rgb8`, `rgba8` use integer values between 0..255 inculusive and the 1-byte format.
-* `rgb16` and `rgba16` use integer values between 0..65535 inclusive and the 2-byte format.
-* `matrix2`, `matric3`, and `matric4` will accept tuples of 4, 9, or 16 values, or tuples of tuples in 2x2, 3x3, or 4x4 form.
-* `scale` will accept 3 values, a tuple or `np.ndarray` of 3 values, or a single value to be applied to all three dimensions.
-* The `tangent` function constructs `Tangent` values for use as the `TANGENT` vertex attribute. As such, it takes the X, Y, and Z values like a `Vector3` and a fourth value, either -1 or 1, to indicate its orientation. The `Tangent` value can be treated like a `Vector3`, ie. it supports cross product via the `@` operator.
-* `uv` returns texture coordinaes. The `size` argument specifies 1, 2, or 4-byte formats, with the 4-byte format being `np.float32`
-* Points (including uv texture coordinates) and vectors are ot the same, so have different types:
-* * They behave differently under transformation.
-* * Vectors add, points do not.
-* * 
+- All functions, if provided an instance of their constructed type, will return it unchanged.
+- `color` takes values betwee 0..1 inlusive. The `size=` keyword argument specifies the data format used, 1, 2, or 4 bytes. 4 bytes uses `np.float32` format.
+- `rgb` and `rgba` takes values between 0..1 inclusive, like color, and always uses the `np.float32` format.
+- `rgb8`, `rgba8` use integer values between 0..255 inculusive and the 1-byte format.
+- `rgb16` and `rgba16` use integer values between 0..65535 inclusive and the 2-byte format.
+- `matrix2`, `matric3`, and `matric4` will accept tuples of 4, 9, or 16 values, or tuples of tuples in 2x2, 3x3, or 4x4 form.
+- `scale` will accept 3 values, a tuple or `np.ndarray` of 3 values, or a single value to be applied to all three dimensions.
+- The `tangent` function constructs `Tangent` values for use as the `TANGENT` vertex attribute. As such, it takes the X, Y, and Z values like a `Vector3` and a fourth value, either -1 or 1, to indicate its orientation. The `Tangent` value can be treated like a `Vector3`, ie. it supports cross product via the `@` operator.
+- `uv` returns texture coordinaes. The `size` argument specifies 1, 2, or 4-byte formats, with the 4-byte format being `np.float32`
+- Points (including uv texture coordinates) and vectors are ot the same, so have different types:
+- - They behave differently under transformation.
+- - Vectors add, points do not.
 
 ## Testing
 
 There are a number of test modules in [test/](test/). These use the `pytest` unit test framework, with test fixtures in [test/conftest.py](test/conftest.py). Test cases should generalliy use the `save` fixture to save the file in both `.glb` and `.gltf` formats. They are sved in the [test/out/](test/out/) directory, grouped by module and test. The `out_dir` fixture points to the directory, allowing you to access the files or to write additional ones.
 
-
 ## Still Needed
 
-* Materials
-* Skins
-* Textures
-* …
+- Materials
+- Skins
+- Textures
+- …
