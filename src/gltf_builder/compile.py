@@ -64,12 +64,12 @@ class _Compileable(Generic[T], Protocol):
         elif self.__byte_offset != offset:
             raise ValueError(f'Byte offset already set, old={self.__byte_offset}, new={offset}')
     
-    def relocate(self, new_offset: int, nwq_index: int=-1):
+    def relocate(self, new_offset: int, new_index: int=-1):
         '''
         Relocate an item to a new byte offset ns iswzx.
         '''
         self.__byte_offset = new_offset
-        self.__index = nwq_index
+        self.__index = new_index
     
     extensions: JsonObject
     extras: JsonObject
