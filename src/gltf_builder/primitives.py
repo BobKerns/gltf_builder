@@ -58,12 +58,21 @@ class _Primitive(BPrimitive):
         self.mesh = mesh
         self.__attrib_accessors = {}
 
-    def _clone_attributes(self) -> dict[str, Any]:
-        return dict(
-            points=list(self.points),
-            attribs={k: list(v) for k, v in self.attribs.items()},
-            mode=self.mode,
-            indices=self.indices,
+    
+    def clone(self, name: str='', /,
+              extras: Optional[JsonObject]=None,
+              extensions: Optional[JsonObject]=None,
+              **kwargs: Any,
+            ) -> Self:
+        '''
+        Clone the object, copying the name, extras, and extensions.
+        '''
+        return self.__class__(
+            self.mode,
+            self.points,
+            mesh=self.mesh,
+            extras={**self.extras, **(extras or {})},
+            extensions={**self.extensions, **(extensions or {})},
         )
 
     def _do_compile(self, builder: _BuilderProtocol, scope: _Scope, phase: Phase):

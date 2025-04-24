@@ -35,14 +35,19 @@ class _Mesh(BMesh):
         self.primitives = list(primitives)
         self.weights = list(weights or ())
 
-    def _clone_attributes(self) -> dict[str, Any]:
-        def clone_prim(prim: BPrimitive) -> BPrimitive:
-            return prim.clone(
-                mesh=self,
-            )
-        return dict(
-            weights=list(self.weights),
-            primtives=[clone_prim(p) for p in self.primitives],
+
+    def clone(self,
+                name: str='', /,
+                extras: Optional[JsonObject]=None,
+                extensions: Optional[JsonObject]=None,
+                **_,
+            ) -> Self:
+        return self.__class__(
+            name or self.name,
+            primitives=self.primitives,
+            weights=self.weights,
+            extras={**self.extras, **(extras or {})},
+            extensions={**self.extensions, **(extensions or {})},
         )
     
     @overload
