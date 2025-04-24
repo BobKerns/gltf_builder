@@ -42,6 +42,8 @@ class _Primitive(BPrimitive):
         self.mode = mode
         if not points:
             points = cast(Iterable[PointSpec], attribs.pop('POSITION', None))
+        if not points:
+            raise ValueError('At least one point is required')
         self.points = list(point(p) for p in points)
         self.indices = []
         self.attribs = cast(dict[str, AttributeDataList], {
