@@ -117,27 +117,27 @@ Using the provided functions gives error and range checking, and may inform the 
 
 ### Constructor Functions
 
-- `point` -> `Point`
-- `vector2` -> `Vector2`
-- `vector3` -> `Vector3`
-- `vector4` -> `Vector4`
-- `uv` -> `UvPoint` (comes in 8-bit, 16bit, and floating versions)
-- `tangent` -> `Tangent`
-- `scale` -> `Scale`
-- `quaternion` -> `Quaternion`
-- `matrix2` -> `Matrix2`
-- `matrix3` -> `Matrix3`
-- `matrix4` -> `Matrix4`
-- `color` -> `Color` (comes in 8-bit, 16-bit, and floating versions)
-- - Floating: `RGB` and `RGBA`
-- - 8-Bit -> `RGB8` and `RGBA8`
-- - 16 Bit -> `RGB16`and `RGBA16`
-- `rgb` -> `RGB`
-- `rgba` -> `RGBA`
-- `rgb8` -> `RGB8`
-- `rgba8` -> `RGBA8`
-- `rgb16` -> `RGB16`
-- `rgba16` -> `RGBA16`
+The main user objects have functions to construct them, rather than using the classes directly.
+
+The functions are declared to return abstract types; the concrete implemention classes are hidden. The public interface is through these abstract types.
+
+| Constructor       | Type                | Description                                     |
+|-------------------|---------------------|-------------------------------------------------|
+| `point`           | `Point`             ||
+| `vector2`         | `Vector2`           ||
+| `vector3`         | `Vector3`           ||
+| `vector4`         | `Vector4`           ||
+| `uv`              | `UvPoint`           | (comes in 8-bit, 16bit, and floating versions)  |
+| `tangent`         | `Tangent`           ||
+| `scale`           | `Scale`             ||
+| `quaternion`      | `Quaternion`        ||
+| `matrix2`         | `Matrix2`           ||
+| `matrix3`         | `Matrix3`           ||
+| `matrix4`         | `Matrix4`           ||
+| `color`           | `Color`             | (comes in 8-bit, 16-bit, and floating versions below) |
+| `rgb`, `rgba`     | `RGB` and `RGBA`    | Floating point |
+| `rgb8`, `rgba8`   | `RGB8` and `RGBA8`  | 8-Bit |
+| `rgb16`, `rgba16` | `RGB16`and `RGBA16` | 16 Bit |
 
 These take the expected values, with the following notes:
 
@@ -148,19 +148,21 @@ These take the expected values, with the following notes:
 - `rgb16` and `rgba16` use integer values between 0..65535 inclusive and the 2-byte format.
 - `matrix2`, `matric3`, and `matric4` will accept tuples of 4, 9, or 16 values, or tuples of tuples in 2x2, 3x3, or 4x4 form.
 - `scale` will accept 3 values, a tuple or `np.ndarray` of 3 values, or a single value to be applied to all three dimensions.
-- The `tangent` function constructs `Tangent` values for use as the `TANGENT` vertex attribute. As such, it takes the X, Y, and Z values like a `Vector3` and a fourth value, either -1 or 1, to indicate its orientation. The `Tangent` value can be treated like a `Vector3`, ie. it supports cross product via the `@` operator.
+- The `tangent` function constructs `Tangent` values for use as the `TANGENT` vertex attribute. As such, it takes the _X_, _Y_, and _Z_ values like a `Vector3` and a fourth value, either -1 or 1, to indicate its orientation. The `Tangent` value can be treated like a `Vector3`, ie. it supports cross product via the `@` operator.
 - `uv` returns texture coordinaes. The `size` argument specifies 1, 2, or 4-byte formats, with the 4-byte format being `np.float32`
-- Points (including uv texture coordinates) and vectors are ot the same, so have different types:
-- - They behave differently under transformation.
-- - Vectors add, points do not.
+- Points (including uv texture coordinates) and vectors are not the same, so have different types:
+  - They behave differently under transformation.
+  - Vectors add, points do not.
+    - But you can subtract points to get a vector.
+    - You can add a point and a vector to get a new point.
 
 ## Testing
 
-There are a number of test modules in [test/](test/). These use the `pytest` unit test framework, with test fixtures in [test/conftest.py](test/conftest.py). Test cases should generalliy use the `save` fixture to save the file in both `.glb` and `.gltf` formats. They are sved in the [test/out/](test/out/) directory, grouped by module and test. The `out_dir` fixture points to the directory, allowing you to access the files or to write additional ones.
+The unit tests and their organization are described in the [Testing README](testing/README.md). Files created by the tests are automatically validated using the official Khronos validator.
 
 ## Still Needed
 
-- Materials
-- Skins
-- Textures
-- …
+- Animation
+- Material support is not yet integrated
+- Scoping of indexing and vertex management.
+- Lots more documentation and examples.
