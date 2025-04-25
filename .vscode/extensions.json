@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        "dlech.chmod",
+        "cloudedcat.vscode-model-viewer",
+        "cesium.gltf-vscode",
+        "davidanson.vscode-markdownlint",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "rodolphebarbanneau.python-docstring-highlighter",
+        "ms-python.vscode-python-envs",
+        "076923.python-image-preview",
+        "djsaunders1997.uv-wingman"
+    ]
+}
