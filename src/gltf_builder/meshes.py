@@ -12,8 +12,8 @@ from gltf_builder.core_types import (
     JsonObject, Phase, PrimitiveMode,
 )
 from gltf_builder.attribute_types import (
-    AttributeDataIterable, PointSpec, Vector3Spec,
-    TangentSpec, ColorSpec, UvSpec, color, tangent, uv, vector3,
+    AttributeDataIterable, Point, PointSpec, Vector3Spec,
+    TangentSpec, ColorSpec, UvSpec, color, point, tangent, uv, vector3,
 )
 from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.elements import BMesh, BPrimitive, _Scope
@@ -103,7 +103,8 @@ class _Mesh(BMesh):
                                     **cast(dict[str, AttributeDataIterable],attrs),
                                 )
             case _:
-                prim = _Primitive(mode, cast(Sequence[PointSpec], points),
+                pointspecs =  cast(Sequence[PointSpec], points)
+                prim = _Primitive(mode, (point(p) for p in pointspecs),
                                 NORMAL=[vector3(n) for n in NORMAL or ()],
                                 TANGENT=[tangent(t) for t in TANGENT or ()],
                                 TEXCOORD_0=[uv(p) for p in TEXCOORD_0 or ()],

@@ -12,7 +12,7 @@ from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
-    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, PointSpec,
+    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, Point, PointSpec,
      point,
 )
 from gltf_builder.protocols import _BuilderProtocol
@@ -32,7 +32,7 @@ class _Primitive(BPrimitive):
     
     def __init__(self,
                  mode: PrimitiveMode,
-                 points: Iterable[PointSpec] = (), /, *,
+                 points: Iterable[Point] = (), /, *,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
                  mesh: Optional[BMesh]=None,
@@ -41,7 +41,7 @@ class _Primitive(BPrimitive):
         super().__init__(extras=extras, extensions=extensions)
         self.mode = mode
         if not points:
-            points = cast(Iterable[PointSpec], attribs.pop('POSITION', None))
+            points = cast(Iterable[Point], attribs.pop('POSITION', None))
         if not points:
             raise ValueError('At least one point is required')
         self.points = list(point(p) for p in points)
@@ -209,7 +209,7 @@ def primitive(
     extensions : Optional[JsonObject], optional
         Extensions to be attached to the primitive.
     '''
-    return _Primitive(mode, points,
+    return _Primitive(mode, (point(p) for p in points),
                       extras=extras,
                       extensions=extensions,
                       mesh=None,
