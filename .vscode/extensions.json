@@ -10,6 +10,8 @@
         "rodolphebarbanneau.python-docstring-highlighter",
         "ms-python.vscode-python-envs",
         "076923.python-image-preview",
-        "djsaunders1997.uv-wingman"
+        "djsaunders1997.uv-wingman",
+        "bierner.markdown-mermaid",
+        "mermaidchart.vscode-mermaid-chart"
     ]
 }

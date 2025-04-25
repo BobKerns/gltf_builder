@@ -30,5 +30,7 @@
     "testing.coverageToolbarEnabled": true,
     "github.copilot.chat.generateTests.codeLens": true,
     "python.analysis.typeCheckingMode": "strict",
-    "python.analysis.typeEvaluation.enableReachabilityAnalysis": true
+    "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
+    "npm.enableRunFromFolder": true,
+    "npm.packageManager": "npm"
 }

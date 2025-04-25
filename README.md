@@ -156,6 +156,23 @@ These take the expected values, with the following notes:
     - But you can subtract points to get a vector.
     - You can add a point and a vector to get a new point.
 
+## Graphic Elements: Nodes, Meshes, Primitives,and more
+
+| Constructor               | Type          | Description           |
+|---------------------------|---------------|-----------------------|
+| [node](#nodes)            | `BNode`       | Hierarchical structure |
+| [mesh](#meshes)           | `BMesh`       | Holds a list of primitives |
+| [primitive](#primitives) | `BPrimitive`  | One drawing operation |
+| [camera](#camera)         | `BCamera`     | A camera description  |
+|                           | `BPerspectiveCamera`  ||
+|                           | `BOrthographicCamera` ||
+
+
+[![erDiagram](docs/erDiagramThumb.png)](docs/erDiagram.svg)
+
+## Nodes
+
+
 ## Testing
 
 The unit tests and their organization are described in the [Testing README](testing/README.md). Files created by the tests are automatically validated using the official Khronos validator.

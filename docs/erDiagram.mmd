@@ -1,0 +1,261 @@
+erDiagram
+    direction TB
+    Builder ||..o{ BNode : nodes
+    Builder ||--|| BAsset : asset
+    Builder ||--o{ BScene : scenes
+    Builder ||--|| BScene : scene
+    Builder ||--o{ BImage : images
+    Builder ||..o{ BCamera : cameras
+    Builder ||--o{ BTexture : textures
+    Builder ||--o{ BSampler : samplers
+    Builder ||--o{ BMaterial : materials
+    Builder ||--o{ BMesh : meshes
+    Builder ||--o{ BAnimation : animations
+    Builder ||--o{ BAnimationChannel : animationChannels
+    Builder ||--o{ BAnimationSampler : animationSamplers
+    Builder ||--o{ BSkin : skins
+    Builder ||--o{ BAccessor : accessors
+    Builder ||--o{ BBufferView : views
+    Builder ||--o{ BBuffer : buffers
+    BAnimation ||..|{ BAnimationChannel : animationChannels
+    BAnimation ||..|{ BAnimationSampler : animationSamplers
+    BAnimationChannel ||..o| BAnimationChannelTarget : target
+    BAnimationChannel ||..o| BAnimationSampler : sampler
+    BNode ||..o| BCamera : camera
+    BImage {
+        Optional[str] name           "Name of the image"
+        Optional[str] uri           "URI or path to the image"
+        string mimeType      "MIME type of the image (e.g., image/png)"
+        dict extensions
+        dict extras
+    }
+    BImage ||--o| BBufferView : bufferView
+    Builder {
+        list extensionsUsed        "List of used glTF extensions"
+        list extensionsRequired    "List of required glTF extensions"
+        dict extensions
+        dict extras
+    }
+    BScene ||..|{ BNode : nodes
+    BNode ||--o{ BNode : children
+    BNode ||..o| BMesh : mesh
+    BMesh ||--|{ BPrimitive : primitives
+    Builder ||..o{ BImage : images
+    Builder ||--o{ BTexture : textures
+    BPrimitive ||..o| BMaterial : material
+    BPrimitive {
+        PrimitiveMode mode "Required, type of operation"
+        Point POSITION     "Required"
+        Vector3 NORMAL
+        Tangent TANGENT
+        Color COLOR_n      "n starting at 0"
+        UvPoint TEXCOORD_n "n starting at 0"
+        Joint JOINTS_n     "n starting at 0, skinned mesh attributes"
+        Weight WEIGHTS_n   "n starting at 0, skinned mesh attributes"
+        dict extensions
+        dict extras
+    }
+    BAsset {
+        string generator      "Name of the tool that generated the asset"
+        string version        "The version of the generator"
+        string copyright      "Copyright information"
+        string minVersion     "Minimum glTF version required"
+        string license        "License information"
+        dict extensions
+        dict extras
+    }
+    BTexture {
+        Optional[str] name           "Name of the texture"
+        dict extensions
+        dict extras
+    }
+    Builder ||--o{ BSampler : samplers
+    BSampler {
+        Optional[str] name           "Name of the sampler"
+        MagFilter magFilter         "Magnification filter"
+        MinFilter minFilter         "Minification filter"
+        WrapMode wrapS             "Wrapping mode for S coordinate"
+        WrapMode wrapT             "Wrapping mode for T coordinate"
+        dict extensions
+        dict extras
+    }
+    BNode {
+        Optional[str] name           "Name of the node"
+        bool root "Indicates no parent"
+        Optional[Vector3] translation "Translation vector"
+        Optional[Quaternion] rotation "Rotation quaternion"
+        Optional[Vector3] scale "Scale vector"
+        Optional[Matrix4] matrix "Matrix. If present, the TRS must not be present"
+        dict extensions
+        dict extras
+    }
+    BMesh {
+        Optional[str] name    "Name of the mesh"
+        list weights          "List of weights for morph targets"
+        dict extensions
+        dict extras
+    }
+    BMaterial {
+        Optional[str] name           "Name of the material"
+        Vector3 emissiveFactor
+        Vector4 baseColorFactor
+        float metallicFactor
+        float roughnessFactor
+        AlphaMode alphaMode       "Alpha mode for the material"
+        float alphaCutoff     "Alpha cutoff value for alpha mode"
+        bool doubleSided      "Indicates if the material is double-sided"
+        dict extensions
+        dict extras
+    }
+    BMaterial ||--o| BPbrMaterialRoughness : pbrMetallicRoughness
+    BMaterial ||--o| BTextureInfo : emissiveTexture
+    BMaterial ||--o| BNormalTextureInfo : normalTexture
+    BPbrMaterialRoughness {
+        Vector4 baseColorFactor
+        float metallicFactor
+        float roughnessFactor
+        dict extensions
+        dict extras
+    }
+    BPbrMaterialRoughness ||--o| BTextureInfo : baseColorTexture
+    BPbrMaterialRoughness ||--o| BTextureInfo : metallicRoughnessTexture
+    BTextureInfo {
+        int texCoord
+        float scale
+        dict extensions
+        dict extras
+    }
+    BTextureInfo ||..|| BTexture : texture
+    BNormalTextureInfo {
+        int texCoord
+        float scale
+        float normalScale
+        dict extensions
+        dict extras
+    }
+    BNormalTextureInfo ||..|| BTexture : texture
+    BMaterial ||--o| BOcclusionTextureInfo : occlusionTexture
+    BOcclusionTextureInfo {
+        int texCoord
+        float strength
+        dict extensions
+        dict extras
+    }
+    BOcclusionTextureInfo ||..|| BTexture : texture
+
+    BScene {
+        Optional[str] name           "Name of the scene"
+        dict extensions
+        dict extras
+    }
+    BCamera {
+        Optional[str] name           "Name of the camera"
+        dict extensions
+        dict extras
+    }
+    BCamera ||--o| Orthographic : orthographic
+    BCamera ||--o| Perspective : perspective
+    Orthographic {
+        float xmag
+        float ymag
+        float zfar
+        float znear
+        dict extensions
+        dict extras
+    }
+    Perspective {
+        float aspectRatio
+        float yfov
+        float zfar
+        float znear
+        dict extensions
+        dict extras
+    }
+    BTexture ||..o| BImage : source
+    BTexture ||--o| BSampler : sampler
+    BSkin {
+        Optional[str] name           "Name of the skin"
+        list[Matrix4] inverseBindMatrices "List of inverse bind matrices"
+        dict extensions
+        dict extras
+    }
+    BSkin ||..|| BNode : skeleton
+    BSkin ||..o| BNode : joints
+    BPrimitive ||--|{ BMaterial : material
+    BAccessor {
+        Optional[str] name           "Name of the accessor"
+        int byteOffset        "Byte offset into the bufferView"
+        ComponentType componentType     "Component type of the accessor"
+        ElementType type    "Type of the accessor (e.g., VEC3)"
+        int count             "Number of elements in the accessor"
+        bool normalized        "Indicates if the data is normalized"
+        list[int] min              "Minimum value for each component"
+        list[int] max              "Maximum value for each component"
+        dict extensions
+        dict extras
+    }
+    BAccessor ||--o| BSparse : sparse
+    BSparse {
+        int count      "Accessor for sparse values"
+        dict extensions
+        dict extras
+    }
+    BSparse ||--o| BSparseIndicies : indices
+    BSparse ||--o| BSparseValues : values
+    BSparseValues {
+        int byteOffset "Byte offset into the buffer view"
+        dict extensions
+        dict extras
+    }
+    BSparseValues ||..|| BBufferView : bufferView
+    BSparseIndicies {
+        int byteOffset "Byte offset into the buffer view"
+        ComponentType componentType "Component type of the indices"
+        dict extensions
+        dict extras
+    }
+    BSparseIndicies ||..|| BBufferView : bufferView
+    BAccessor ||..o| BBufferView : bufferView
+    BBufferView ||..|| BBuffer : buffer
+    BBufferView {
+        Optional[str] name           "Name of the buffer view"
+        int byteOffset        "Byte offset into the buffer"
+        int byteLength        "Length of the buffer view in bytes"
+        int byteStride        "Byte stride for interleaved data"
+        BufferViewTarget target "Target for the buffer view"
+        dict extensions
+        dict extras
+    }
+    BBuffer {
+        string Optional[str]           "Name of the buffer"
+        int byteLength        "Length of the buffer in bytes"
+        string uri            "URI or path to the buffer"
+        dict extensions
+        dict extras
+    }
+
+BAnimationSampler {
+    int input "Accessor for the input values"
+    int output "Accessor for the output values"
+    Interpolation interpolation "Interpolation method for the sampler"
+    dict extensions
+    dict extras
+}
+BAnimationSampler ||--o| BAccessor : input
+BAnimationSampler ||--o| BAccessor : output
+BAnimationChannel {
+    dict extensions
+    dict extras
+}
+BAnimationChannel ||..|| BAnimationChannelTarget : target
+BAnimationChannelTarget {
+    string path "Path to target property"
+    dict extensions
+    dict extras
+}
+BAnimationChannelTarget ||..|| BNode : node
+BAnimation {
+    Optional[str] name           "Name of the animation"
+    dict extensions
+    dict extras
+}

@@ -4,8 +4,14 @@
     "description": "Development tooling for glTF builder",
     "private": true,
     "scripts": {
+        "build": "npm run build:png && npm run build:svg",
+        "build:png": "npx mmdc -i docs/erDiagram.mmd -o docs/erDiagram.png -t default --backgroundColor ffeecc -s 9 --height 5000 --width 1200",
+        "build:svg": "npx mmdc -i docs/erDiagram.mmd -o docs/erDiagram.svg -t default --backgroundColor ffeecc -s 1",
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
-        "gltf-validator": "^2.0.0-dev.3.10"
+        "@mermaid-js/mermaid-cli": "^11.4.2",
+        "gltf-validator": "^2.0.0-dev.3.10",
+        "mermaid.cli": "^0.5.1"
     }
 }
