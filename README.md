@@ -161,7 +161,7 @@ These take the expected values, with the following notes:
 | Constructor               | Type          | Description           |
 |---------------------------|---------------|-----------------------|
 | [node](#node)            | `BNode`       | Hierarchical structure |
-| [mesh](#meshe)           | `BMesh`       | Holds a list of primitives |
+| [mesh](#mesh)           | `BMesh`       | Holds a list of primitives |
 | [primitive](#primitive) | `BPrimitive`  | One drawing operation |
 | [camera](#camera)         | `BCamera`     | A camera description  |
 |                           | `BPerspectiveCamera`  ||
