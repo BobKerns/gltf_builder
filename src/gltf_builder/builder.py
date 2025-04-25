@@ -474,6 +474,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                         prefix = type(obj).__name__[1:]
                     else:
                         prefix = prefix
+                    suffix = suffix or ''
                     if index is not None:
                         suffix = f'{suffix}[{index}]'
                     return f'{prefix}{get_count(obj)}{suffix}'
