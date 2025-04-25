@@ -4,8 +4,7 @@ from gltf_builder import Builder, PrimitiveMode, Quaternion as Q
 from gltf_builder.meshes import mesh
 from gltf_builder.nodes import node
 
-def test_example1(save):
-    builder = Builder()
+def test_example1(test_builder):
 
     CUBE = (
         (0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0),
@@ -25,7 +24,7 @@ def test_example1(save):
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
-    top = builder.create_node('TOP')
+    top = test_builder.create_node('TOP')
     cube = node('CUBE',
                 mesh=msh,
                 translation=(-0.5, -0.5, -0.5),
@@ -38,5 +37,4 @@ def test_example1(save):
                     scale=(1, 2, 2),
                     rotation=Q.from_axis_angle((1, 1, 0.5), math.pi/4)
                 )
-    gltf = builder.build()
-    save(gltf)
+    gltf = test_builder.build()

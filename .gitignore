@@ -16,3 +16,6 @@ wheels/
 *.gltf
 *.bin
 test/out/
+
+# Node.js dependencies
+node_modules/

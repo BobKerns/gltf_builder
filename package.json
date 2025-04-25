@@ -1,0 +1,11 @@
+{
+    "name": "gltf_builder",
+    "version": "1.0.0",
+    "description": "Development tooling for glTF builder",
+    "private": true,
+    "scripts": {
+    },
+    "dependencies": {
+        "gltf-validator": "^2.0.0-dev.3.10"
+    }
+}
