@@ -160,18 +160,32 @@ These take the expected values, with the following notes:
 
 | Constructor               | Type          | Description           |
 |---------------------------|---------------|-----------------------|
-| [node](#nodes)            | `BNode`       | Hierarchical structure |
-| [mesh](#meshes)           | `BMesh`       | Holds a list of primitives |
-| [primitive](#primitives) | `BPrimitive`  | One drawing operation |
+| [node](#node)            | `BNode`       | Hierarchical structure |
+| [mesh](#meshe)           | `BMesh`       | Holds a list of primitives |
+| [primitive](#primitive) | `BPrimitive`  | One drawing operation |
 | [camera](#camera)         | `BCamera`     | A camera description  |
 |                           | `BPerspectiveCamera`  ||
 |                           | `BOrthographicCamera` ||
 
+Click the image for a full-sized SVG version.
 
-[![erDiagram](docs/erDiagramThumb.png)](docs/erDiagram.svg)
+[![erDiagram](docs/erDiagramThumb.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagram.svg)
 
-## Nodes
+## Node
 
+Nodes represent hierarchical geometry.
+
+## Mesh
+
+...
+
+## Primitive
+
+...
+
+## Camera
+
+...
 
 ## Testing
 
