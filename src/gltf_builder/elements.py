@@ -472,6 +472,7 @@ class BSkin(Element[gltf.Skin, '_SkinState'], Protocol):
     '''
     Skin for a glTF model.
     '''
+    _scope_name = ScopeName.SKIN
     inverseBindMatrices: Optional[Matrix4]
     skeleton: BNode
     joints: list[BNode]
