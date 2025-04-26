@@ -1,6 +1,11 @@
 ---
     config:
         layout: elk
+    title: glTF 2.0 ER Diagram (User Subset)
+    description: |
+        This is a subset of the glTF 2.0 ER diagram, focusing on the user-facing elements.
+        It includes only the essential components that users typically interact with,
+        omitting internal details and less commonly used features.
 ---
 erDiagram
     direction TB
@@ -20,7 +25,6 @@ erDiagram
     Builder ||--o{ BSkin : skins
     BAnimation ||..|{ BAnimationChannel : animationChannels
     BAnimation ||..|{ BAnimationSampler : animationSamplers
-    BAnimationChannel ||..o| BAnimationChannelTarget : target
     BAnimationChannel ||..o| BAnimationSampler : sampler
     BNode ||..o| BCamera : camera
     BImage {
@@ -150,8 +154,6 @@ BAnimationSampler {
     dict extensions
     dict extras
 }
-BAnimationSampler ||--o| BAccessor : input
-BAnimationSampler ||--o| BAccessor : output
 BAnimationChannel {
     dict extensions
     dict extras

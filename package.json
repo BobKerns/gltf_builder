@@ -11,7 +11,7 @@
         "build:erDiagram:thumbnail": "npx mmdc -i docs/erDiagram.mmd -o docs/erDiagramThumbnail.png -t default --backgroundColor ffeecc -s 1",
 
         "build:erDiagramUserSubset": "npm run build:erDiagramUserSubset:png && npm run build:erDiagramUserSubset:svg && npm run build:erDiagramUserSubset:thumbnail",
-        "build:erDiagramUserSubset:png": "npx mmdc -i docs/erDiagramUserSubset.mmd -o docs/erDiagramUserSubset.png -t default --backgroundColor ffeecc -s 8 --height 5000 --width 1200",
+        "build:erDiagramUserSubset:png": "npx mmdc -i docs/erDiagramUserSubset.mmd -o docs/erDiagramUserSubset.png -t default --backgroundColor ffeecc -s 8 --height 5000 --width 960",
         "build:erDiagramUserSubset:svg": "npx mmdc -i docs/erDiagramUserSubset.mmd -o docs/erDiagramUserSubset.svg -t default --backgroundColor ffeecc -s 1",
         "build:erDiagramUserSubset:thumbnail": "npx mmdc -i docs/erDiagramUserSubset.mmd -o docs/erDiagramUserSubsetThumbnail.png -t default --backgroundColor ffeecc -s 1",
         "test": "echo \"Error: no test specified\" && exit 1"

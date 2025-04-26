@@ -1,6 +1,9 @@
 ---
     config:
         layout: elk
+    title: glTF 2.0 ER Diagram
+    description: |
+        This is the full version of the glTF 2.0 ER diagram.
 ---
 erDiagram
     direction TB
@@ -23,7 +26,6 @@ erDiagram
     Builder ||--o{ BBuffer : buffers
     BAnimation ||..|{ BAnimationChannel : animationChannels
     BAnimation ||..|{ BAnimationSampler : animationSamplers
-    BAnimationChannel ||..o| BAnimationChannelTarget : target
     BAnimationChannel ||..o| BAnimationSampler : sampler
     BNode ||..o| BCamera : camera
     BImage {
