@@ -301,6 +301,33 @@ def node(
 ) -> _Node:
     '''
     Create a detached node with the given attributes.
+
+    Parameters
+    ----------
+    name : str
+        Name of the node.
+    children : Iterable[BNode]
+        List of children of the node.
+    mesh : Optional[BMesh]
+        Mesh of the node.
+    camera : Optional[BCamera]
+        Camera of the node.
+    translation : Optional[Vector3Spec]
+        Translation of the node.
+    rotation : Optional[QuaternionSpec]
+        Rotation of the node.
+    scale : Optional[Vector3Spec]
+        Scale of the node.
+    matrix : Optional[Matrix4Spec]
+        Matrix of the node.
+    extras : Optional[JsonObject]
+        Extra data to be added to the node.
+    extensions : Optional[JsonObject]
+        Extensions to be added to the node.
+    Returns
+    -------
+    _Node
+        A node object with the given attributes.
     '''
     return _Node(
         name,

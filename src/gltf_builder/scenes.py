@@ -72,6 +72,24 @@ def scene(name: str='', /,
           extras: Optional[JsonObject]=None,
           extensions: Optional[JsonObject]=None,
           ):
+    '''
+    Create a scene with the given name and nodes.
+
+    Parameters
+    ----------
+    name : str
+        Name of the scene.
+    nodes : Iterable[BNode]
+        List of nodes in the scene.
+    extras : Optional[JsonObject]
+        Optional dictionary of extra data to be attached to the scene.
+    extensions : Optional[JsonObject]
+        Optional dictionary of extensions to be attached to the scene.
+    Returns
+    -------
+    BScene
+        The scene object.
+    '''
     return _Scene(name,
                   nodes=nodes,
                   extras=extras,

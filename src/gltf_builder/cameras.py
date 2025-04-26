@@ -200,6 +200,33 @@ def camera(type: CameraType,
             ) -> BCamera:
     '''
     Create a new camera.
+
+    Parameters
+    ----------
+    type : CameraType
+        The type of the camera.
+    name : str, optional
+        The name of the camera.
+    xmag : float, optional
+        The x magnification of the camera. [For orthographic cameras]
+    ymag : float, optional
+        The y magnification of the camera. [For orthographic cameras]
+    yfov : float, optional
+        The y field of view of the camera. [For perspective cameras]
+    znear : float, optional
+        The near clipping plane of the camera.
+    zfar : float, optional
+        The far clipping plane of the camera.
+    aspectRatio : float, optional
+        The aspect ratio of the camera. [For perspective cameras]
+    extras : dict, optional
+        Extra data to be stored with the camera.
+    extensions : dict, optional
+        Extensions to be stored with the camera.
+    Returns
+    -------
+    BCamera
+        The camera object.
     '''
     match type:
         case CameraType.PERSPECTIVE:
