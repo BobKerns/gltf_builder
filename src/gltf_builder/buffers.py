@@ -7,7 +7,7 @@ from typing import Literal, Optional, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compile import T, _Collected, _CompileStates, _DoCompileReturn
+from gltf_builder.compiler import T, _Collected, _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget, ScopeName,
 )
@@ -67,7 +67,7 @@ class _Buffer(BBuffer):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Literal[Phase.COLLECT],
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ) -> Iterable[_Collected]: ...
     @overload
@@ -75,18 +75,18 @@ class _Buffer(BBuffer):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]: ...
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
         def _compile1(elt: Element[T]):
-            return elt.compile(builder, scope, phase, states)
+            return elt.compile(builder, scope, phase)
         def _compile_views():
             for view in self.views:
                 _compile1(view)
@@ -94,12 +94,12 @@ class _Buffer(BBuffer):
             case Phase.COLLECT:
                 builder._views.add(*self.views)
                 return (
-                    view.compile(builder, scope, Phase.COLLECT, states)
+                    view.compile(builder, scope, Phase.COLLECT)
                     for view in self.views
                 )
             case Phase.SIZES:
                 bytelen = sum(
-                    view.compile(builder, scope, Phase.SIZES, states)
+                    view.compile(builder, scope, Phase.SIZES)
                     for view in self.views
                 )
                 self.__buffer = self.__buffer.zfill(bytelen)

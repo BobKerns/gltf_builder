@@ -42,7 +42,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
      Element, T,
 )
-from gltf_builder.compile import _Compileable, _Collected, _CompileStates
+from gltf_builder.compiler import _Compileable, _Collected, _CompileState
 from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 
@@ -78,7 +78,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     _scope_name = ScopeName.BUILDER
     _id_counters: dict[str, count]
     name: str = ''
-    __ordered_views: list[BBufferView] = []
+    __ordered_views: list[BBufferView]
 
     @property
     def buffer(self) -> 'BBuffer':
@@ -125,6 +125,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.cameras = _Holder(BCamera, *cameras)
         self._buffers = _Holder(BBuffer, *buffers)
         self._views = _Holder(BBufferView)
+        self.__ordered_views = []
         self._accessors = _Holder(BAccessor)
         self.images = _Holder(BImage, *images)
         self.materials = _Holder(BMaterial, *materials)
@@ -180,13 +181,13 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         yield from self._views
         yield from self._buffers
 
-    def compile(self, phase: Phase, states: _CompileStates):
+    def compile(self, phase: Phase):
         def _do_compile(n):
-            return n.compile(self, self, phase, states)
+            return n.compile(self, self, phase)
         def _do_compile_n(*n: Iterable[Element[gltf.Property]]):
             for g in n:
                 for e in g:
-                    e.compile(self, self, phase, states)
+                    e.compile(self, self, phase)
                     
         match phase:
             case Phase.COLLECT:
@@ -319,14 +320,14 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         # Add a default scene if none provided.
         if len(self.scenes) == 0:
             self.scenes.add(scene('DEFAULT', *(n for n in self.nodes if n.root)))
-        states: _CompileStates = {}
+        self._states = {}
         for phase in Phase:
             if phase != Phase.BUILD:
-               self.compile(phase, states)
+               self.compile(phase)
         
         def build_list(l: Iterable[Element[T]]) -> list[T]:
             return [
-                v.compile(self, self, Phase.BUILD, states)
+                v.compile(self, self, Phase.BUILD)
                 for v in l
             ]
         nodes = build_list(self.nodes)

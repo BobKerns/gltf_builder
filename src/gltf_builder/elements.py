@@ -26,7 +26,7 @@ from gltf_builder.attribute_types import (
     vector3,
 )
 from gltf_builder.matrix import Matrix4
-from gltf_builder.compile import (
+from gltf_builder.compiler import (
     _Compileable, T,
     _Scope
 )

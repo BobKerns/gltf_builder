@@ -14,7 +14,7 @@ from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView, _Scope,
 )
 from gltf_builder.protocols import _BuilderProtocol
-from gltf_builder.compile import _CompileStates
+from gltf_builder.compiler import _CompileState
 from gltf_builder.holders import _Holder
 
 
@@ -60,12 +60,12 @@ class _BufferView(BBufferView):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /):
         match phase:
             case Phase.COLLECT:
                 builder._accessors.add(*self.accessors)
-                return [acc.compile(builder, scope, phase, states)
+                return [acc.compile(builder, scope, phase)
                         for acc in self.accessors]
             case Phase.SIZES:
                 self.byteStride = (
@@ -74,7 +74,7 @@ class _BufferView(BBufferView):
                     else 0
                 )
                 return sum(
-                    accessor.compile(builder, scope, phase, states)
+                    accessor.compile(builder, scope, phase)
                     for accessor in self.accessors
                 )
             case Phase.OFFSETS:
@@ -85,11 +85,11 @@ class _BufferView(BBufferView):
                 for acc in self.accessors:
                     acc.byteOffset = offset
                     offset +=  len(acc)
-                    acc.compile(builder, scope, phase, states)
+                    acc.compile(builder, scope, phase)
                 return end
             case Phase.BUILD:
                 for acc in self.accessors:
-                    acc.compile(builder, scope, Phase.BUILD, states)
+                    acc.compile(builder, scope, Phase.BUILD)
                 return gltf.BufferView(
                     name=self.name,
                     buffer=self.buffer._index,

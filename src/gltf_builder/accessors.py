@@ -16,7 +16,7 @@ from gltf_builder.protocols  import _BuilderProtocol
 from gltf_builder.elements import (
     BAccessor, BBuffer, NP
 )
-from gltf_builder.compile import _CompileStates, _DoCompileReturn, _Scope
+from gltf_builder.compiler import _CompileState, _DoCompileReturn, _Scope
 from gltf_builder.utils import decode_dtype, decode_stride, decode_type
 from gltf_builder.log import GLTF_LOG
 
@@ -84,7 +84,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                     ) -> _DoCompileReturn[gltf.Accessor]:
         match phase:
@@ -105,7 +105,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 )
                 return ldata * self.componentSize
             case Phase.OFFSETS:
-                self.view.compile(builder, scope, phase, states)
+                self.view.compile(builder, scope, phase)
                 self.__memory = self.view.memoryview(self.byteOffset, len(self))
             case Phase.BUILD:
                 data = np.array(self.data, self.dtype)

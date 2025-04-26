@@ -10,7 +10,7 @@ from gltf_builder.core_types import CameraType, JsonObject, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
 from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
-from gltf_builder.compile import _CompileStates, _Scope
+from gltf_builder.compiler import _CompileState, _Scope
 
 
 class _PerspectiveCanera(BPerspectiveCamera):
@@ -45,7 +45,7 @@ class _PerspectiveCanera(BPerspectiveCamera):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ):
         match phase:
@@ -110,7 +110,7 @@ class _OrthographicCampera(BOrthographicCamera):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     ):
         match phase:
             case Phase.BUILD:

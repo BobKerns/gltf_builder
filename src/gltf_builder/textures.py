@@ -6,7 +6,7 @@ This module provides the `_Texture` class, which represents a texture in a glTF 
 from typing import Any
 import pygltflib as gltf
 
-from gltf_builder.compile import _Scope, _CompileStates
+from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import Phase
 from gltf_builder.elements import BImage, BSampler, BTexture
 from gltf_builder.protocols import _BuilderProtocol
@@ -43,12 +43,12 @@ class _Texture(BTexture):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /):
         match phase:
             case Phase.COLLECT:
                 return (
-                    s.compile(builder, scope, phase, states)
+                    s.compile(builder, scope, phase)
                     for s in (
                         self.sampler,
                         self.source,

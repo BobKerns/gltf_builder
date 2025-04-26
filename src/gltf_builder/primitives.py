@@ -7,7 +7,7 @@ from typing import Any, Optional, Self, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compile import T, _Collected, _CompileStates
+from gltf_builder.compiler import T, _Collected, _CompileState
 from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
@@ -80,11 +80,11 @@ class _Primitive(BPrimitive):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ):
         def _compile(elt: Element[T]):
-            return elt.compile(builder, scope, phase, states)
+            return elt.compile(builder, scope, phase)
         
         mesh = self.mesh
         assert mesh is not None
@@ -139,12 +139,12 @@ class _Primitive(BPrimitive):
                 accessors: list[tuple[BAccessor[NPTypes,
                                                 AttributeData]
                                      |BAccessor[NPTypes, int], list[_Collected]]] = [
-                    (a, [a.compile(builder, scope, phase, states)])
+                    (a, [a.compile(builder, scope, phase)])
                     for a in self.__attrib_accessors.values()
                 ]
                 ia = self.__indices_accessor
                 if ia:
-                    accessors.append((ia, [ia.compile(builder, scope, phase, states)]))
+                    accessors.append((ia, [ia.compile(builder, scope, phase)]))
                 return accessors
             case phase.SIZES:
                 size = sum(
@@ -172,9 +172,9 @@ class _Primitive(BPrimitive):
                 )
             case _:
                 for acc in self.__attrib_accessors.values():
-                    acc.compile(builder, scope, phase, states)
+                    acc.compile(builder, scope, phase)
                 if self.__indices_accessor:
-                    self.__indices_accessor.compile(builder, scope, phase, states)
+                    self.__indices_accessor.compile(builder, scope, phase)
                 return None
             
     def __repr__(self):

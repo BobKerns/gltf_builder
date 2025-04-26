@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 import pygltflib as gltf
 
-from gltf_builder.compile import _Scope, _CompileStates
+from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.elements import BNode, BScene
 from gltf_builder.protocols import _BuilderProtocol
@@ -39,13 +39,13 @@ class _Scene(BScene):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /):
         match phase:
             case Phase.COLLECT:
                 for n in self.nodes:
                     builder.nodes.add(n)
-                return [n.compile(builder, scope, phase, states) for n in self.nodes]
+                return [n.compile(builder, scope, phase) for n in self.nodes]
             case Phase.BUILD:
                 return gltf.Scene(
                     nodes=[n._index for n in self.nodes],
@@ -54,7 +54,7 @@ class _Scene(BScene):
                 )
             case _:
                 for n in self.nodes:
-                    n.compile(builder, scope, phase, states)
+                    n.compile(builder, scope, phase)
 
 def scene(name: str='', /,
           *nodes: BNode,

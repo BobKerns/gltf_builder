@@ -7,7 +7,7 @@ from typing import Any, Optional, Self, cast, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compile import  _CompileStates, _DoCompileReturn
+from gltf_builder.compiler import  _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, PrimitiveMode,
 )
@@ -121,7 +121,7 @@ class _Mesh(BMesh):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:
@@ -129,29 +129,29 @@ class _Mesh(BMesh):
                 builder.meshes.add(self)
                 for i, prim in enumerate(self.primitives):
                     prim._index = i
-                    prim.compile(builder, scope, phase, states)
+                    prim.compile(builder, scope, phase)
             case Phase.COLLECT:
                 builder.meshes.add(self)
                 return (
-                    prim.compile(builder, scope, Phase.COLLECT, states)
+                    prim.compile(builder, scope, Phase.COLLECT)
                     for prim in self.primitives
                 )
             case Phase.SIZES:
                 return sum(
-                    prim.compile(builder, scope, Phase.SIZES, states)
+                    prim.compile(builder, scope, Phase.SIZES)
                     for prim in self.primitives
                 )
             case Phase.BUILD:
                 return gltf.Mesh(
                     name=self.name,
                     primitives=[
-                        p.compile(builder, scope, phase, states)
+                        p.compile(builder, scope, phase)
                         for p in self.primitives
                     ]
                 )
             case _:
                 for prim in self.primitives:
-                    prim.compile(builder, scope, phase, states)
+                    prim.compile(builder, scope, phase)
 
     def _repr_additional(self) -> str:
         return f'{len(self.primitives)} primitives'

@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 import pygltflib as gltf
 
-from gltf_builder.compile import _Scope, _CompileStates
+from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import MagFilter, MinFilter, Phase, WrapMode
 from gltf_builder.elements import BSampler
 from gltf_builder.protocols import _BuilderProtocol
@@ -47,7 +47,7 @@ class _Sampler(BSampler):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /):
         match phase:
             case Phase.BUILD:

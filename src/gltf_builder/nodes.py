@@ -10,7 +10,7 @@ from typing import Any, Optional, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compile import _CompileStates
+from gltf_builder.compiler import _CompileState
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
@@ -208,27 +208,27 @@ class _Node(_BNodeContainer, BNode):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /):
         match phase:
             case Phase.COLLECT:
                 builder.nodes.add(self)
                 return (
-                    c.compile(builder, scope, phase, states)
+                    c.compile(builder, scope, phase)
                     for c in (self.mesh, self.camera, *self.children)
                     if c is not None
                 )
             case Phase.SIZES:
                 size = sum(
-                    n.compile(builder, scope, phase, states)
+                    n.compile(builder, scope, phase)
                     for n in self.children
                 )
                 if self.mesh is not None:
-                    size += self.mesh.compile(builder, scope, phase, states)
+                    size += self.mesh.compile(builder, scope, phase)
                 return size
             case Phase.BUILD:
                 if self.mesh is not None:
-                    self.mesh.compile(builder, scope, phase, states)
+                    self.mesh.compile(builder, scope, phase)
                 return gltf.Node(
                     name=self.name,
                     mesh=self.mesh._index if self.mesh else None,
@@ -242,9 +242,9 @@ class _Node(_BNodeContainer, BNode):
                 )
             case _:
                 if self.mesh is not None:
-                    self.mesh.compile(builder, scope, phase, states)
+                    self.mesh.compile(builder, scope, phase)
                 for child in self.children:
-                    child.compile(builder, scope, phase, states)
+                    child.compile(builder, scope, phase)
 
     def create_mesh(self,
                  name: str='',

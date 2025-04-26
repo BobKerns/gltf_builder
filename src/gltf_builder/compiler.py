@@ -57,14 +57,12 @@ class _CompileState:
     '''
     element: '_Compileable[gltf.Property]'
     name: str
-    index: int
+    index: int = 1
     byteOffset: int = -1
     len: int = -1
     phases: list[Phase] = field(default_factory=list)
     compiled: gltf.Property|None = None
     collected: _Collected|None = None
-
-_CompileStates: TypeAlias = dict[int, _CompileState]
 
 class _Compileable(Generic[T], Protocol):
     __phases: list[Phase]
@@ -152,7 +150,6 @@ class _Compileable(Generic[T], Protocol):
                 builder: '_BuilderProtocol',
                 scope: '_Scope',
                 phase: Literal[Phase.COLLECT],
-                states: _CompileStates,
                 /
                 ) -> _Collected: ...
     @overload
@@ -160,7 +157,6 @@ class _Compileable(Generic[T], Protocol):
                 builder: '_BuilderProtocol',
                 scope: '_Scope',
                 phase: Literal[Phase.SIZES],
-                states: _CompileStates,
                 /
             ) -> int: ...
     @overload
@@ -168,7 +164,6 @@ class _Compileable(Generic[T], Protocol):
                 '_BuilderProtocol',
                 scope: '_Scope',
                 phase: Literal[Phase.OFFSETS],
-                states: _CompileStates,
                 /
             ) -> int: ...
     @overload
@@ -176,7 +171,6 @@ class _Compileable(Generic[T], Protocol):
                 builder: '_BuilderProtocol',
                 scope: '_Scope',
                 phase: Literal[Phase.BUILD],
-                states: _CompileStates,
                 /
                 ) -> T: ...
     @overload
@@ -192,17 +186,20 @@ class _Compileable(Generic[T], Protocol):
                         Phase.BUFFERS,
                         Phase.EXTENSIONS,
                     ],
-                states: _CompileStates,
                 /
             ) -> None: ...
     def compile(self,
                 builder: '_BuilderProtocol',
                 scope: '_Scope',
                 phase: Phase,
-                states: _CompileStates,
                 /
                 ) -> 'T|int|_Collected|set[str]|None':
         from gltf_builder.elements import BAccessor
+        _key = id(self)
+        state = builder._states.get(_key, None)
+        if state is None:
+            state = _CompileState(self, builder._gen_name(self))
+            builder._states[_key] = state
         if phase in self.__phases:
             match phase:
                 case Phase.COLLECT:
@@ -222,23 +219,23 @@ class _Compileable(Generic[T], Protocol):
         else:
             LOG.debug('Compiling %s in phase %s', self, phase)
 
-            def _do_compile(n: _Compileable[T]):
-                return n._do_compile(builder, scope, phase, states)
+            def _do_compile():
+                return self._do_compile(builder, scope, phase, state)
             self.__phases.append(phase)
             match phase:
                 case Phase.COLLECT:
                     self.name = builder._gen_name(self)
-                    items = cast(_ReturnCollect, (_do_compile(self) or ()))
+                    items = cast(_ReturnCollect, (_do_compile() or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
-                    bytelen = cast(_ReturnSizes, _do_compile(self) or 0)
+                    bytelen = cast(_ReturnSizes, _do_compile() or 0)
                     if bytelen is not None:
                         self._len = bytelen
                         LOG.debug('%s has length %s', self, self._len)
                         return bytelen
                     return 0
                 case Phase.OFFSETS:
-                    _do_compile(self)
+                    _do_compile()
                     if self.byteOffset >= 0:
                         LOG.debug('%s has offset %d(+%d)',
                                 self, self.byteOffset,
@@ -254,10 +251,10 @@ class _Compileable(Generic[T], Protocol):
                     return None
                 case Phase.BUILD:
                     if self.__compiled is None:
-                        self.__compiled = cast(T, _do_compile(self))
+                        self.__compiled = cast(T, _do_compile())
                     return self.__compiled
                 case _:
-                    _do_compile(self)
+                    _do_compile()
 
 
     @abstractmethod
@@ -265,7 +262,7 @@ class _Compileable(Generic[T], Protocol):
                     builder: '_BuilderProtocol',
                     scope: '_Scope',
                     phase: Phase,
-                    states: _CompileStates,
+                    state: _CompileState,
                     /
                 ) -> _DoCompileReturn[T]: ...
 
