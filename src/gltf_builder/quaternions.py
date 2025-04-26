@@ -394,17 +394,17 @@ class Quaternion(NamedTuple):
         return Quaternion(qx, qy, qz, w)
 
     @staticmethod
-    def from_euler(yaw: float, pitch: float, roll: float) -> 'Quaternion':
+    def from_euler(roll: float, yaw: float, pitch: float) -> 'Quaternion':
         """
         Convert Euler angles (yaw, pitch, roll) to a quaternion in (x, y, z, w) order.
 
         Parameters
         ----------
-        yaw : float
-            Rotation around the z-axis, in radians.
-        pitch : float
-            Rotation around the y-axis, in radians.
         roll : float
+            Rotation around the z-axis, in radians.
+        yaw : float
+            Rotation around the y-axis, in radians
+        pitch : float
             Rotation around the x-axis, in radians.
 
         Returns
@@ -415,9 +415,9 @@ class Quaternion(NamedTuple):
         Notes
         -----
         The Euler angles are assumed to follow the Tait-Bryan convention in the ZYX order:
-        1. `yaw` (rotation around z-axis)
-        2. `pitch` (rotation around y-axis)
-        3. `roll` (rotation around x-axis)
+        1. `roll` (rotation around z-axis)
+        2. `yaw` (rotation around y-axis)
+        3. `pitch` (rotation around x-axis)
         """
 
         half_yaw = yaw / 2
@@ -432,9 +432,9 @@ class Quaternion(NamedTuple):
         sr = math.sin(half_roll)
 
         # Compute quaternion components
-        qx = sr * cp * cy - cr * sp * sy
-        qy = cr * sp * cy + sr * cp * sy
-        qz = cr * cp * sy - sr * sp * cy
+        qz = sr * cp * cy - cr * sp * sy
+        qy = cr * cp * sy - sr * sp * cy
+        qx = cr * sp * cy + sr * cp * sy
         w = cr * cp * cy + sr * sp * sy
 
         return Quaternion(qx, qy, qz, w)

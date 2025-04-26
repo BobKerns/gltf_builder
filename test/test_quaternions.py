@@ -9,7 +9,7 @@ import math
 
 import numpy as np
 import pytest
-from pytest import approx, mark
+from pytest import approx, mark, raises
 
 from gltf_builder.quaternions import (
     I, IDENTITY, J, K, MINUS_ONE, QuaternionSpec, quaternion, Quaternion as Q, Quaternion,
@@ -280,3 +280,43 @@ def test_halfway_rotation_via_scaled_log():
     half = Q.exp(log_half)
     expected = angle_axis_quaternion((0, 0, 1), np.pi / 2)
     assert (half.x, half.y, half.z, half.w) == approx(tuple(expected))
+
+def test_zero_axis_angle():
+    with raises(ValueError):
+        q = Q.from_axis_angle((0, 0, 0), 0)
+
+def test_quaternion_from_axis_angle():
+    q = Q.from_axis_angle((1, 0, 0), np.pi / 2)
+    assert q == approx(Q(0.7071067811865475, 0, 0, 0.7071067811865476))
+    axis, angle = Q.to_axis_angle(q)
+    assert axis == approx((1, 0, 0), abs=1e-6)
+    assert angle == approx(np.pi / 2)
+
+def test_quaternion_from_axis_angle_2():
+    q = Q.from_axis_angle((0, 1, 0), np.pi/6)
+    assert q == approx(Q(0, 0.25881904510252074, 0, 0.9659258262890683))
+    axis, angle = Q.to_axis_angle(q)
+    assert axis == approx((0, 1, 0), abs=1e-6)
+    assert angle == approx(np.pi/6)
+
+def test_quaternion_from_axis_angle_3():
+    q = Q.from_axis_angle((0, 0, 1), np.pi / 4)
+    assert q == approx(Q(0, 0, 0.3826834323650898, 0.9238795325112867))
+    axis, angle = Q.to_axis_angle(q)
+    assert axis == approx((0, 0, 1), abs=1e-6)
+    assert angle == approx(np.pi / 4)
+
+def test_quaternion_from_euler_angles():
+    q = Q.from_euler(np.pi / 2, 0, 0)
+    e = Q.from_axis_angle((0, 0, 1), np.pi / 2)
+    assert tuple(q) == approx(tuple(e))
+
+def test_quaternion_from_euler_angles_2():
+    q = Q.from_euler(0, np.pi / 2, 0)
+    e = Q.from_axis_angle((0, 1, 0), np.pi / 2)
+    assert tuple(q) == approx(tuple(e))
+
+def test_quaternion_from_euler_angles_3():
+    q = Q.from_euler(0, 0, np.pi / 2)
+    e = Q.from_axis_angle((1, 0, 0), np.pi / 2)
+    assert tuple(q) == approx(tuple(e))
