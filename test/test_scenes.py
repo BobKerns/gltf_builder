@@ -2,14 +2,13 @@
 Test the scenes module for glTF.
 '''
 
+from conftest import TEST_EXTENSIONS, TEST_EXTRAS
+
 from gltf_builder.core_types import JsonObject
 from gltf_builder.geometries import get_geometry
 from gltf_builder.nodes import node
 from gltf_builder.scenes import scene
 
-
-TEST_EXTRAS: JsonObject={"EXTRA": "DATA"}
-TEST_EXTENSIONS: JsonObject={"TEST_extension": {"EXTRA": "DATA"}}
 
 def test_create_empty_scene():
     s = scene()

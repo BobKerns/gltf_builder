@@ -5,6 +5,8 @@ Test cases for the cameras module.
 from gltf_builder.cameras import camera
 from gltf_builder.core_types import CameraType
 
+from conftest import TEST_EXTRAS, TEST_EXTENSIONS
+
 
 def test_camera_perspective(test_builder):
     '''
@@ -15,8 +17,8 @@ def test_camera_perspective(test_builder):
                     znear=0.01,
                     zfar=1000.0,
                     aspectRatio=1.0,
-                    extras={'test': 'extras'},
-                    extensions={'test': 'extensions'},
+                    extras=TEST_EXTRAS,
+                    extensions=TEST_EXTENSIONS,
                     )
     assert cam.name == 'Camera'
     assert cam._index == -1
@@ -25,8 +27,8 @@ def test_camera_perspective(test_builder):
     assert cam.yfov == 45.0
     assert cam.znear == 0.01
     assert cam.zfar == 1000.0
-    assert cam.extras == {'test': 'extras'}
-    assert cam.extensions == {'test': 'extensions'}
+    assert cam.extras == TEST_EXTRAS
+    assert cam.extensions == TEST_EXTENSIONS
     assert cam.perspective is not None
     assert cam.orthographic is None
     assert cam.perspective.aspectRatio == 1.0
@@ -45,8 +47,8 @@ def test_camera_orthographic():
                     ymag=1.0,
                     znear=0.01,
                     zfar=1000.0,
-                    extras={'test': 'extras'},
-                    extensions={'test': 'extensions'},
+                    extras=TEST_EXTRAS,
+                    extensions=TEST_EXTENSIONS,
                     )
     assert cam.name == 'Camera'
     assert cam._index == -1
@@ -55,8 +57,8 @@ def test_camera_orthographic():
     assert cam.ymag == 1.0
     assert cam.znear == 0.01
     assert cam.zfar == 1000.0
-    assert cam.extras == {'test': 'extras'}
-    assert cam.extensions == {'test': 'extensions'}
+    assert cam.extras == TEST_EXTRAS
+    assert cam.extensions == TEST_EXTENSIONS
     assert cam.perspective is None
     assert cam.orthographic is not None
     assert cam.orthographic.xmag == 1.0

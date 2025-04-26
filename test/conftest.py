@@ -373,3 +373,6 @@ def validate_gltf(file_path: Path,
     except subprocess.CalledProcessError as e:
          print(f"Error validating glTF: {e}")
          raise
+
+TEST_EXTRAS: JsonObject={"EXTRA": "DATA"}
+TEST_EXTENSIONS: JsonObject={"TEST_extension": {"EXTRA": "DATA"}}

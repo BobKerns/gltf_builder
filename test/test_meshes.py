@@ -4,6 +4,8 @@ Test cases for creating meshes for the glTF Builder library
 
 from gltf_builder.meshes import mesh
 
+from conftest import TEST_EXTRAS, TEST_EXTENSIONS
+
 
 def test_empty_mesh():
     m = mesh()
@@ -20,12 +22,12 @@ def test_mesh():
         name='MESH',
         primitives=[],
         weights=[0.1, 0.2, 0.3],
-        extras={'a': 1},
-        extensions={'ext': {}},
+        extras=TEST_EXTRAS,
+        extensions=TEST_EXTENSIONS,
     )
     assert m.name == 'MESH'
-    assert m.extras == {'a': 1}
-    assert m.extensions == {'ext': {}}
+    assert m.extras == TEST_EXTRAS
+    assert m.extensions == TEST_EXTENSIONS
     assert m.primitives == []
     assert m.weights == [0.1, 0.2, 0.3]
     assert m._index == -1
