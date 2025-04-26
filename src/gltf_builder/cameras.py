@@ -45,7 +45,7 @@ class _PerspectiveCanera(BPerspectiveCamera):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Camera],
                     /
                 ):
         match phase:
@@ -110,7 +110,7 @@ class _OrthographicCampera(BOrthographicCamera):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Camera],
                     ):
         match phase:
             case Phase.BUILD:

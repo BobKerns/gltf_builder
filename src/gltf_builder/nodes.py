@@ -208,7 +208,7 @@ class _Node(_BNodeContainer, BNode):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Node],
                     /):
         match phase:
             case Phase.COLLECT:

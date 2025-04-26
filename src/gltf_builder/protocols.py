@@ -13,7 +13,7 @@ import math
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _Compileable, _Scope, _CompileState
+from gltf_builder.compiler import _GLTF, _Compileable, _Scope, _CompileState
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, ImageType, JsonObject,
@@ -270,7 +270,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     def _gen_name(self,
-                  obj: _Compileable[gltf.Property], /, *,
+                  obj: _Compileable[_GLTF], /, *,
                   prefix: str='',
                   scope: ScopeName|None=None,
                   index: Optional[int]=None,

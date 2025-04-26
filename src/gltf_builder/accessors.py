@@ -84,7 +84,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Accessor],
                     /
                     ) -> _DoCompileReturn[gltf.Accessor]:
         match phase:

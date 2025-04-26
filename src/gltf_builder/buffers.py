@@ -7,7 +7,7 @@ from typing import Literal, Optional, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import T, _Collected, _CompileState, _DoCompileReturn
+from gltf_builder.compiler import _GLTF, _Collected, _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget, ScopeName,
 )
@@ -82,10 +82,10 @@ class _Buffer(BBuffer):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Buffer],
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
-        def _compile1(elt: Element[T]):
+        def _compile1(elt: Element[_GLTF]):
             return elt.compile(builder, scope, phase)
         def _compile_views():
             for view in self.views:

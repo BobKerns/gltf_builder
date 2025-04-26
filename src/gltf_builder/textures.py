@@ -43,7 +43,7 @@ class _Texture(BTexture):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Texture],
                     /):
         match phase:
             case Phase.COLLECT:

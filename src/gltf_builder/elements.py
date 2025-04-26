@@ -16,7 +16,8 @@ import pygltflib as gltf
 from gltf_builder.holders import _Holder
 from gltf_builder.quaternions import Quaternion, QuaternionSpec
 from gltf_builder.core_types import (
-    AlphaMode, CameraType, ComponentType, ImageType, JsonObject, MagFilter, MinFilter, PrimitiveMode,
+    AlphaMode, CameraType, ComponentType, ImageType, JsonObject,
+    MagFilter, MinFilter, PrimitiveMode,
     BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
 )
 from gltf_builder.attribute_types import (
@@ -27,17 +28,17 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.matrix import Matrix4
 from gltf_builder.compiler import (
-    _Compileable, T,
+    _CompileState, _Compileable, _GLTF,
     _Scope
 )
-from gltf_builder.protocols import _BNodeContainerProtocol
+from gltf_builder.protocols import _BNodeContainerProtocol, _BuilderProtocol
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.vertices import Vertex
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 @runtime_checkable
-class Element(_Compileable[T], Protocol):
+class Element(_Compileable[_GLTF], Protocol):
     def __init__(self,
                  name: str='',
                  extras: Optional[JsonObject]=None,
@@ -225,7 +226,6 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
                     ) -> BPrimitive:
         ...
 
-
 @runtime_checkable
 class BCamera(Element[gltf.Camera], Protocol):
     '''
@@ -238,7 +238,6 @@ class BCamera(Element[gltf.Camera], Protocol):
 
     type_extras: JsonObject
     type_extensions: JsonObject
-
     
 
 @runtime_checkable

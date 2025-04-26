@@ -121,7 +121,7 @@ class _Mesh(BMesh):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Mesh],
                     /
                 ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:

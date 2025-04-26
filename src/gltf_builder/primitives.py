@@ -7,7 +7,7 @@ from typing import Any, Optional, Self, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import T, _Collected, _CompileState
+from gltf_builder.compiler import _GLTF, _Collected, _CompileState
 from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
@@ -80,10 +80,10 @@ class _Primitive(BPrimitive):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Primitive],
                     /
                 ):
-        def _compile(elt: Element[T]):
+        def _compile(elt: Element[_GLTF]):
             return elt.compile(builder, scope, phase)
         
         mesh = self.mesh

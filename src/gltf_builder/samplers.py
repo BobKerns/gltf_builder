@@ -47,7 +47,7 @@ class _Sampler(BSampler):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Sampler],
                     /):
         match phase:
             case Phase.BUILD:

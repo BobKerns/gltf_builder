@@ -26,11 +26,10 @@ if TYPE_CHECKING:
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 
-T = TypeVar('T', bound=gltf.Property, covariant=True)
-
+_GLTF = TypeVar('_GLTF', bound=gltf.Property)
 
 _Collected: TypeAlias = tuple[
-    '_Compileable[gltf.Property]',
+    '_Compileable',
     Sequence['_Collected'],
 ]
 
@@ -38,35 +37,34 @@ _Collected: TypeAlias = tuple[
 _ReturnCollect: TypeAlias = Iterable[_Collected]|None
 _ReturnSizes: TypeAlias = int|None
 _ReturnOffsets: TypeAlias = int|None
-_ReturnBuild: TypeAlias = T|None
+_ReturnBuild: TypeAlias = _GLTF|None
 _ReturnView: TypeAlias = None
 _ReturnExtensions: TypeAlias = set[str]|None
 _DoCompileReturn: TypeAlias = (
     _ReturnCollect|
     _ReturnSizes|
     _ReturnOffsets|
-    _ReturnBuild[T]|
+    _ReturnBuild[_GLTF]|
     _ReturnView|
     _ReturnExtensions
 )
 
 @dataclass
-class _CompileState:
+class _CompileState(Generic[_GLTF]):
     '''
     State for compiling an element.
     '''
-    element: '_Compileable[gltf.Property]'
+    element: '_Compileable[_GLTF]'
     name: str
     index: int = 1
     byteOffset: int = -1
     len: int = -1
     phases: list[Phase] = field(default_factory=list)
-    compiled: gltf.Property|None = None
+    compiled: _GLTF|None = None
     collected: _Collected|None = None
 
-class _Compileable(Generic[T], Protocol):
+class _Compileable(Generic[_GLTF], Protocol):
     __phases: list[Phase]
-    __compiled: T|None = None
     _len: int = -1
     _scope_name: ScopeName
 
@@ -172,7 +170,7 @@ class _Compileable(Generic[T], Protocol):
                 scope: '_Scope',
                 phase: Literal[Phase.BUILD],
                 /
-                ) -> T: ...
+                ) -> _GLTF: ...
     @overload
     def compile(self,
                 builder: '_BuilderProtocol', 
@@ -193,7 +191,7 @@ class _Compileable(Generic[T], Protocol):
                 scope: '_Scope',
                 phase: Phase,
                 /
-                ) -> 'T|int|_Collected|set[str]|None':
+                ) -> '_GLTF|int|_Collected|set[str]|None':
         from gltf_builder.elements import BAccessor
         _key = id(self)
         state = builder._states.get(_key, None)
@@ -213,7 +211,7 @@ class _Compileable(Generic[T], Protocol):
                         return self.byteOffset
                     return -1
                 case Phase.BUILD:
-                    return self.__compiled
+                    return state.compiled
                 case _:
                     return None
         else:
@@ -224,7 +222,7 @@ class _Compileable(Generic[T], Protocol):
             self.__phases.append(phase)
             match phase:
                 case Phase.COLLECT:
-                    self.name = builder._gen_name(self)
+                    state.name = builder._gen_name(self)
                     items = cast(_ReturnCollect, (_do_compile() or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
@@ -250,9 +248,9 @@ class _Compileable(Generic[T], Protocol):
                         return set(self.extensions.keys())
                     return None
                 case Phase.BUILD:
-                    if self.__compiled is None:
-                        self.__compiled = cast(T, _do_compile())
-                    return self.__compiled
+                    if state.compiled is None:
+                        state.compiled = cast(_GLTF, _do_compile())
+                    return state.compiled
                 case _:
                     _do_compile()
 
@@ -262,9 +260,9 @@ class _Compileable(Generic[T], Protocol):
                     builder: '_BuilderProtocol',
                     scope: '_Scope',
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[_GLTF],
                     /
-                ) -> _DoCompileReturn[T]: ...
+                ) -> _DoCompileReturn[_GLTF]: ...
 
     def __len__(self) -> int:
         return self._len

@@ -60,7 +60,7 @@ class _BufferView(BBufferView):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.BufferView],
                     /):
         match phase:
             case Phase.COLLECT:

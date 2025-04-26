@@ -40,7 +40,7 @@ from gltf_builder.protocols import _AttributeParser, AttributeType, _BuilderProt
 from gltf_builder.elements import (
      BAccessor, BBuffer, BBufferView, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
-     Element, T,
+     Element, _GLTF,
 )
 from gltf_builder.compiler import _Compileable, _Collected, _CompileState
 from gltf_builder.utils import USERNAME, USER, decode_dtype
@@ -164,7 +164,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         )
         return mesh
     
-    def _elements(self) -> Iterable[Element[gltf.Property]]:
+    def _elements(self) -> Iterable[Element]:
         '''
         Get all the elements in the builder.
         '''
@@ -184,7 +184,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     def compile(self, phase: Phase):
         def _do_compile(n):
             return n.compile(self, self, phase)
-        def _do_compile_n(*n: Iterable[Element[gltf.Property]]):
+        def _do_compile_n(*n: Iterable[Element]):
             for g in n:
                 for e in g:
                     e.compile(self, self, phase)
@@ -221,7 +221,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 if LOG.isEnabledFor(logging.DEBUG):
                     log_collcted(collected)
             case Phase.ENUMERATE:
-                def assign_index(items: Iterable[_Compileable[gltf.Property]]):
+                def assign_index(items: Iterable[Element]):
                     for i, n in enumerate(items):
                         n._index = i
                 assign_index(self._buffers)
@@ -325,7 +325,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             if phase != Phase.BUILD:
                self.compile(phase)
         
-        def build_list(l: Iterable[Element[T]]) -> list[T]:
+        def build_list(l: Iterable[Element[_GLTF]]) -> list[_GLTF]:
             return [
                 v.compile(self, self, Phase.BUILD)
                 for v in l

@@ -66,7 +66,7 @@ class _Image(BImage):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
+                    state: _CompileState[gltf.Image],
                     /) -> _DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
