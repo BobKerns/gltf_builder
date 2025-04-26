@@ -13,27 +13,10 @@ erDiagram
     Builder ||--|| BAsset : asset
     Builder ||--o{ BScene : scenes
     Builder ||--|| BScene : scene
-    Builder ||--o{ BImage : images
     Builder ||--o{ BCamera : cameras
-    Builder ||--o{ BTexture : textures
-    Builder ||--o{ BSampler : samplers
     Builder ||--o{ BMaterial : materials
     Builder ||--o{ BMesh : meshes
-    Builder ||--o{ BAnimation : animations
-    Builder ||--o{ BAnimationChannel : animationChannels
-    Builder ||--o{ BAnimationSampler : animationSamplers
-    Builder ||--o{ BSkin : skins
-    BAnimation ||..|{ BAnimationChannel : animationChannels
-    BAnimation ||..|{ BAnimationSampler : animationSamplers
-    BAnimationChannel ||..o| BAnimationSampler : sampler
     BNode ||..o| BCamera : camera
-    BImage {
-        Optional[str] name           "Name of the image"
-        Optional[str] uri           "URI or path to the image"
-        string mimeType      "MIME type of the image (e.g., image/png)"
-        dict extensions
-        dict extras
-    }
     Builder {
         list extensionsUsed        "List of used glTF extensions"
         list extensionsRequired    "List of required glTF extensions"
@@ -44,8 +27,6 @@ erDiagram
     BNode ||--o{ BNode : children
     BNode ||..o| BMesh : mesh
     BMesh ||--|{ BPrimitive : primitives
-    Builder ||--o{ BImage : images
-    Builder ||--o{ BTexture : textures
     BPrimitive ||..o| BMaterial : material
     BPrimitive {
         PrimitiveMode mode "Required, type of operation"
@@ -65,21 +46,6 @@ erDiagram
         string copyright      "Copyright information"
         string minVersion     "Minimum glTF version required"
         string license        "License information"
-        dict extensions
-        dict extras
-    }
-    BTexture {
-        Optional[str] name           "Name of the texture"
-        dict extensions
-        dict extras
-    }
-    Builder ||--o{ BSampler : samplers
-    BSampler {
-        Optional[str] name           "Name of the sampler"
-        MagFilter magFilter         "Magnification filter"
-        MinFilter minFilter         "Minification filter"
-        WrapMode wrapS             "Wrapping mode for S coordinate"
-        WrapMode wrapT             "Wrapping mode for T coordinate"
         dict extensions
         dict extras
     }
@@ -113,11 +79,6 @@ erDiagram
         float occlusionStrength "Applies to occlusionTexture"
         dict extras
     }
-    BMaterial ||..o| BTexture : emissiveTexture
-    BMaterial ||..o| BTexture : normalTexture
-    BMaterial ||..o| BTexture : baseColorTexture
-    BMaterial ||..o| BTexture : metallicRoughnessTexture
-    BMaterial ||..o| BTexture : occlusionTexture
     BScene {
         Optional[str] name           "Name of the scene"
         dict extensions
@@ -135,37 +96,3 @@ erDiagram
         dict extensions
         dict extras
     }
-    BTexture ||..o| BImage : source
-    BTexture ||--o| BSampler : sampler
-    BSkin {
-        Optional[str] name           "Name of the skin"
-        list[Matrix4] inverseBindMatrices "List of inverse bind matrices"
-        dict extensions
-        dict extras
-    }
-    BSkin ||..|| BNode : skeleton
-    BSkin ||..o| BNode : joints
-
-BAnimationSampler {
-    int input "Accessor for the input values"
-    int output "Accessor for the output values"
-    Interpolation interpolation "Interpolation method for the sampler"
-    dict extensions
-    dict extras
-}
-BAnimationChannel {
-    dict extensions
-    dict extras
-}
-BAnimationChannel ||..|| BAnimationChannelTarget : target
-BAnimationChannelTarget {
-    string path "Path to target property"
-    dict extensions
-    dict extras
-}
-BAnimationChannelTarget ||..|| BNode : node
-BAnimation {
-    Optional[str] name           "Name of the animation"
-    dict extensions
-    dict extras
-}

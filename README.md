@@ -1,8 +1,13 @@
 # GTLF Builder
 
+[![glTF Logo](docs/glTF_100px_June16.png)](https://www.khronos.org/gltf/)
+[![WebGL Logo](docs/WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
+
 This library wraps the `pygltflib` library to handle the low-level details of managing buffers, buffer views, and accessors.
 
 In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` prefix.
+
+For more information about the underlying glTF model, see [our page on glTF](docs/glTF.md).
 
 ## Project Status
 
@@ -178,27 +183,7 @@ These take the expected values, with the following notes:
 |                           | `BPerspectiveCamera`  ||
 |                           | `BOrthographicCamera` ||
 
-### glTF model
-
-The full glTF model is here.
-
-Click the image for a full-sized SVG version.
-[![erDiagram](docs/erDiagramThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagram.svg)
-
-Notes:
-
-- Nodes beginning with "B" are part of the Builder model.
-- Nodes beginning with "gltf_" are optional internal subfields. These are flattened into their owning objects in the Builder model
-
-### User-level Builder model
-
-As a user building geometry, we don't want to deal with low-level details. The following model elides portions handled automatically:
-
-- Storage layout (Accessors, BufferViews, and Buffers)
-- Internal optional subfields are collapsed into their owning objects.
-
-Click the image for a full-sized SVG version.
-[![erDiagram](docs/erDiagramUserSubsetThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagramUserSubset.svg)
+See [Geometry model](docs/glTF.md#geometry-model)
 
 ## Node
 
