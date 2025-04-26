@@ -39,7 +39,7 @@ The `BXxxxx` names are abstract; the implementation classes bear names like `_Xx
 
 Compilation and collection of the pieces is performed by the `Builder.build()` method.
 
-Install via your usual tool ([I recommend `uv`](https://docs.astral.sh/uv/) as the modern upgrade from `pip` and others).
+Install via your usual tool (I recommend [`uv`](https://docs.astral.sh/uv/) as the modern upgrade from `pip` and others).
 
 ```python
 from gltf_builder import Builder, PrimitiveMode
