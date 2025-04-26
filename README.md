@@ -34,25 +34,6 @@ The `BXxxxx` names are abstract; the implementation classes bear names like `_Xx
 
 Compilation and collection of the pieces is performed by the `Builder.build()` method.
 
-## Quaternions (Rotations)
-
-Because `pygltflib` uses quaternions of the form (X, Y, Z, W) instead of the form (W, X, Y, Z) used by `scipy`, and to avoid introducing heavyweight and potentially incompatible libraries, we provide (courtesy of ChatGPT to my specifications) an implementation of various quaternion routines relating to rotations.
-
-Basic usage
-
-```python
-import gltf_builder.quaternion as Q
-
-# Rotate around Z axis by pi/4
-rotation = Q.from_axis_angle((0, 0, 1), math.py / 4)
-# Instantiate a geometry, rotated.
-root_node.instantiate(cube, rotation=rotation)
-```
-
-See [quaternions.md](quaternions.md) or [quaternions.py](src/gltf_builder/quaternions.py) for more information.
-
-## Usage
-
 Install via your usual tool (I recommend `uv` as the modern upgrade from `pip` and others).
 
 ```python
@@ -115,7 +96,7 @@ You can also instance a node hierarchy with the `instantiate` method. This takes
 
 The node can be an existing node in the scene, or it cn be created with `node()`, which creates the a node that is not added to the scene. You can then use this as the root of an instancable tree, and add child nodes and meshes.
 
-You can access existing nodes by name by the `builder[`_name_`]` syntax. If nodes with the same name appear in different places, you may need to first access a parent that holds only one of the duplicates. Alternatively, you can loop over all nodes like this:
+You can access existing nodes by name by the `builder.nodes[`_name_`]` syntax. If nodes with the same name appear in different places, you may need to first access a parent that holds only one of the duplicates. Alternatively, you can loop over all nodes like this:
 
 ```python
 builder = Builder()
@@ -234,6 +215,23 @@ Nodes represent hierarchical geometry.
 ## Camera
 
 ...
+
+## Quaternions (Rotations)
+
+Because `pygltflib` uses quaternions of the form (X, Y, Z, W) instead of the form (W, X, Y, Z) used by `scipy`, and to avoid introducing heavyweight and potentially incompatible libraries, we provide (courtesy of ChatGPT to my specifications) an implementation of various quaternion routines relating to rotations.
+
+Basic usage
+
+```python
+import gltf_builder.quaternion as Q
+
+# Rotate around Z axis by pi/4
+rotation = Q.from_axis_angle((0, 0, 1), math.py / 4)
+# Instantiate a geometry, rotated.
+root_node.instantiate(cube, rotation=rotation)
+```
+
+See [quaternions.md](quaternions.md) or [quaternions.py](src/gltf_builder/quaternions.py) for more information.
 
 ## Testing
 
