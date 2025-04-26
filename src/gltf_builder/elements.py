@@ -6,6 +6,7 @@ in the glTF. This also holds the name, defaulting it by the index.
 from pathlib import Path
 from typing import (
     Generic, Protocol, Optional, Any, TypeVar, overload, runtime_checkable,
+    TYPE_CHECKING,
 )
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
@@ -28,17 +29,33 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.matrix import Matrix4
 from gltf_builder.compiler import (
-    _CompileState, _Compileable, _GLTF,
+    _STATE, _CompileState, _Compileable, _GLTF,
     _Scope
 )
 from gltf_builder.protocols import _BNodeContainerProtocol, _BuilderProtocol
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.vertices import Vertex
+if TYPE_CHECKING:
+    from gltf_builder.accessors import _AccessorState
+    #from gltf_builder.animations import _AnimationState
+    from gltf_builder.assets import _AssetState
+    from gltf_builder.buffers import _BufferState
+    from gltf_builder.cameras import _CameraState
+    from gltf_builder.images import _ImageState
+    from gltf_builder.materials import _MaterialState
+    from gltf_builder.meshes import _MeshState
+    from gltf_builder.primitives import _PrimitiveState
+    from gltf_builder.scenes import _SceneState
+    from gltf_builder.skins import _SkinState
+    from gltf_builder.textures import _TextureState
+    from gltf_builder.nodes import _NodeState
+    from gltf_builder.samplers import _SamplerState
+    from gltf_builder.views import _BufferViewState
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 @runtime_checkable
-class Element(_Compileable[_GLTF], Protocol):
+class Element(_Compileable[_GLTF, _STATE], Protocol):
     def __init__(self,
                  name: str='',
                  extras: Optional[JsonObject]=None,
@@ -79,7 +96,7 @@ class Element(_Compileable[_GLTF], Protocol):
         return f'{typ}-{self.name or "?"}{idx}'
 
 
-class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
+class BBuffer(Element[gltf.Buffer, '_BufferState'], _Scope, Protocol):
     _scope_name = ScopeName.BUFFER
     @property
     @abstractmethod
@@ -110,7 +127,7 @@ class BBuffer(Element[gltf.Buffer], _Scope, Protocol):
         ...
 
 
-class BBufferView(Element[gltf.BufferView], Protocol):
+class BBufferView(Element[gltf.BufferView, '_BufferViewState'], Protocol):
     _scope_name = ScopeName.BUFFER_VIEW
     buffer: BBuffer
     target: BufferViewTarget
@@ -131,7 +148,7 @@ NP = TypeVar('NP', bound=NPTypes)
 NUM = TypeVar('NUM', bound=float|int, covariant=True)
 
 @runtime_checkable
-class BAccessor(Element[gltf.Accessor], Protocol, Generic[NP, BTYPE]):
+class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, BTYPE]):
     _scope_name = ScopeName.ACCESSOR
     view: BBufferView
     data: list[BTYPE]
@@ -170,7 +187,7 @@ class BAccessor(Element[gltf.Accessor], Protocol, Generic[NP, BTYPE]):
         ...
 
 @runtime_checkable
-class BPrimitive(_Compileable[gltf.Primitive], Protocol):
+class BPrimitive(Element[gltf.Primitive, '_PrimitiveState'], Protocol):
     '''
     Base class for primitives
     '''
@@ -183,7 +200,7 @@ class BPrimitive(_Compileable[gltf.Primitive], Protocol):
     
 
 @runtime_checkable
-class BMesh(Element[gltf.Mesh], _Scope, Protocol):
+class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
     _scope_name = ScopeName.MESH
     primitives: list[BPrimitive]
     weights: list[float]
@@ -227,7 +244,7 @@ class BMesh(Element[gltf.Mesh], _Scope, Protocol):
         ...
 
 @runtime_checkable
-class BCamera(Element[gltf.Camera], Protocol):
+class BCamera(Element[gltf.Camera, '_CameraState'], Protocol):
     '''
     Camera for glTF.
     '''
@@ -332,7 +349,7 @@ class BPerspectiveCamera(BCamera, Protocol):
     
 
 @runtime_checkable
-class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
+class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope, Protocol):
     _scope_name = ScopeName.NODE
     mesh: BMesh|None
     root: bool
@@ -384,7 +401,7 @@ class BNode(Element[gltf.Node], _BNodeContainerProtocol, _Scope, Protocol):
 
 
 @runtime_checkable
-class BImage(Element[gltf.Image], Protocol):
+class BImage(Element[gltf.Image, '_ImageState'], Protocol):
     '''
     Image for glTF.
     '''
@@ -406,7 +423,7 @@ class BImage(Element[gltf.Image], Protocol):
                 return 'image/png'
 
 @runtime_checkable
-class BSampler(Element[gltf.Sampler], Protocol):
+class BSampler(Element[gltf.Sampler, '_SamplerState'], Protocol):
     '''
     Texture samplers for glTF.
     '''
@@ -417,7 +434,7 @@ class BSampler(Element[gltf.Sampler], Protocol):
     wrapT: Optional[WrapMode]
 
 @runtime_checkable
-class BTexture(Element[gltf.Texture], Protocol):
+class BTexture(Element[gltf.Texture, '_TextureState'], Protocol):
     '''
     Texture for glTF.
     '''
@@ -426,7 +443,7 @@ class BTexture(Element[gltf.Texture], Protocol):
     source: BImage
 
 @runtime_checkable
-class BMaterial(Element[gltf.Material], Protocol):
+class BMaterial(Element[gltf.Material, '_MaterialState'], Protocol):
     '''
     Material for glTF.
     '''
@@ -444,14 +461,14 @@ class BMaterial(Element[gltf.Material], Protocol):
     alphaCutoff: Optional[float]
     doubleSided: bool
 
-class BScene(Element[gltf.Scene], Protocol):
+class BScene(Element[gltf.Scene, '_SceneState'], Protocol):
     '''
     Scene for glTF.
     '''
     _scope_name = ScopeName.SCENE
     nodes: list[BNode]
 
-class BSkin(Element[gltf.Skin], Protocol):
+class BSkin(Element[gltf.Skin, '_SkinState'], Protocol):
     '''
     Skin for a glTF model.
     '''

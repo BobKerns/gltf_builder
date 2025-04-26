@@ -13,7 +13,7 @@ import math
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _Compileable, _Scope, _CompileState
+from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compileable, _Scope, _CompileState
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, ImageType, JsonObject,
@@ -236,7 +236,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The primary `BBuffer` for the glTF file.
     '''
-    _states: dict[int, _CompileState]
+    _states: dict[int, _BaseCompileState]
     
     @abstractmethod
     def create_mesh(self,
@@ -270,7 +270,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     def _gen_name(self,
-                  obj: _Compileable[_GLTF], /, *,
+                  obj: _Compileable[_GLTF, _STATE], /, *,
                   prefix: str='',
                   scope: ScopeName|None=None,
                   index: Optional[int]=None,

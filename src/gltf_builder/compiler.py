@@ -26,7 +26,12 @@ if TYPE_CHECKING:
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 
-_GLTF = TypeVar('_GLTF', bound=gltf.Property)
+_GLTF = TypeVar('_GLTF', bound=gltf.Property, covariant=True)
+'''
+Type variable for glTF elements.
+This is used to indicate the type of the gltf element being compiled.
+'''
+
 
 _Collected: TypeAlias = tuple[
     '_Compileable',
@@ -49,21 +54,50 @@ _DoCompileReturn: TypeAlias = (
     _ReturnExtensions
 )
 
+
+class _BaseCompileState(Generic[_GLTF]):
+    '''
+    Base state for compiling an element.
+
+    Seperate from `_CompileState` to allow for more generic use.
+    '''
+    name: str
+    index: int = -1
+    phases: list[Phase]
+    compiled: _GLTF|None
+    collected: _Collected|None
+    def __init__(self,
+                 name: str,
+                ) -> None:
+        self.name = name
+        self.phases = []
+        self.compiled = None
+        self.collected = None
+
+
+_STATE = TypeVar('_STATE', bound=_BaseCompileState)
+
+'''
+Type variable for the compile state.
+This is used to indicate the type of the compile state.
+'''
+
 @dataclass
-class _CompileState(Generic[_GLTF]):
+class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
     '''
     State for compiling an element.
     '''
-    element: '_Compileable[_GLTF]'
-    name: str
-    index: int = 1
-    byteOffset: int = -1
-    len: int = -1
-    phases: list[Phase] = field(default_factory=list)
-    compiled: _GLTF|None = None
-    collected: _Collected|None = None
+    element: '_Compileable[_GLTF, _STATE]'
+    def __init__(self,
+                 name: str,
+                 element: '_Compileable[_GLTF, _STATE]',
+                ) -> None:
+        super().__init__(
+            name=name,
+        )
+        self.element = element
 
-class _Compileable(Generic[_GLTF], Protocol):
+class _Compileable(Generic[_GLTF, _STATE], Protocol):
     __phases: list[Phase]
     _len: int = -1
     _scope_name: ScopeName
@@ -100,6 +134,13 @@ class _Compileable(Generic[_GLTF], Protocol):
         if self.__index != -1 and self.__index != index:
             raise ValueError(f'Index already set old={self.__index}, new={index}')
         self.__index = index
+
+    @classmethod
+    def state_type(cls) -> type[_STATE]:
+        '''
+        Create a new compile state for the element.
+        '''
+        return cast(type[_STATE], _CompileState)
 
     def __init__(self,
                  name: str='', /,
@@ -194,9 +235,10 @@ class _Compileable(Generic[_GLTF], Protocol):
                 ) -> '_GLTF|int|_Collected|set[str]|None':
         from gltf_builder.elements import BAccessor
         _key = id(self)
-        state = builder._states.get(_key, None)
+        state = cast(_STATE, builder._states.get(_key, None))
         if state is None:
-            state = _CompileState(self, builder._gen_name(self))
+            state_type = cast(type[_CompileState[_GLTF, _STATE]], self.state_type())
+            state = cast(_STATE, state_type(builder._gen_name(self), self))
             builder._states[_key] = state
         if phase in self.__phases:
             match phase:
@@ -211,7 +253,7 @@ class _Compileable(Generic[_GLTF], Protocol):
                         return self.byteOffset
                     return -1
                 case Phase.BUILD:
-                    return state.compiled
+                    return cast(_GLTF, state.compiled)
                 case _:
                     return None
         else:
@@ -260,7 +302,7 @@ class _Compileable(Generic[_GLTF], Protocol):
                     builder: '_BuilderProtocol',
                     scope: '_Scope',
                     phase: Phase,
-                    state: _CompileState[_GLTF],
+                    state: _STATE,
                     /
                 ) -> _DoCompileReturn[_GLTF]: ...
 

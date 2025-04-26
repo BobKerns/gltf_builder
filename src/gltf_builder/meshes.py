@@ -20,8 +20,21 @@ from gltf_builder.elements import BMesh, BPrimitive, _Scope
 from gltf_builder.primitives import _Primitive
 from gltf_builder.vertices import Vertex
 
+class _MeshState(_CompileState[gltf.Mesh, '_MeshState']):
+    '''
+    State for the compilation of a mesh.
+    '''
+    pass
 
 class _Mesh(BMesh):
+    '''
+    Implementation class for `BMesh`.
+    '''
+
+    @classmethod
+    def state_type(cls):
+        return _MeshState
+
     indicies: Optional[int]
     
     def __init__(self,
@@ -121,7 +134,7 @@ class _Mesh(BMesh):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Mesh],
+                    state: _CompileState[gltf.Mesh, '_MeshState'],
                     /
                 ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:

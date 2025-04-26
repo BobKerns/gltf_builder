@@ -18,7 +18,27 @@ from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
 
 
+class _ImageState(_CompileState[gltf.Image, '_ImageState']):
+    '''
+    State for the compilation of an image.
+    '''
+    __memory: memoryview|None = None
+    @property
+    def memory(self) -> memoryview:
+        if self.__memory is None:
+            raise ValueError('Image memory not available')
+        return self.__memory
+
 class _Image(BImage):
+    '''
+    Implementation class for `BImage`.
+    '''
+    
+    @classmethod
+    def state_type(cls):
+        return _ImageState
+    
+
     __memory: memoryview|None = None
     _scope_name = ScopeName.IMAGE
     
@@ -66,14 +86,14 @@ class _Image(BImage):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Image],
+                    state: _CompileState[gltf.Image, _ImageState],
                     /) -> _DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
                 builder.images.add(self)
                 if self.blob is not None:
                     name=builder._gen_name(self, scope=ScopeName.BUFFER_VIEW)
-                    self.view = builder._get_view(builder.buffer,
+                    self.view = scope._get_view(builder.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,
                     )

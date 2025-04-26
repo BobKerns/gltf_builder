@@ -13,10 +13,21 @@ from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
 
 
+class _TextureState(_CompileState[gltf.Texture, '_TextureState']):
+    '''
+    State for the compilation of a texture.
+    '''
+    pass
+
+
 class _Texture(BTexture):
     '''
     Builder representation of a glTF Texture
     '''
+
+    @classmethod
+    def state_type(cls):
+        return _TextureState
 
     def __init__(self,
                     name: str='', /, *,
@@ -43,7 +54,7 @@ class _Texture(BTexture):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Texture],
+                    state: _CompileState[gltf.Texture, _TextureState],
                     /):
         match phase:
             case Phase.COLLECT:

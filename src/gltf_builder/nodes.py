@@ -156,10 +156,23 @@ class _BNodeContainer(_BNodeContainerProtocol):
     def __len__(self) -> int:
         return len(self.children)
 
+class _NodeState(_CompileState[gltf.Node, '_NodeState']):
+    '''
+    State for the compilation of a node.
+    '''
+    pass
+
+
 class _Node(_BNodeContainer, BNode):
     '''
     Implementation class for `BNode`.
-    '''    
+    ''' 
+
+    @classmethod
+    def state_type(cls):
+        return _NodeState
+
+
     def __init__(self,
                  name: str ='', /,
                  children: Iterable[BNode]=(),
@@ -208,7 +221,7 @@ class _Node(_BNodeContainer, BNode):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Node],
+                    state: _CompileState[gltf.Node, '_NodeState'],
                     /):
         match phase:
             case Phase.COLLECT:

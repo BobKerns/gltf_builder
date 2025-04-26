@@ -13,10 +13,21 @@ from gltf_builder.elements import BNode, BScene
 from gltf_builder.protocols import _BuilderProtocol
 
 
+class _SceneState(_CompileState[gltf.Scene, '_SceneState']):
+    '''
+    State for the compilation of a scene.
+    '''
+    pass
+
+
 class _Scene(BScene):
     '''
     Implementation class for `BScene`.
     '''
+
+    @classmethod
+    def state_type(cls):
+        return _SceneState
 
     def __init__(self,
                  name: str='', /,
@@ -39,7 +50,7 @@ class _Scene(BScene):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Scene],
+                    state: _CompileState[gltf.Scene, _SceneState],
                     /):
         match phase:
             case Phase.COLLECT:

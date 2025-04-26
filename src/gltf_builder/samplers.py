@@ -13,10 +13,21 @@ from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
 
 
+class _SamplerState(_CompileState[gltf.Sampler, '_SamplerState']):
+    '''
+    State for the compilation of a sampler.
+    '''
+    pass
+
 class _Sampler(BSampler):
     '''
     Builder representation of a glTF Sampler
     '''
+
+    @classmethod
+    def state_type(cls):
+        return _SamplerState
+
     def __init__(self,
                  name: str='', /, *,
                  magFilter: Optional[MagFilter]=None,
@@ -47,7 +58,7 @@ class _Sampler(BSampler):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Sampler],
+                    state: _CompileState[gltf.Sampler, _SamplerState],
                     /):
         match phase:
             case Phase.BUILD:

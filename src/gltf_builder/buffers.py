@@ -7,7 +7,7 @@ from typing import Literal, Optional, overload
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _Collected, _CompileState, _DoCompileReturn
+from gltf_builder.compiler import _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, Phase, BufferViewTarget, ScopeName,
 )
@@ -19,8 +19,38 @@ from gltf_builder.elements import (
 from gltf_builder.holders import _Holder
 from gltf_builder.views import _BufferView
 
+class _BufferState(_CompileState[gltf.Buffer, '_BufferState']):
+    '''
+    State for the compilation of a buffer.
+    '''
+    bytearray: bytearray
+    __blob: bytes|None = None
+    _views: dict[_BufferViewKey, BBufferView]
+    @property
+    def blob(self):
+        if self.__blob is None:
+            self.__blob = bytes(self.bytearray)
+        return self.__blob
+
+
+    def __init__(self,
+                 buffer: '_Buffer',
+                 name: str='',
+                 /,
+                 ) -> None:
+        super().__init__(name, buffer)
+        self._views = {}
+
 
 class _Buffer(BBuffer):
+    '''
+    Implementation class for `BBuffer`.
+    '''
+    
+    @classmethod
+    def state_type(cls):
+        return _BufferState
+    
     _scope_name = ScopeName.BUFFER
     __buffer: bytearray
     @property
@@ -82,10 +112,10 @@ class _Buffer(BBuffer):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Buffer],
+                    state: _CompileState[gltf.Buffer, _BufferState],
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
-        def _compile1(elt: Element[_GLTF]):
+        def _compile1(elt: Element[_GLTF, _STATE]):
             return elt.compile(builder, scope, phase)
         def _compile_views():
             for view in self.views:

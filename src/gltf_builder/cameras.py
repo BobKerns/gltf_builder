@@ -2,7 +2,7 @@
 Functions for creating cameras in glTF format.
 '''
 
-from typing import Any, Literal, overload
+from typing import Any, Literal, Optional, overload
 
 import pygltflib as gltf
 
@@ -13,39 +13,71 @@ from gltf_builder.utils import std_repr
 from gltf_builder.compiler import _CompileState, _Scope
 
 
-class _PerspectiveCanera(BPerspectiveCamera):
+class _CameraState(_CompileState[gltf.Camera, '_CameraState']):
+    '''
+    State for the compilation of a camera.
+    '''
+    pass
+
+class _Camera(BCamera):
+    '''
+    Implementation class for `BCamera`.
+    '''
+
+    @classmethod
+    def state_type(cls):
+        return _CameraState
+    
+    def __init__(self,
+                 name: str='',
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                 type_extras: Optional[JsonObject]=None,
+                 type_extensions: Optional[JsonObject]=None,
+                ):
+        super().__init__(
+            name,
+            extras=extras,
+            extensions=extensions
+        )
+        self.type_extras: dict[str, Any] = dict(type_extras or ())
+        self.type_extensions: dict[str, Any] = dict(type_extensions or ())
+
+
+class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
     '''
     Builder representation of a glTF Perspective Camera
     '''
 
     def __init__(self,
                  name: str='',
+                 /,
                  yfov: float=1.0,
                  znear: float=0.1,
                  zfar: float=100.0,
-                 aspectRatio: float|None=None,
-                 extras: JsonObject|None=None,
-                 extensions: JsonObject|None=None,
-                 type_extras: JsonObject|None=None,
-                 type_extensions: JsonObject|None=None,
+                 aspectRatio: Optional[float]=None,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                 type_extras: Optional[JsonObject]=None,
+                 type_extensions: Optional[JsonObject]=None,
                  ):
         super().__init__(
             name,
             extras=extras,
-            extensions=extensions
+            extensions=extensions,
+            type_extras=type_extras,
+            type_extensions=type_extensions,
         )
         self.yfov=yfov
         self.znear=znear
         self.zfar=zfar
         self.aspectRatio=aspectRatio
-        self.type_extras=dict(type_extras or ())
-        self.type_extensions=dict(type_extensions or ())
                  
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Camera],
+                    state: _CompileState[gltf.Camera, _CameraState],
                     /
                 ):
         match phase:
@@ -67,30 +99,31 @@ class _PerspectiveCanera(BPerspectiveCamera):
         ))
     
 
-class _OrthographicCampera(BOrthographicCamera):
+class _OrthographicCampera(_Camera, BOrthographicCamera):
     '''
     Builder representation of a glTF Orthographic Camera
     '''
 
     def __init__(self,
                 name: str='',
+                /,
                 xmag: float=1.0,
                 ymag: float=1.0,
                 znear: float=0.1,
                 zfar: float=100.0,
-                 aspectRatio: float|None=None,
-                 extras: JsonObject|None=None,
-                 extensions: JsonObject|None=None,
-                 type_extras: JsonObject|None=None,
-                 type_extensions: JsonObject|None=None,
+                 aspectRatio: Optional[float]=None,
+                 extras: Optional[JsonObject]=None,
+                 extensions: Optional[JsonObject]=None,
+                 type_extras: Optional[JsonObject]=None,
+                 type_extensions: Optional[JsonObject]=None,
                 ):
         super().__init__(
             name=name,
             extras=extras,
-            extensions=extensions
+            extensions=extensions,
+            type_extras=type_extras,
+            type_extensions=type_extensions,
         )
-        self.type_extras=dict(type_extras or ())
-        self.type_extensions=dict(type_extensions or ())
         self.xmag=xmag
         self.ymag=ymag
         self.znear=znear
@@ -110,7 +143,7 @@ class _OrthographicCampera(BOrthographicCamera):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Camera],
+                    state: _CompileState[gltf.Camera, _CameraState],
                     ):
         match phase:
             case Phase.BUILD:
@@ -171,7 +204,7 @@ def camera(type: CameraType,
     match type:
         case CameraType.PERSPECTIVE:
             return _PerspectiveCanera(
-                name=name,
+                name,
                 yfov=yfov,
                 znear=znear,
                 zfar=zfar,
@@ -181,7 +214,7 @@ def camera(type: CameraType,
             )
         case CameraType.ORTHOGRAPHIC:
             return _OrthographicCampera(
-                name=name,
+                name,
                 xmag=xmag,
                 ymag=ymag,
                 znear=znear,

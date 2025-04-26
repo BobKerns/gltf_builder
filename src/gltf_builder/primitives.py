@@ -7,7 +7,7 @@ from typing import Any, Optional, Self, cast
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _Collected, _CompileState
+from gltf_builder.compiler import _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
     JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
@@ -22,11 +22,30 @@ from gltf_builder.elements import (
 from gltf_builder.accessors import _Accessor
 from gltf_builder.utils import decode_dtype
 
+class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState']):
+    '''
+    State for the compilation of a primitive.
+    '''
+    _accessors: list[BAccessor[NPTypes, AttributeData]]
+    _indices_accessor: Optional[BAccessor[NPTypes, int]] = None
+    def __init__(self,
+                 primitive: '_Primitive',
+                 name: str='',
+                 /,
+                ) -> None:
+        super().__init__(name, primitive)
+        self._accessors = []
 
 class _Primitive(BPrimitive):
     '''
     Base implementation class for primitives
     '''
+
+    @classmethod
+    def state_type(cls):
+        return _PrimitiveState
+
+
     __attrib_accessors: Mapping[str, BAccessor[NPTypes, AttributeData]]
     __indices_accessor: Optional[BAccessor[NPTypes, int]] = None
     
@@ -80,10 +99,10 @@ class _Primitive(BPrimitive):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Primitive],
+                    state: _CompileState[gltf.Primitive, '_PrimitiveState'],
                     /
-                ):
-        def _compile(elt: Element[_GLTF]):
+                ) -> _DoCompileReturn[gltf.Primitive]:
+        def _compile(elt: Element[_GLTF, _STATE]):
             return elt.compile(builder, scope, phase)
         
         mesh = self.mesh

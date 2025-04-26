@@ -42,7 +42,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
      Element, _GLTF,
 )
-from gltf_builder.compiler import _Compileable, _Collected, _CompileState
+from gltf_builder.compiler import _STATE, _Compileable, _Collected, _CompileState
 from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 
@@ -325,7 +325,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             if phase != Phase.BUILD:
                self.compile(phase)
         
-        def build_list(l: Iterable[Element[_GLTF]]) -> list[_GLTF]:
+        def build_list(l: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
             return [
                 v.compile(self, self, Phase.BUILD)
                 for v in l
@@ -444,7 +444,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     __names: set[str] = set()
 
     def _gen_name(self,
-                  obj: _Compileable[gltf.Property], /, *,
+                  obj: _Compileable[_GLTF, _STATE], /, *,
                   prefix: str|object='',
                   scope: ScopeName|None=None,
                   index: int|None=None,
@@ -461,7 +461,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 counters[tname] = count()
             return next(counters[tname])
         
-        def gen(obj: _Compileable[gltf.Property]) -> str:
+        def gen(obj: _Compileable[_GLTF, _STATE]) -> str:
             nonlocal prefix, suffix
             name_mode = self.name_policy[scope]
             match obj:

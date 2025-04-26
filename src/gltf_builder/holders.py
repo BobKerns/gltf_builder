@@ -5,9 +5,12 @@ A container for `Element` objects, indexable by name or index.
 from collections.abc import Iterable
 from typing import TypeVar, Any, TYPE_CHECKING, overload
 
+import pygltflib as gltf
+
 if TYPE_CHECKING:
+    from gltf_builder.compiler import _CompileState
     from gltf_builder.elements import Element
-    T = TypeVar('T', bound=Element[Any])
+    T = TypeVar('T', bound=Element[Any, Any])
 else:
     T = TypeVar('T')
 

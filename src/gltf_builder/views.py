@@ -18,7 +18,21 @@ from gltf_builder.compiler import _CompileState
 from gltf_builder.holders import _Holder
 
 
+class _BufferViewState(_CompileState[gltf.BufferView, '_BufferViewState']):
+    '''
+    State for the compilation of a buffer view.
+    '''
+    pass
+
 class _BufferView(BBufferView):
+    '''
+    Implementation class for `BBufferView`.
+    '''
+
+    @classmethod
+    def state_type(cls):
+        return _BufferViewState
+
     __memory: memoryview
     
     __blob: bytes|None = None
@@ -60,7 +74,7 @@ class _BufferView(BBufferView):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.BufferView],
+                    state: _CompileState[gltf.BufferView, _BufferViewState],
                     /):
         match phase:
             case Phase.COLLECT:

@@ -14,7 +14,7 @@ from gltf_builder.core_types import (
 from gltf_builder.attribute_types import BTYPE, BTYPE_co, BType
 from gltf_builder.protocols  import _BuilderProtocol
 from gltf_builder.elements import (
-    BAccessor, BBuffer, NP
+    BAccessor, BBuffer, NP, BBufferView
 )
 from gltf_builder.compiler import _CompileState, _DoCompileReturn, _Scope
 from gltf_builder.utils import decode_dtype, decode_stride, decode_type
@@ -23,10 +23,26 @@ from gltf_builder.log import GLTF_LOG
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
+class _AccessorState(_CompileState[gltf.Accessor, '_AccessorState']):
+    '''
+    State for the compilation of an accessor.
+    '''
+    view: Optional[BBufferView] = None
+
 class _Accessor(BAccessor[NP, BTYPE]):
+    '''
+    Implementation class for `BAccessor`.
+    '''
+    pass
+
+    @classmethod
+    def state_type(cls):
+        return _AccessorState
+    
     __memory: memoryview
     dtype: type[NP]
     btype: BType
+    target: BufferViewTarget
     
     @property
     def memory(self):
@@ -65,6 +81,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.min = min
         self.dtype = dtype
         self.btype = btype
+        self.target = target
         self.data = []
 
     def log_offset(self):
@@ -84,7 +101,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     builder: _BuilderProtocol,
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Accessor],
+                    state: _CompileState[gltf.Accessor, _AccessorState],
                     /
                     ) -> _DoCompileReturn[gltf.Accessor]:
         match phase:
