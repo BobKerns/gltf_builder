@@ -3,7 +3,7 @@
 [![glTF Logo](docs/glTF_100px_June16.png)](https://www.khronos.org/gltf/)
 [![WebGL Logo](docs/WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
 
-This library wraps the `pygltflib` library to handle the low-level details of managing buffers, buffer views, and accessors.
+This library wraps the [`pygltflib`](https://github.com/lukas-shawford/gltflib) library to handle the low-level details of managing buffers, buffer views, and accessors.
 
 In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` prefix.
 
