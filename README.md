@@ -47,7 +47,7 @@ CUBE_FACE6 = (1, 5, 6, 2)
 
 builder = Builder()
 
-mesh = builder.add_mesh('CUBE', detached=True)
+mesh = builder.add_mesh('CUBE')
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE1])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE2])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
@@ -71,11 +71,17 @@ gltf = builder.build()
 gltf.save_binary('cube.glb')
 ```
 
-The `builder.build()` method produces a regular `pygltflib.GLTF2` instance.
+Notes:
 
-To create hierarchy, use the `add_node()` method on a parent node.
-
-Note that referencing the same tuple for a point treats it as the same vertex, while a copy will create a separate vertex.
+- The `builder.build()` method produces a regular `pygltflib.GLTF2` instance.
+- To create hierarchy, use the `add_node()` method on a parent node.
+- Using `Builder.create_mesh` rather than `mesh` associates it with the builder immediately
+  - This allows you to retrieve it with `builder.meshes[`_name_`]`.
+  - `mesh()` produces a detached mesh, which can used for one or more nodes.
+- Using `Builder.create_node` rather than `node` associates it with the builder immediately.
+  - This allows you to retrieve it with `builder.nodes[`_name_`]`.
+  - `node()` produces a detached node, which can instantiated or added later.
+- Objects do not need to be added to the buillder explicitly if they are referenced by other objects.
 
 ## Instancing
 
