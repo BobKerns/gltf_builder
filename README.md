@@ -11,7 +11,7 @@ For more information about the underlying glTF model, see [our page on glTF](doc
 
 ## Project Status
 
-As of 2025-04-26: Under active development, with extensive tests.
+As of 2025-04-26: Under active development, with extensive tests. All files produced by the tests are validated with the [official validator](https://github.khronos.org/glTF-Validator/).
 
 Working:
 
