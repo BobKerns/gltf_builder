@@ -4,7 +4,7 @@
 ---
 erDiagram
     direction TB
-    Builder ||--o{ BNode : nodes
+    Builder ||..o{ BNode : nodes
     Builder ||--|| BAsset : asset
     Builder ||--o{ BScene : scenes
     Builder ||--|| BScene : scene
@@ -18,9 +18,6 @@ erDiagram
     Builder ||--o{ BAnimationChannel : animationChannels
     Builder ||--o{ BAnimationSampler : animationSamplers
     Builder ||--o{ BSkin : skins
-    Builder ||--o{ BAccessor : accessors
-    Builder ||--o{ BBufferView : views
-    Builder ||--o{ BBuffer : buffers
     BAnimation ||..|{ BAnimationChannel : animationChannels
     BAnimation ||..|{ BAnimationSampler : animationSamplers
     BAnimationChannel ||..o| BAnimationChannelTarget : target
@@ -33,7 +30,6 @@ erDiagram
         dict extensions
         dict extras
     }
-    BImage ||--o| BBufferView : bufferView
     Builder {
         list extensionsUsed        "List of used glTF extensions"
         list extensionsRequired    "List of required glTF extensions"
@@ -101,52 +97,23 @@ erDiagram
     }
     BMaterial {
         Optional[str] name           "Name of the material"
-        Vector3 emissiveFactor
+        Vector4 baseColorFactor "Applies to baseColorTexture"
+        float metallicFactor "How metallic the material is"
+        float roughnessFactor "Applies to metallicRoughnessTexture"
+        Vector3 emissiveFactor "Applies to emissiveTexture"
         Vector4 baseColorFactor
-        float metallicFactor
-        float roughnessFactor
         AlphaMode alphaMode       "Alpha mode for the material"
         float alphaCutoff     "Alpha cutoff value for alpha mode"
         bool doubleSided      "Indicates if the material is double-sided"
-        dict extensions
+        float normalScale     "Applies to normalTexture"
+        float occlusionStrength "Applies to occlusionTexture"
         dict extras
     }
-    BMaterial ||--o| gltf_PbrMaterialRoughness : pbrMetallicRoughness
-    BMaterial ||--o| gltf_TextureInfo : emissiveTexture
-    BMaterial ||--o| gltf_NormalTextureInfo : normalTexture
-    gltf_PbrMaterialRoughness {
-        Vector4 baseColorFactor
-        float metallicFactor
-        float roughnessFactor
-        dict extensions
-        dict extras
-    }
-    gltf_PbrMaterialRoughness ||--o| gltf_TextureInfo : baseColorTexture
-    gltf_PbrMaterialRoughness ||--o| gltf_TextureInfo : metallicRoughnessTexture
-    gltf_TextureInfo {
-        int texCoord
-        float scale
-        dict extensions
-        dict extras
-    }
-    gltf_TextureInfo ||..|| BTexture : texture
-    gltf_NormalTextureInfo {
-        int texCoord
-        float scale
-        float normalScale
-        dict extensions
-        dict extras
-    }
-    gltf_NormalTextureInfo ||..|| BTexture : texture
-    BMaterial ||--o| gltf_OcclusionTextureInfo : occlusionTexture
-    gltf_OcclusionTextureInfo {
-        int texCoord
-        float strength
-        dict extensions
-        dict extras
-    }
-    gltf_OcclusionTextureInfo ||..|| BTexture : texture
-
+    BMaterial ||..o| BTexture : emissiveTexture
+    BMaterial ||..o| BTexture : normalTexture
+    BMaterial ||..o| BTexture : baseColorTexture
+    BMaterial ||..o| BTexture : metallicRoughnessTexture
+    BMaterial ||..o| BTexture : occlusionTexture
     BScene {
         Optional[str] name           "Name of the scene"
         dict extensions
@@ -154,24 +121,13 @@ erDiagram
     }
     BCamera {
         Optional[str] name           "Name of the camera"
-        dict extensions
-        dict extras
-    }
-    BCamera ||--o| gltf_Orthographic : orthographic
-    BCamera ||--o| gltf_Perspective : perspective
-    gltf_Orthographic {
-        float xmag
-        float ymag
-        float zfar
-        float znear
-        dict extensions
-        dict extras
-    }
-    gltf_Perspective {
-        float aspectRatio
-        float yfov
-        float zfar
-        float znear
+        CameraType type "Type of the camera (e.g., PERSPECTIVE)"
+        float zfar "Far clipping plane"
+        float znear "Near clipping plane"
+        float xmag       "Horizontal field of view (orthographic)"
+        float ymag      "Vertical field of view (orthographic)"
+        float aspectRatio "Aspect ratio (perspective)"
+        float yfov         "Vertical field of view (perspective)"
         dict extensions
         dict extras
     }
@@ -186,57 +142,6 @@ erDiagram
     BSkin ||..|| BNode : skeleton
     BSkin ||..o| BNode : joints
     BPrimitive ||--|{ BMaterial : material
-    BAccessor {
-        Optional[str] name           "Name of the accessor"
-        int byteOffset        "Byte offset into the bufferView"
-        ComponentType componentType     "Component type of the accessor"
-        ElementType type    "Type of the accessor (e.g., VEC3)"
-        int count             "Number of elements in the accessor"
-        bool normalized        "Indicates if the data is normalized"
-        list[int] min              "Minimum value for each component"
-        list[int] max              "Maximum value for each component"
-        dict extensions
-        dict extras
-    }
-    BAccessor ||--o| BSparse : sparse
-    BSparse {
-        int count      "Accessor for sparse values"
-        dict extensions
-        dict extras
-    }
-    BSparse ||--o| BSparseIndicies : indices
-    BSparse ||--o| BSparseValues : values
-    BSparseValues {
-        int byteOffset "Byte offset into the buffer view"
-        dict extensions
-        dict extras
-    }
-    BSparseValues ||..|| BBufferView : bufferView
-    BSparseIndicies {
-        int byteOffset "Byte offset into the buffer view"
-        ComponentType componentType "Component type of the indices"
-        dict extensions
-        dict extras
-    }
-    BSparseIndicies ||..|| BBufferView : bufferView
-    BAccessor ||..o| BBufferView : bufferView
-    BBufferView ||..|| BBuffer : buffer
-    BBufferView {
-        Optional[str] name           "Name of the buffer view"
-        int byteOffset        "Byte offset into the buffer"
-        int byteLength        "Length of the buffer view in bytes"
-        int byteStride        "Byte stride for interleaved data"
-        BufferViewTarget target "Target for the buffer view"
-        dict extensions
-        dict extras
-    }
-    BBuffer {
-        string Optional[str]           "Name of the buffer"
-        int byteLength        "Length of the buffer in bytes"
-        string uri            "URI or path to the buffer"
-        dict extensions
-        dict extras
-    }
 
 BAnimationSampler {
     int input "Accessor for the input values"

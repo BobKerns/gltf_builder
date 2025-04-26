@@ -167,9 +167,27 @@ These take the expected values, with the following notes:
 |                           | `BPerspectiveCamera`  ||
 |                           | `BOrthographicCamera` ||
 
-Click the image for a full-sized SVG version.
+### glTF model
 
-[![erDiagram](docs/erDiagramThumb.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagram.svg)
+The full glTF model is here.
+
+Click the image for a full-sized SVG version.
+[![erDiagram](docs/erDiagramThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagram.svg)
+
+Notes:
+
+- Nodes beginning with "B" are part of the Builder model.
+- Nodes beginning with "gltf_" are optional internal subfields. These are flattened into their owning objects in the Builder model
+
+### User-level Builder model
+
+As a user building geometry, we don't want to deal with low-level details. The following model elides portions handled automatically:
+
+* Storage layout (Accessors, BufferViews, and Buffers)
+* Internal optional subfields are collapsed into their owning objects.
+
+Click the image for a full-sized SVG version.
+[![erDiagram](docs/erDiagramUserSubsetThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erUserSubsetDiagram.svg)
 
 ## Node
 
