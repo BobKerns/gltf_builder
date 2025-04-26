@@ -33,14 +33,12 @@ class _Image(BImage):
     '''
     Implementation class for `BImage`.
     '''
-    
+
     @classmethod
     def state_type(cls):
         return _ImageState
     
-
     __memory: memoryview|None = None
-    _scope_name = ScopeName.IMAGE
     
     @property
     def mimeType(self) -> str:
@@ -75,13 +73,6 @@ class _Image(BImage):
         self.uri = uri
         self.imageType = imageType
 
-    def _clone_attributes(self) -> dict[str, Any]:
-        return dict(
-            blob=self.blob,
-            uri=self.uri,
-            imageType=self.imageType,
-        )
-
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
@@ -114,7 +105,8 @@ class _Image(BImage):
                 img = gltf.Image(
                         name=self.name,
                         #pygltflib is sloppy about types
-                        uri=cast(str, self.uri),
+                        # uri can be str or None
+                        uri=cast(str, str(self.uri) if self.uri else None),
                         mimeType=self.mimeType,
                         extras=self.extras,
                         extensions=self.extensions,
@@ -122,7 +114,7 @@ class _Image(BImage):
                 return img
             case _: pass
     
-    def __repr__(self):
+    def __repr__(self): # pragma: no cover
         return std_repr(self, (
             'name',
             'uri',
