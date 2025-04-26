@@ -89,7 +89,7 @@ Simple instancing can be done by simply using the same mesh for multiple nodes.
 
 You can also instance a node hierarchy with the `instantiate` method. This takes a node and copies it, optionally supplying a transformation.
 
-The node can be an existing node in the scene, or it cn be created with the `detached=True` option to `add_node()`, which creates the a node that is not added to the scene. You can then use this as the root of an instancable tree, and add child nodes and meshes.
+The node can be an existing node in the scene, or it cn be created with `node()`, which creates the a node that is not added to the scene. You can then use this as the root of an instancable tree, and add child nodes and meshes.
 
 You can access existing nodes by name by the `builder[`_name_`]` syntax. If nodes with the same name appear in different places, you may need to first access a parent that holds only one of the duplicates. Alternatively, you can loop over all nodes like this:
 
