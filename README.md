@@ -85,13 +85,14 @@ Notes:
 
 - The `builder.build()` method produces a regular `pygltflib.GLTF2` instance.
 - To create hierarchy, use the `add_node()` method on a parent node.
-- Using `Builder.create_mesh` rather than `mesh` associates it with the builder immediately
+- Using `Builder.create_mesh()` rather than `mesh` associates it with the builder immediately
   - This allows you to retrieve it with `builder.meshes[`_name_`]`.
   - `mesh()` produces a detached mesh, which can used for one or more nodes.
-- Using `Builder.create_node` rather than `node` associates it with the builder immediately.
+- Using `Builder.create_node()` rather than `node()` associates it with the builder immediately.
   - This allows you to retrieve it with `builder.nodes[`_name_`]`.
   - `node()` produces a detached node, which can instantiated or added later.
 - Objects do not need to be added to the buillder explicitly if they are referenced by other objects.
+- Using `Builder.create_mesh()` or `Builder.create_node()` adds the resulting mesh to the file, even if not referenced. They are otherwise equivalent to `mesh()` or `node()`.
 
 ## Instancing
 
