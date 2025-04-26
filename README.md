@@ -2,7 +2,31 @@
 
 This library wraps the `pygltflib` library to handle the low-level details of managing buffers, buffer views, and accessors.
 
-In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` orefix.
+In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` prefix.
+
+## Project Status
+
+As of 2025-04-26: Under active development, with extensive tests.
+
+Working:
+
+- Nodes, meshes, sufficient for wireframes
+- Attributes (color is the only useful attribute in wireframe)
+
+Incomplete:
+
+- Images
+- Textures
+- Materials
+- Vertex management
+- Skins
+- Documentation
+
+Not started:
+
+- Animation
+
+## Usage
 
 You start by creating a `Builder` instance. There are abstract types corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classe are compiled to the corresponding `gltf` clases with the `compile()` method, which returns a `pygltflib.GLTF2` instance.
 
