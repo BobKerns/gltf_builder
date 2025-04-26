@@ -183,11 +183,11 @@ Notes:
 
 As a user building geometry, we don't want to deal with low-level details. The following model elides portions handled automatically:
 
-* Storage layout (Accessors, BufferViews, and Buffers)
-* Internal optional subfields are collapsed into their owning objects.
+- Storage layout (Accessors, BufferViews, and Buffers)
+- Internal optional subfields are collapsed into their owning objects.
 
 Click the image for a full-sized SVG version.
-[![erDiagram](docs/erDiagramUserSubsetThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erUserSubsetDiagram.svg)
+[![erDiagram](docs/erDiagramUserSubsetThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDjagranUserSubset.svg)
 
 ## Node
 
