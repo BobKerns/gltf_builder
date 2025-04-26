@@ -222,5 +222,5 @@ def camera(type: CameraType,
                 extras=extras,
                 extensions=extensions
             )
-        case _:
+        case _:  # pragma: no cover
             raise ValueError(f'Unknown camera type: {type}')

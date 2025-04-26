@@ -110,15 +110,8 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
     def byteOffset(self, offset: int):
         if self.__byte_offset == -1:
             self.__byte_offset = offset
-        elif self.__byte_offset != offset:
+        elif self.__byte_offset != offset:  # pragma: no cover
             raise ValueError(f'Byte offset already set, old={self.__byte_offset}, new={offset}')
-    
-    def relocate(self, new_offset: int, new_index: int=-1):
-        '''
-        Relocate an item to a new byte offset ns iswzx.
-        '''
-        self.__byte_offset = new_offset
-        self.__index = new_index
     
     extensions: JsonObject
     extras: JsonObject
@@ -132,7 +125,7 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
     @_index.setter
     def _index(self, index: int):
         if self.__index != -1 and self.__index != index:
-            raise ValueError(f'Index already set old={self.__index}, new={index}')
+            raise ValueError(f'Index already set old={self.__index}, new={index}') # pragma: no cover
         self.__index = index
 
     @classmethod
@@ -140,7 +133,7 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
         '''
         Create a new compile state for the element.
         '''
-        return cast(type[_STATE], _CompileState)
+        return cast(type[_STATE], _CompileState) # pragma: no cover
 
     def __init__(self,
                  name: str='', /,
@@ -158,7 +151,7 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
         '''
         Clone the attributes of the object.
         '''
-        return {}
+        return {} # pragma: no cover
 
     def clone(self, name: str='', /,
               extras: Optional[JsonObject]=None,
@@ -178,11 +171,6 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
             name or self.name,
             **kwargs,
         )
-
-    def log_offset(self):
-        if self.byteOffset >= 0:
-            LOG.debug(f'{self} has offset {self.byteOffset}')
-    
 
     @overload
     def compile(self,
@@ -245,13 +233,9 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
                 case Phase.COLLECT:
                     return self._collected
                 case Phase.SIZES:
-                    if hasattr(self, '_len'):
-                        return self._len
-                    return 0
+                    return self._len
                 case Phase.OFFSETS:
-                    if hasattr(self, 'byteOffset'):
-                        return self.byteOffset
-                    return -1
+                    return self.byteOffset
                 case Phase.BUILD:
                     return cast(_GLTF, state.compiled)
                 case _:
@@ -269,11 +253,10 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
                     bytelen = cast(_ReturnSizes, _do_compile() or 0)
-                    if bytelen is not None:
-                        self._len = bytelen
-                        LOG.debug('%s has length %s', self, self._len)
-                        return bytelen
-                    return 0
+                    assert bytelen is not None
+                    self._len = bytelen
+                    LOG.debug('%s has length %s', self, self._len)
+                    return bytelen
                 case Phase.OFFSETS:
                     _do_compile()
                     if self.byteOffset >= 0:
@@ -314,23 +297,6 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
             return False
         return bool(self._len)
 
-class _AccessorKey(NamedTuple):
-    type: ElementType
-    componentType: ComponentType
-    normalized: bool
-    name: str = ''
-    
-    def __hash__(self):
-        return hash((self.type, self.componentType, self.normalized, self.name))
-    
-    def __eq__(self, other: Any):
-        if isinstance(other, _AccessorKey):
-            if self.type == other.type:
-                if self.componentType == other.componentType:
-                    if self.normalized == other.normalized:
-                        return self.name == other.name
-        return False
-
 
 class _Scope(Protocol):
     '''
@@ -345,13 +311,11 @@ class _Scope(Protocol):
     scope above them.
     '''
     __views: dict['_BufferViewKey', 'BBufferView']
-    __accessors: dict[_AccessorKey, 'BAccessor[NPTypes, AttributeData]']
-    __is_accessor_scope: bool = False
-    __is_view_scope: bool = False
-    __buffer: 'BBuffer'
+    
+    __target_buffer: 'BBuffer'
     @property
     def target_buffer(self) -> 'BBuffer':
-        return self.__buffer
+        return self.__target_buffer
     
     __buidler: '_BuilderProtocol'
     @property
@@ -365,47 +329,9 @@ class _Scope(Protocol):
                 is_view_scope: bool=False,
             ):
         self.__buidler = builder
-        self.__buffer = buffer
+        self.__target_buffer = buffer
         self.__views = {}
-        self.__accessors = dict()
-        self.__is_accessor_scope = is_accessor_scope
-        self.__is_view_scope = is_view_scope
 
-    def _get_accessor(self, 
-                    eltType: ElementType,
-                    componenType: ComponentType,
-                    btype: type[AttributeData],
-                    name: str = '',
-                    normalized: bool=False,
-                    BufferViewTarget: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject]=None,
-                ) -> 'BAccessor[NPTypes, AttributeData]':
-        key = _AccessorKey(eltType, componenType, normalized, name)
-        byteStride = decode_stride(eltType, componenType)
-        accessor = self.__accessors.get(key, None)
-        if accessor is None:
-            view = self.target_buffer._get_view(
-                self.__buffer, BufferViewTarget,
-                byteStride=byteStride,
-                name=name,
-                extras=extras,
-                extensions=extensions,
-            )
-            builder = self.__buidler
-            accessor = builder._create_accessor(
-                elementType=eltType,
-                componentType=componenType,
-                btype=btype,
-                buffer=self.target_buffer,
-                name=name,
-                count=0,
-                normalized=normalized,
-                target=BufferViewTarget,
-            )
-            view._add_accessor(accessor)
-            self.__accessors[key] = accessor
-        return accessor
 
     def _get_view(self,
                 buffer: 'BBuffer',

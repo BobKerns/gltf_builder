@@ -84,13 +84,6 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.target = target
         self.data = []
 
-    def log_offset(self):
-        if self.byteOffset >= 0:
-            LOG.debug('%s has offset %d(+%d)',
-                    self, self.byteOffset,
-                    self.view.byteOffset
-                    )
-
     def _add_data(self, data: Sequence[BTYPE]):
         self.data.extend(data)
     
