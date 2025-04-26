@@ -95,6 +95,10 @@ class Matrix2(Matrix[2]):
     @classmethod
     def dims(cls) -> Literal[2]:
         return 2
+    
+    @classmethod
+    def identity(cls) -> 'Matrix2':
+        return cls(np.identity(cls.dims(), dtype=np.float32))
 
 class Matrix3(Matrix[3]):
     '''A 3x3 matrix.'''
@@ -103,6 +107,9 @@ class Matrix3(Matrix[3]):
     def dims(cls) -> Literal[3]:
         return 3
 
+    @classmethod
+    def identity(cls) -> 'Matrix3':
+        return cls(np.identity(cls.dims(), dtype=np.float32))
 
 class Matrix4(Matrix[4]):
     '''A 4x4 matrix.'''
@@ -111,6 +118,9 @@ class Matrix4(Matrix[4]):
     def dims(cls) -> Literal[4]:
         return 4
 
+    @classmethod
+    def identity(cls) -> 'Matrix4':
+        return cls(np.identity(cls.dims(), dtype=np.float32))
 
 Matrix2Spec: TypeAlias = (
     Matrix2 | tuple[
