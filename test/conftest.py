@@ -260,8 +260,14 @@ def save(out_dir, request):
                 raise ValueError(f"Validation failed")
             issues = validation['issues']
             if issues['numErrors'] + issues['numWarnings'] > 0:
+                def fmt_issue(issue):
+                    code = issue['code']
+                    severity = issue['severity']
+                    message = issue['message']
+                    pointer = issue['pointer']
+                    return f'{code}:{severity}: {message} ({pointer})'
                 msg = '\n'.join(
-                    f'{issue["code"]}:{issue["severity"]}: {issue["message"]}'
+                    fmt_issue(issue)
                     for issue in issues['messages']
                     if issue['severity'] in (Severity.ERROR, Severity.WARNING)
                 )
