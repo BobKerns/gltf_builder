@@ -160,7 +160,10 @@ class _Mesh(BMesh):
                     primitives=[
                         p.compile(builder, scope, phase)
                         for p in self.primitives
-                    ]
+                    ],
+                    weights=self.weights,
+                    extras=self.extras,
+                    extensions=self.extensions,
                 )
             case _:
                 for prim in self.primitives:

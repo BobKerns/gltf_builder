@@ -279,10 +279,11 @@ def save(out_dir, request):
 
 
 @pytest.fixture
-def test_builder(request, save):
-    builder = ProxyBuilder(
-        save=save,
-        extras={
+def builder_extras(request):
+    '''
+    A dictionary of extras to add to the builder and the resulting glTF file.
+    '''
+    return {
             'gltf_builder': {
                 'test': {
                     'module': request.node.parent.name,
@@ -290,6 +291,12 @@ def test_builder(request, save):
                 }
             }
         }
+
+@pytest.fixture
+def test_builder(request, save, builder_extras):
+    builder = ProxyBuilder(
+        save=save,
+        extras=dict(builder_extras)
     )
     yield builder
     result = builder.build()
