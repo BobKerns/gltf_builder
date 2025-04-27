@@ -2,14 +2,16 @@
 Implementation of the Material class and its related classes for glTF Builder.
 '''
 
-from typing import Optional, cast
+from typing import Optional, cast, TYPE_CHECKING
 
+from numpy.random import f
 import pygltflib as gltf
 
 from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn, _ReturnCollect
 from gltf_builder.core_types import AlphaMode, JsonObject, Phase
 from gltf_builder.elements import BMaterial, BTexture
-from gltf_builder.protocols import _BuilderProtocol
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _MaterialState(_CompileState[gltf.Material, '_MaterialState']):
@@ -64,7 +66,7 @@ class _Material(BMaterial):
         self.doubleSided = doubleSided
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
                     state: _MaterialState) -> _DoCompileReturn[gltf.Material]:
@@ -84,33 +86,42 @@ class _Material(BMaterial):
                     if t
                 ]
                 for t in textures:
-                    t.compile(builder, scope, phase)
+                    t.compile(gbl, scope, phase)
                 return cast(_ReturnCollect, textures)
             case Phase.BUILD:
+                def texture_idx(t: BTexture|None) -> int|None:
+                    if t is None:
+                        return None
+                    return gbl.idx(t)
+                t_baseColor = texture_idx(self.baseColorTexture)
+                t_metallicRoughness = texture_idx(self.metallicRoughnessTexture)
+                t_normal = texture_idx(self.normalTexture)
+                t_occlusion = texture_idx(self.occlusionTexture)
+                t_emissive = texture_idx(self.emissiveTexture)
                 return gltf.Material(
                     name=self.name,
                     pbrMetallicRoughness=gltf.PbrMetallicRoughness(
                         baseColorFactor=list(self.baseColorFactor) if self.baseColorFactor else None,
                         baseColorTexture=gltf.TextureInfo(
-                            index=self.baseColorTexture._index
-                        ) if self.baseColorTexture else None,
+                            index=t_baseColor
+                        ) if t_baseColor is not None else None,
                         metallicFactor=self.metallicFactor,
                         roughnessFactor=self.roughnessFactor,
                         metallicRoughnessTexture=gltf.TextureInfo(
-                            index=self.metallicRoughnessTexture._index,
-                        ) if self.metallicRoughnessTexture else None,
+                            index=t_metallicRoughness
+                        ) if t_metallicRoughness is not None else None,
                     ),
                     normalTexture=gltf.NormalMaterialTexture(
-                        index=self.normalTexture._index,
+                        index=t_normal,
                         scale = self.normalScale or 1.0,
-                    ) if self.normalTexture else None,
+                    ) if t_normal is not None else None,
                     occlusionTexture=gltf.OcclusionTextureInfo(
-                        index=self.occlusionTexture._index,
+                        index=t_occlusion,
                         strength=self.occlusionStrength,
-                    ) if self.occlusionTexture else None,
+                    ) if t_occlusion is not None else None,
                     emissiveTexture=gltf.TextureInfo(
-                        index=self.emissiveTexture._index,
-                     ) if self.emissiveTexture else None,
+                        index=t_emissive,
+                     ) if t_emissive is not None else None,
                     emissiveFactor=list(self.emissiveFactor) if self.emissiveFactor else None,
                     alphaMode=self.alphaMode.value,
                     alphaCutoff=self.alphaCutoff,

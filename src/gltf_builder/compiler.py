@@ -4,6 +4,7 @@ Compilation interface for the glTF builder.
 
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
+from logging import DEBUG
 from typing import (
     Literal, Optional, Self, TypeAlias, TypeVar, Protocol, Generic,
     Any, cast, overload, TYPE_CHECKING
@@ -20,9 +21,10 @@ from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
+    from gltf_builder.protocols import _BufferViewKey
     from gltf_builder.elements import BBufferView, BBuffer
     from gltf_builder.builder import Builder
+    from gltf_builder.global_state import _GlobalState
 
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
@@ -64,17 +66,57 @@ class _BaseCompileState(Generic[_GLTF]):
     Separate from `_CompileState` to allow for more generic use.
     '''
     name: str
-    index: int = -1
+    _index: int|None = None
+    @property
+    def index(self) -> int:
+        if self._index is None:
+            raise ValueError(f'Index not set for {type(self)}')
+        return self._index
+    @index.setter
+    def index(self, index: int):
+        if self._index is None:
+            self._index = index
+        elif self._index != index:
+            raise ValueError(f'Index already set, old={self._index}, new={index}')
+    _len: int|None = None
+
+    _byteOffset: int|None = 0
+    @property
+    def byteOffset(self) -> int:
+        if self._byteOffset is None:
+            raise ValueError(f'Byte offset not set for {type(self)}')
+        return self._byteOffset
+
+    @byteOffset.setter
+    def byteOffset(self, offset: int):
+        if self._byteOffset is None:
+            self._byteOffset = offset
+        elif self._byteOffset != offset:
+            raise ValueError(f'Byte offset already set, old={self._byteOffset}, new={offset}')
+
     phases: list[Phase]
     compiled: _GLTF|None
     collected: _Collected|None
+
     def __init__(self,
                  name: str,
+                 byteOffset: int|None=0
                 ) -> None:
         self.name = name
         self.phases = []
         self.compiled = None
         self.collected = None
+        self._byteOffset = byteOffset
+
+    def __len__(self) -> int:
+        if self._len is None:
+            raise ValueError(f'Length not set for {self}')
+        return self._len
+
+    def __bool__(self) -> bool:
+        if self._len is None:
+            return False
+        return bool(self._len)
 
 
 _STATE = TypeVar('_STATE', bound=_BaseCompileState)
@@ -85,18 +127,20 @@ This is used to indicate the type of the compile state.
 '''
 
 
-class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
+class _CompileState(_BaseCompileState[_GLTF], Generic[_GLTF, _STATE]):
     '''
     State for compiling an element.
     '''
     element: '_Compilable[_GLTF, _STATE]'
 
     def __init__(self,
-                 name: str,
                  element: '_Compilable[_GLTF, _STATE]',
+                 name: str,
+                byteOffset: int|None=0,
                 ) -> None:
         super().__init__(
             name=name,
+            byteOffset=byteOffset,
         )
         self.element = element
 
@@ -110,42 +154,20 @@ class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
     def __repr__(self):
         return std_repr(self, (
             'name',
-            #('index', self._index),
-            #('byteOffset', self._byteOffset, "offset"),
-            #('len', self._len),
+            ('index', self._index),
+            ('byteOffset', self._byteOffset, "offset"),
+            ('len', self._len),
             'phase',
         ))
 
 class _Compilable(Generic[_GLTF, _STATE], Protocol):
     __phases: list[Phase]
-    _len: int = -1
     _scope_name: ScopeName
-
-    __byte_offset: int = -1
-    @property
-    def byteOffset(self) -> int:
-        return self.__byte_offset
-    @byteOffset.setter
-    def byteOffset(self, offset: int):
-        if self.__byte_offset == -1:
-            self.__byte_offset = offset
-        elif self.__byte_offset != offset:  # pragma: no cover
-            raise ValueError(f'Byte offset already set, old={self.__byte_offset}, new={offset}')
 
     extensions: JsonObject
     extras: JsonObject
     _collected: _Collected|None = None
     name: str = ''
-
-    __index: int = -1 # -1 means not set
-    @property
-    def _index(self) -> int:
-        return self.__index
-    @_index.setter
-    def _index(self, index: int):
-        if self.__index != -1 and self.__index != index:
-            raise ValueError(f'Index already set old={self.__index}, new={index}') # pragma: no cover
-        self.__index = index
 
     @classmethod
     def state_type(cls) -> type[_STATE]:
@@ -158,13 +180,11 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
                  name: str='', /,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                index: int=-1,
                 ):
         self.__phases = []
         self.extensions = dict(extensions) if extensions else {}
         self.extras = dict(extras) if extras else {}
         self.name = name
-        self.__index = index
 
     def _clone_attributes(self) -> dict[str, Any]:
         '''
@@ -193,35 +213,35 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
 
     @overload
     def compile(self,
-                builder: '_BuilderProtocol',
+                gbl: '_GlobalState',
                 scope: '_Scope',
                 phase: Literal[Phase.COLLECT],
                 /
                 ) -> _Collected: ...
     @overload
     def compile(self,
-                builder: '_BuilderProtocol',
+                gbl: '_GlobalState',
                 scope: '_Scope',
                 phase: Literal[Phase.SIZES],
                 /
             ) -> int: ...
     @overload
-    def compile(self, builder:
-                '_BuilderProtocol',
+    def compile(self,
+                gbl: '_GlobalState',
                 scope: '_Scope',
                 phase: Literal[Phase.OFFSETS],
                 /
             ) -> int: ...
     @overload
     def compile(self,
-                builder: '_BuilderProtocol',
+                gbl: '_GlobalState',
                 scope: '_Scope',
                 phase: Literal[Phase.BUILD],
                 /
                 ) -> _GLTF: ...
     @overload
     def compile(self,
-                builder: '_BuilderProtocol',
+                gbl: '_GlobalState',
                 scope: '_Scope',
                 phase: Literal[
                         Phase.VIEWS,
@@ -235,26 +255,20 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
                 /
             ) -> None: ...
     def compile(self,
-                builder: '_BuilderProtocol',
+                gbl: '_GlobalState',
                 scope: '_Scope',
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        from gltf_builder.elements import BAccessor
-        _key = id(self)
-        state = cast(_STATE, builder._states.get(_key, None))
-        if state is None:
-            state_type = cast(type[_CompileState[_GLTF, _STATE]], self.state_type())
-            state = cast(_STATE, state_type(builder._gen_name(self), self))
-            builder._states[_key] = state
-        if phase in self.__phases:
+        state = gbl.state(self)
+        if phase in state.phases:
             match phase:
                 case Phase.COLLECT:
-                    return self._collected
+                    return state.collected
                 case Phase.SIZES:
-                    return self._len
+                    return len(state)
                 case Phase.OFFSETS:
-                    return self.byteOffset
+                    return state.byteOffset
                 case Phase.BUILD:
                     return cast(_GLTF, state.compiled)
                 case _:
@@ -263,29 +277,29 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
             LOG.debug('Compiling %s in phase %s', self, phase)
 
             def _do_compile():
-                return self._do_compile(builder, scope, phase, state)
-            self.__phases.append(phase)
+                return self._do_compile(gbl, scope, phase, state)
+            state.phases.append(phase)
             match phase:
                 case Phase.COLLECT:
-                    state.name = builder._gen_name(self)
+                    state.name = gbl._gen_name(self)
                     items = cast(_ReturnCollect, (_do_compile() or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
                     bytelen = cast(_ReturnSizes, _do_compile() or 0)
                     assert bytelen is not None
-                    self._len = bytelen
-                    LOG.debug('%s has length %s', self, self._len)
+                    state._len = bytelen
+                    LOG.debug('%s has length %s', self, state._len)
                     return bytelen
                 case Phase.OFFSETS:
                     _do_compile()
-                    if self.byteOffset >= 0:
-                        LOG.debug('%s has offset %d(+%d)',
-                                self, self.byteOffset,
-                                self.view.byteOffset if isinstance(self, BAccessor) else 0
-                                )
+                    if state.byteOffset >= 0:
+                        if LOG.isEnabledFor(DEBUG):
+                            LOG.debug('%s has offset %d',
+                                    self, state.byteOffset,
+                                    )
                     else:
-                        LOG.debug(f'{self} has offset {self.byteOffset}')
-                        return self.byteOffset + self._len
+                        LOG.debug(f'{self} has offset {state.byteOffset}')
+                        return state.byteOffset + len(state)
                     return -1
                 case Phase.EXTENSIONS:
                     if self.extensions:
@@ -301,20 +315,12 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
 
     @abstractmethod
     def _do_compile(self,
-                    builder: '_BuilderProtocol',
+                    gbl: '_GlobalState',
                     scope: '_Scope',
                     phase: Phase,
                     state: _STATE,
                     /
                 ) -> _DoCompileReturn[_GLTF]: ...
-
-    def __len__(self) -> int:
-        return self._len
-
-    def __bool__(self) -> bool:
-        if self._len < 0:
-            return False
-        return bool(self._len)
 
 
 class _Scope(Protocol):
@@ -336,18 +342,18 @@ class _Scope(Protocol):
     def target_buffer(self) -> 'BBuffer':
         return self.__target_buffer
 
-    __builder: '_BuilderProtocol'
+    __global: '_GlobalState'
     @property
-    def builder(self) -> '_BuilderProtocol':
-        return self.__builder
+    def gbl(self) -> '_GlobalState':
+        return self.__global
 
     def __init__(self,
-                builder: '_BuilderProtocol',
+                gbl: '_GlobalState',
                 buffer: 'BBuffer',
                 is_accessor_scope: bool=False,
                 is_view_scope: bool=False,
             ):
-        self.__builder = builder
+        self.__global = gbl
         self.__target_buffer = buffer
         self.__views = {}
 
@@ -364,10 +370,11 @@ class _Scope(Protocol):
         key = _BufferViewKey(buffer, target, byteStride, name)
         view = self.__views.get(key, None)
         if view is None:
-            view = self.target_buffer.create_view(
-                target,
+            from gltf_builder.views import _BufferView
+            view = _BufferView(
+                buffer, name,
+                target=target,
                 byteStride=byteStride,
-                name=name,
                 extras=extras,
                 extensions=extensions,
             )

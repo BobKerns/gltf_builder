@@ -3,14 +3,16 @@ Wrapper for textures in glTF.
 This module provides the `_Texture` class, which represents a texture in a glTF file.
 '''
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
 import pygltflib as gltf
 
 from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import Phase
 from gltf_builder.elements import BImage, BSampler, BTexture
-from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _TextureState(_CompileState[gltf.Texture, '_TextureState']):
@@ -51,7 +53,7 @@ class _Texture(BTexture):
 
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
                     state: _CompileState[gltf.Texture, _TextureState],
@@ -59,7 +61,7 @@ class _Texture(BTexture):
         match phase:
             case Phase.COLLECT:
                 return (
-                    s.compile(builder, scope, phase)
+                    s.compile(gbl, scope, phase)
                     for s in (
                         self.sampler,
                         self.source,
@@ -68,19 +70,19 @@ class _Texture(BTexture):
             case Phase.BUILD:
                 return gltf.Texture(
                     name=self.name,
-                    sampler=self.sampler._index,
-                    source=self.source._index,
+                    sampler=gbl.idx(self.sampler),
+                    source=gbl.idx(self.source),
                     extras=self.extras,
                     extensions=self.extensions,
                 )
-    
+
     def __repr__(self):
         return std_repr(self, (
             'name',
             ('sampler', self.sampler.name or id(self.sampler)),
             ('source', self.source.name or id(self.source)),
         ))
-            
+
 def texture(
     name: str='', /, *,
     sampler: BSampler,
@@ -90,14 +92,14 @@ def texture(
 ):
     '''
     Create a texture for glTF.
-    
+
     Args:
         name (str): Name of the texture.
         sampler (BSampler): Sampler for the texture.
         source (BImage): Source image for the texture.
         extras (dict|None): Extra data for the texture.
         extensions (dict|None): Extensions for the texture.
-    
+
     Returns:
         _Texture: A texture object.
     '''

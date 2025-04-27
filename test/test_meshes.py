@@ -14,7 +14,6 @@ def test_empty_mesh():
     assert m.extensions == {}
     assert m.primitives == []
     assert m.weights == []
-    assert m._index == -1
 
 
 def test_mesh():
@@ -30,8 +29,7 @@ def test_mesh():
     assert m.extensions == TEST_EXTENSIONS
     assert m.primitives == []
     assert m.weights == [0.1, 0.2, 0.3]
-    assert m._index == -1
-    assert repr(m) == '<Mesh MESH 0 primitives>'
+    assert repr(m).startswith('<Mesh#')
 
 def test_mesh_build(test_builder):
     m = mesh('MESH',
@@ -44,8 +42,7 @@ def test_mesh_build(test_builder):
     assert m.extensions == TEST_EXTENSIONS
     assert m.primitives == []
     assert m.weights == []
-    assert m._index == -1
-    assert repr(m) == '<Mesh MESH 0 primitives>'
+    assert repr(m).startswith('<Mesh#')
     g = test_builder.build(ignoredIssues=['UNDEFINED_PROPERTY'])
     assert g.meshes[0] is not None
     assert g.meshes[0].name == 'MESH'

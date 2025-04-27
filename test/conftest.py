@@ -18,7 +18,7 @@ from pathlib import Path
 from gltf_builder import Builder
 from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy
 from gltf_builder.elements import GLTF_LOG
-from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.protocols import _GlobalBinary
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -225,7 +225,7 @@ def save(out_dir, request):
             outfile: Optional[Path]=None,
             writeTimestamp: bool=True,
              **params):
-        if isinstance(b, _BuilderProtocol):
+        if isinstance(b, Builder):
             g = b.build(**params)
         else:
             g = b

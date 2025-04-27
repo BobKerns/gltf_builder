@@ -3,7 +3,7 @@ Implementation of the _Skin class and its related classes for glTF Builder.
 '''
 
 from collections.abc import Iterable
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
@@ -11,8 +11,9 @@ from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.elements import BNode, BSkin
 from gltf_builder.matrix import Matrix4
-from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _SkinState(_CompileState[gltf.Skin, '_SkinState']):
@@ -46,27 +47,27 @@ class _Skin(BSkin):
         self.inverseBindMatrices = inverseBindMatrices
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
                     state: _SkinState,
                     /) -> _DoCompileReturn[gltf.Skin]:
         match phase:
             case Phase.COLLECT:
-                builder.nodes.add(self.skeleton)
+                gbl.nodes.add(self.skeleton)
                 for j in self.joints:
-                    builder.nodes.add(j)
-                return [self.skeleton.compile(builder, scope, phase)] + \
-                       [j.compile(builder, scope, phase) for j in self.joints]
+                    gbl.nodes.add(j)
+                return [self.skeleton.compile(gbl, scope, phase)] + \
+                       [j.compile(gbl, scope, phase) for j in self.joints]
             case Phase.BUILD:
                 return gltf.Skin(
                     name=self.name,
-                    skeleton=self.skeleton._index,
-                    joints=[j._index for j in self.joints],
+                    skeleton=gbl.idx(self.skeleton),
+                    joints=[gbl.idx(j) for j in self.joints],
                     extras=self.extras,
                     extensions=self.extensions,
                 )
-            
+
     def __repr__(self):
         return std_repr(self, (
             'name',

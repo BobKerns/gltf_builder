@@ -3,7 +3,7 @@ Image data for textures in glTF format.
 '''
 
 
-from typing import Optional, cast
+from typing import Optional, cast, TYPE_CHECKING
 from pathlib import Path
 
 import pygltflib as gltf
@@ -13,21 +13,28 @@ from gltf_builder.compiler import _Scope, _DoCompileReturn, _CompileState
 from gltf_builder.core_types import (
     BufferViewTarget, ImageType, JsonObject, Phase, ScopeName
 )
-from gltf_builder.elements import BImage
-from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.elements import BBufferView, BImage
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _ImageState(_CompileState[gltf.Image, '_ImageState']):
     '''
     State for the compilation of an image.
     '''
-    __memory: memoryview|None = None
+    view: Optional[BBufferView] = None
+    memory: memoryview|None = None
+
+    __blob: bytes|None = None
     @property
-    def memory(self) -> memoryview:
-        if self.__memory is None:
-            raise ValueError('Image memory not available')
-        return self.__memory
+    def blob(self) -> bytes:
+        if self.__blob is None:
+            if self.memory is None:
+                raise ValueError('Image memory not available')
+            self.__blob = self.memory.tobytes()
+            return self.__blob
+        return self.__blob
 
 class _Image(BImage):
     '''
@@ -37,9 +44,7 @@ class _Image(BImage):
     @classmethod
     def state_type(cls):
         return _ImageState
-    
-    __memory: memoryview|None = None
-    
+
     @property
     def mimeType(self) -> str:
         '''
@@ -74,34 +79,38 @@ class _Image(BImage):
         self.imageType = imageType
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Image, _ImageState],
+                    state: _ImageState,
                     /) -> _DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
-                builder.images.add(self)
+                gbl.images.add(self)
                 if self.blob is not None:
-                    name=builder._gen_name(self, scope=ScopeName.BUFFER_VIEW)
-                    self.view = scope._get_view(builder.buffer,
+                    name=gbl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
+                    state.view = scope._get_view(gbl.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,
                     )
-                    return [self.view.compile(builder, scope, phase,)]
+                    return [state.view.compile(gbl, scope, phase,)]
             case Phase.SIZES:
                 return len(self.blob) if self.blob is not None else 0
             case Phase.OFFSETS:
-                if self.view is not None:
-                    assert self.blob is not None
-                    self.__memory = self.view.memoryview(0, len(self.blob))
+                if state.view is not None:
+                    assert state.blob is not None
+                    v_state = gbl.state(state.view)
+                    state.memory = v_state.memory[0:len(state.blob)]
                 return 0
             case Phase.BUILD:
                 if self.view is not None:
-                    assert self.blob is not None
-                    assert self.__memory is not None
-                    self.__memory[:] = self.blob
-                    self.view.compile(builder, scope, Phase.BUILD)
+                    assert state.blob is not None
+                    memory = state.memory
+                    blob = state.blob
+                    assert memory is not None
+                    assert blob is not None
+                    memory[:] = blob
+                    self.view.compile(gbl, scope, Phase.BUILD)
                 img = gltf.Image(
                         name=self.name,
                         #pygltflib is sloppy about types
@@ -113,14 +122,14 @@ class _Image(BImage):
                     )
                 return img
             case _: pass
-    
+
     def __repr__(self): # pragma: no cover
         return std_repr(self, (
             'name',
             'uri',
             'imageType',
         ))
-    
+
 def image(
     name: str='', /,
     blob: Optional[bytes|np.ndarray[tuple[int], np.dtype[np.uint8]]]=None,
@@ -131,7 +140,7 @@ def image(
 ) -> _Image:
     '''
     Create an image for a texture.
-    
+
     Parameters
     ----------
     name : str, optional
@@ -146,7 +155,7 @@ def image(
         Extra data to be stored with the image.
     extensions : dict, optional
         Extensions to be stored with the image.
-    
+
     Returns
     -------
     _Image

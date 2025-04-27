@@ -5,11 +5,11 @@ the build phase.
 
 
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _CompileState
+from gltf_builder.compiler import _GLTF, _STATE, _CompileState
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
@@ -21,9 +21,11 @@ from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
 from gltf_builder.holders import _Holder
 from gltf_builder.protocols import (
-    _BNodeContainerProtocol, _BuilderProtocol,
+    _BNodeContainerProtocol, _GlobalBinary,
 )
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _BNodeContainer(_BNodeContainerProtocol):
@@ -37,16 +39,6 @@ class _BNodeContainer(_BNodeContainerProtocol):
             ):
         self._local_views = {}
         self.nodes = _Holder(BNode, *nodes)
-        for c in nodes:
-            if isinstance(self, BNode):
-                if c._parent is not None and c._parent is not self:
-                    raise ValueError(f'Node {c.name} already has a parent')
-                c._parent = self
-            else:
-                if c._parent is not None:
-                    raise ValueError(f'Node {c.name} already has a parent')
-                c._parent = None
-            c.root = False
         self.descendants: dict[str, BNode] = {}
 
     def create_node(self,
@@ -88,7 +80,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         -------
         BNode
         '''
-        root = isinstance(self, _BuilderProtocol)
+        root = isinstance(self, _GlobalBinary)
         node = _Node(name,
                     root=root,
                     children=children,
@@ -185,13 +177,11 @@ class _Node(_BNodeContainer, BNode):
                  matrix: Optional[Matrix4Spec]=None,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
-                 index: int=-1,
                  ):
         super(Element, self).__init__(
                          name,
                          extras=extras,
                          extensions=extensions,
-                         index=index,
                         )
         _BNodeContainer.__init__(self,
                                 nodes=children,
@@ -204,6 +194,9 @@ class _Node(_BNodeContainer, BNode):
         self.scale = to_scale(scale) if scale else None
         self.matrix = to_matrix(matrix) if matrix else None
         self._local_views = _Holder(BBufferView)
+        for c in self.children:
+            c._parent = self
+            c.root = False
 
     def _clone_attributes(self) -> dict[str, Any]:
         return dict(
@@ -218,34 +211,37 @@ class _Node(_BNodeContainer, BNode):
         )
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
                     state: _CompileState[gltf.Node, '_NodeState'],
                     /):
         match phase:
             case Phase.COLLECT:
-                builder.nodes.add(self)
+                gbl.nodes.add(self)
                 return (
-                    c.compile(builder, scope, phase)
+                    c.compile(gbl, scope, phase)
                     for c in (self.mesh, self.camera, *self.children)
                     if c is not None
                 )
             case Phase.SIZES:
                 size = sum(
-                    n.compile(builder, scope, phase)
+                    n.compile(gbl, scope, phase)
                     for n in self.children
                 )
                 if self.mesh is not None:
-                    size += self.mesh.compile(builder, scope, phase)
+                    size += self.mesh.compile(gbl, scope, phase)
                 return size
             case Phase.BUILD:
                 if self.mesh is not None:
-                    self.mesh.compile(builder, scope, phase)
+                    self.mesh.compile(gbl, scope, phase)
+                def idx(c: Element[_GLTF, _STATE]) -> int:
+                    return gbl.idx(c)
+                mesh_idx = idx(self.mesh) if self.mesh else None
                 return gltf.Node(
                     name=self.name,
-                    mesh=self.mesh._index if self.mesh else None,
-                    children=[child._index for child in self.children],
+                    mesh=mesh_idx,
+                    children=[idx(child) for child in self.children],
                     translation=list(self.translation) if self.translation else None,
                     rotation=list(self.rotation) if self.rotation else None,
                     scale=list(self.scale) if self.scale else None,
@@ -255,9 +251,11 @@ class _Node(_BNodeContainer, BNode):
                 )
             case _:
                 if self.mesh is not None:
-                    self.mesh.compile(builder, scope, phase)
+                    self.mesh.compile(gbl, scope, phase)
                 for child in self.children:
-                    child.compile(builder, scope, phase)
+                    child.compile(gbl, scope, phase)
+
+
 
     def create_mesh(self,
                  name: str='',

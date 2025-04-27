@@ -22,7 +22,6 @@ def test_camera_perspective(test_builder):
                     extensions=TEST_EXTENSIONS,
                     )
     assert cam.name == 'Camera'
-    assert cam._index == -1
     assert cam._scope_name == 'camera'
     assert cam.aspectRatio == 1.0
     assert cam.yfov == 45.0
@@ -52,7 +51,6 @@ def test_camera_orthographic():
                     extensions=TEST_EXTENSIONS,
                     )
     assert cam.name == 'Camera'
-    assert cam._index == -1
     assert cam._scope_name == 'camera'
     assert cam.xmag == 1.0
     assert cam.ymag == 1.0

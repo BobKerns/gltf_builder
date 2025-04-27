@@ -16,7 +16,7 @@ import pygltflib as gltf
 from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _CompileState, _Compilable, _Scope
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
-    BufferViewTarget, ElementType, ComponentType, ImageType, IndexSize, JsonObject,
+    BufferViewTarget, ElementType, ComponentType, IndexSize, JsonObject,
     NPTypes, ScopeName,
 )
 from gltf_builder.attribute_types import (
@@ -26,7 +26,7 @@ from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
     from gltf_builder.elements import(
-        BNode, BMesh, BPrimitive, BBuffer, BBufferView, BAccessor, BImage,
+        BNode, BMesh, BBuffer, BBufferView, BAccessor, BImage,
         BSampler, BTexture, BScene, BSkin, BMaterial, BCamera,
     )
 
@@ -170,6 +170,10 @@ class _GlobalConfiguration(Protocol):
     '''
     The skins in the glTF File
     '''
+    scene: Optional['BScene']
+    '''
+    The initial scene.
+    '''
     extras: dict[str, Any]
     '''
     The extras for the glTF file.
@@ -177,10 +181,6 @@ class _GlobalConfiguration(Protocol):
     extensions: dict[str, Any]
     '''
     The extensions for the glTF file.
-    '''
-    scene: Optional['BScene']
-    '''
-    The initial scene.
     '''
     extensionsUsed: list[str]
     '''
@@ -243,19 +243,19 @@ class _GlobalConfiguration(Protocol):
 
 
 @runtime_checkable
-class _BuilderProtocol(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Protocol):
+class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Protocol):
     '''
     Abstract class for a Builder.  This exists to avoid circular dependencies.
     '''
 
-    _buffers: _Holder['BBuffer']
+    buffers: _Holder['BBuffer']
     '''
     The buffers in the glTF file.'''
-    _views: _Holder['BBufferView']
+    views: _Holder['BBufferView']
     '''
     The buffer views in the glTF file.
     '''
-    _accessors: _Holder['BAccessor[NPTypes, AttributeData]']
+    accessors: _Holder['BAccessor[NPTypes, AttributeData]']
     '''
     The accessors in the glTF file.
     '''
@@ -331,3 +331,19 @@ class _BuilderProtocol(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Pr
             The created accessor.
         '''
         ...
+
+    @abstractmethod
+    def state(self, elt: _Compilable[_GLTF, _STATE]) -> _STATE:
+        '''
+        Get the state for the given element.
+        '''
+        ...
+
+    def idx(self, elt: _Compilable[_GLTF, _STATE]) -> int:
+        '''
+        Get the index of the given element.
+        '''
+        i = self.state(elt).index
+        if i == -1:
+            raise ValueError(f'Element {elt} has no index yet')
+        return self.state(elt).index

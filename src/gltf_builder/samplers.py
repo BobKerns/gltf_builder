@@ -2,15 +2,16 @@
 Texture samplers for glTF.
 '''
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
 from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import MagFilter, MinFilter, Phase, WrapMode
 from gltf_builder.elements import BSampler
-from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _SamplerState(_CompileState[gltf.Sampler, '_SamplerState']):
@@ -55,7 +56,7 @@ class _Sampler(BSampler):
         )
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
                     state: _CompileState[gltf.Sampler, _SamplerState],
@@ -70,7 +71,7 @@ class _Sampler(BSampler):
                     extras=self.extras,
                     extensions=self.extensions,
                 )
-            
+
     def __repr__(self):
         return std_repr(self, (
             'magFilter',
@@ -91,7 +92,7 @@ def sampler(
 ):
     '''
     Create a sampler for a texture.
-    
+
     Parameters
     ----------
     builder : _BuilderProtocol

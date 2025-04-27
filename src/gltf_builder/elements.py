@@ -22,17 +22,17 @@ from gltf_builder.core_types import (
     BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
 )
 from gltf_builder.attribute_types import (
-    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList,
+    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, BTYPE_co,
     ColorSpec, Point, Scale, TangentSpec, UvSpec,
-    Vector3, Vector3Spec, PointSpec, Vector4,
+    Vector3, Vector3Spec, PointSpec,
     vector3,
 )
 from gltf_builder.matrix import Matrix4
 from gltf_builder.compiler import (
-    _STATE, _CompileState, _Compilable, _GLTF,
+    _STATE, _Compilable, _GLTF,
     _Scope
 )
-from gltf_builder.protocols import _BNodeContainerProtocol, _BuilderProtocol
+from gltf_builder.protocols import _BNodeContainerProtocol
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import std_repr
 from gltf_builder.vertices import Vertex
@@ -67,7 +67,6 @@ class Element(_Compilable[_GLTF, _STATE], Protocol):
             name,
             extras=extras,
             extensions=extensions,
-            index=index,
         )
 
     def __hash__(self):
@@ -87,34 +86,10 @@ class Element(_Compilable[_GLTF, _STATE], Protocol):
 
 
 class BBuffer(Element[gltf.Buffer, '_BufferState'], _Scope, Protocol):
+    '''
+    Buffer interface.
+    '''
     _scope_name = ScopeName.BUFFER
-    @property
-    @abstractmethod
-    def blob(self) -> bytes:
-        ...
-    views: _Holder['BBufferView']
-
-    @abstractmethod
-    def __len__(self) -> int:
-        ...
-
-    @property
-    @abstractmethod
-    def bytearray(self) -> bytearray: ...
-
-    @abstractmethod
-    def create_view(self,
-                  target: BufferViewTarget,
-                  /, *,
-                  name: str='',
-                  byteStride: int=0,
-                  extras:  Optional[JsonObject]=None,
-                  extensions: Optional[JsonObject]=None,
-                ) -> 'BBufferView':
-        '''
-        Create a `BBufferView` for this `BBuffer`.
-        '''
-        ...
 
 
 class BBufferView(Element[gltf.BufferView, '_BufferViewState'], Protocol):
@@ -122,34 +97,15 @@ class BBufferView(Element[gltf.BufferView, '_BufferViewState'], Protocol):
     buffer: BBuffer
     target: BufferViewTarget
     byteStride: int
-    accessors: _Holder['BAccessor[NPTypes, AttributeData]']
-
-    @property
-    @abstractmethod
-    def blob(self) -> bytes: ...
-
-    @abstractmethod
-    def memoryview(self, offset: int, size: int) -> memoryview: ...
-
-    @abstractmethod
-    def _add_accessor(self, acc: 'BAccessor[NPTypes, AttributeData]') -> None: ...
 
 NP = TypeVar('NP', bound=NPTypes)
 NUM = TypeVar('NUM', bound=float|int, covariant=True)
 
 @runtime_checkable
-class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, BTYPE]):
+class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, BTYPE_co]):
     _scope_name = ScopeName.ACCESSOR
-    view: BBufferView
-    data: list[BTYPE]
-    __array: np.ndarray[tuple[int], np.dtype[NP]]|None = None
-    @property
-    def array(self) -> np.ndarray[tuple[int], np.dtype[NP]]:
-        if self.__array is None:
-            self.__array = np.array(self.data, dtype=self.dtype)
-        return self.__array
     count: int
-    elt_type: ElementType
+    elementType: ElementType
     componentType: ComponentType
     normalized: bool
     max: Optional[list[float]]
@@ -164,17 +120,6 @@ class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, 
     '''The numpy dtype for the data.'''
     bufferType: str = 'f'
     '''The buffer type char for `memoryview.cast()`.'''
-
-    @abstractmethod
-    def _add_data(self, data: Sequence[BTYPE]) -> None:
-        ...
-    '''
-    Add a Sequence of data to the accessor.
-    '''
-
-    @abstractmethod
-    def _add_data_item(self, data: BTYPE) -> None:
-        ...
 
 @runtime_checkable
 class BPrimitive(Element[gltf.Primitive, '_PrimitiveState'], Protocol):

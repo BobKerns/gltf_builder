@@ -2,37 +2,75 @@
 global compilation state
 '''
 
-from typing import Optional, TYPE_CHECKING
+from collections.abc import Iterable
+import logging
+from typing import Optional, TYPE_CHECKING, cast
 from itertools import count
+from datetime import datetime
+import sys
+
+import pygltflib as gltf
+import numpy as np
 
 from gltf_builder.accessors import _Accessor
+from gltf_builder.assets import __version__
 from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
-from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compilable
-from gltf_builder.core_types import BufferViewTarget, ComponentType, ElementType, IndexSize, NPTypes, NameMode, ScopeName
-from gltf_builder.elements import BAccessor, BBuffer, BNode, Element
+from gltf_builder.compiler import (
+    _GLTF, _STATE, _BaseCompileState, _Compilable, _CompileState,
+    _Collected,
+)
+from gltf_builder.core_types import (
+    BufferViewTarget, ComponentType, ElementType, IndexSize, JsonObject,
+    NPTypes, NameMode, Phase, ScopeName,
+)
+from gltf_builder.elements import BAccessor, BBuffer, BBufferView, Element
+from gltf_builder.holders import _Holder
 from gltf_builder.nodes import _BNodeContainer
-from gltf_builder.protocols import  _BuilderProtocol, _Scope, AttributeType
-from gltf_builder.utils import decode_dtype, std_repr
+from gltf_builder.protocols import  _GlobalBinary, _Scope, AttributeType
+from gltf_builder.scenes import scene
+from gltf_builder.utils import USER, USERNAME, decode_dtype, std_repr
+from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.builder import Builder
 
-class _GlobalState(_BNodeContainer, _BuilderProtocol):
-    __builder: 'Builder'
+
+LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
+
+class _GlobalState(_BNodeContainer, _GlobalBinary):
     _scope_name: ScopeName = ScopeName.BUILDER
+
     _id_counters: dict[str, count]
     _states: dict[int, _BaseCompileState] = {}
+    __ordered_views: list[BBufferView]
 
+    __builder: 'Builder'
     @property
     def builder(self) -> 'Builder':
         return self.__builder
-    
+
+    def state(self, elt: _Compilable[_GLTF, _STATE]) -> _STATE:
+        '''
+        Get the state for the given element.
+        '''
+
+        _key = id(elt)
+        state = cast(_STATE, self._states.get(_key, None))
+        if state is None:
+            state_type = cast(type[_CompileState[_GLTF, _STATE]], elt.state_type())
+            state = cast(
+                _STATE,
+                state_type(elt, self._gen_name(elt))
+            )
+            self._states[_key] = state
+        return cast(_STATE, state)
+
     @property
     def buffer(self) -> BBuffer:
         '''
         The default buffer for the glTF document.
         '''
-        return self.builder.buffer
+        return self.buffers[0]
 
     @property
     def index_size(self) -> IndexSize:
@@ -52,14 +90,16 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
     '''
     def __init__(self, builder: 'Builder') -> None:
         super().__init__(builder.nodes)
+        self.buffers = _Holder(BBuffer)
+        self.views = _Holder(BBufferView)
+        self.accessors = _Holder(BAccessor)
+        buffer = _Buffer(self, 'main')
+        self.buffers.add(buffer)
+        _Scope.__init__(self, self, buffer)
         self.__builder = builder
-
         self.asset = builder.asset
         self.meshes = builder.meshes
         self.cameras = builder.cameras
-        self._buffers = builder._buffers
-        self._views = builder._views
-        self._accessors = builder._accessors
         self.images = builder.images
         self.materials = builder.materials
         self.samplers = builder.samplers
@@ -72,6 +112,7 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
         self.extensionsUsed = list(builder.extensionsUsed or ())
         self.extensionsRequired = list(builder.extensionsRequired or ())
         self._id_counters = {}
+        self._states = {}
 
     def _get_index_size(self, max_value):
         return self.builder._get_index_size(max_value)
@@ -80,7 +121,7 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
     __names: set[str] = set()
 
     def _gen_name(self,
-                  obj: _Compileable[_GLTF, _STATE], /, *,
+                  obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str|object='',
                   scope: ScopeName|None=None,
                   index: int|None=None,
@@ -142,7 +183,7 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
             case NameMode.NONE:
                 return ''
             case _:
-                raise ValueError(f'Invalid name mode: {self.name_mode}') # pragma: no cover
+                raise ValueError(f'Invalid name mode: {name_mode}') # pragma: no cover
 
     def _create_accessor(self,
                 elementType: ElementType,
@@ -159,13 +200,226 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
                 elementType=elementType,
                 componentType=componentType,
                 btype=btype,
-                buffer=buffer or self._buffers[0],
+                buffer=buffer or self.buffers[0],
                 name=name,
                 dtype=dtype,
                 count=count,
                 normalized=normalized,
                 target=target,
             )
+
+    def compile(self) -> gltf.GLTF2:
+        '''
+        Compile the glTF document.
+        '''
+
+        python = sys.version_info
+        self.asset.extras = self.asset.extras or {}
+        builder_info = self.asset.extras.get('gltf-builder', {})
+        builder_info: JsonObject = {
+                'version': __version__,
+                'pygltflib': gltf.__version__,
+                'numpy': np.__version__,
+                'python': {
+                    'major': python.major,
+                    'minor': python.minor,
+                    'micro': python.micro,
+                    'releaselevel': python.releaselevel,
+                    'serial': python.serial,
+                },
+                'creation_time': datetime.now().isoformat(),
+                **builder_info
+            }
+        self.asset.extras = {
+            'gltf-builder': builder_info,
+                'username': USERNAME,
+                'user': USER,
+                'date': datetime.now().isoformat(),
+            **self.asset.extras,
+        }
+        # Filter out empty values.
+        self.asset.extras = {
+            key: value
+            for key, value in self.asset.extras.items()
+            if value is not None
+        }
+        # Add a default scene if none provided.
+        if len(self.scenes) == 0:
+            self.scenes.add(scene('DEFAULT', *(n for n in self.nodes if n.root)))
+        self._states = {}
+        for phase in Phase:
+            if phase != Phase.BUILD:
+               self.do_compile(phase)
+
+        def build_list(l: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
+            return [
+                v.compile(self, self, Phase.BUILD)
+                for v in l
+            ]
+        nodes = build_list(self.nodes)
+        cameras = build_list(self.cameras)
+        meshes = build_list(self.meshes)
+        materials = build_list(self.materials)
+        samplers = build_list(self.samplers)
+        skins = build_list(self.skins)
+        textures = build_list(self.textures)
+        images = build_list(self.images)
+        accessors = build_list(a for a in self.accessors if a.count > 0)
+        bufferViews = build_list(self.__ordered_views)
+        def check_buffer(b: BBuffer|None) -> bool:
+            if b is None:
+                return False
+            s = self.state(b)
+            return len(s.blob) > 0
+        buffers = build_list(
+            b
+            for b in self.buffers
+            if check_buffer(b)
+        )
+        scenes = build_list(self.scenes)
+        self.scene = self.scene or (self.scenes[0] if self.scenes else None)
+        if self.scene is None:
+            scene_info = {}
+        else:
+            scene_state = self.state(self.scene)
+            scene_info = dict(scene=scene_state.index)
+        g = gltf.GLTF2(
+            asset = self.asset,
+            nodes=nodes,
+            cameras=cameras,
+            meshes=meshes,
+            materials=materials,
+            textures=textures,
+            images=images,
+            samplers=samplers,
+            skins=skins,
+            accessors=accessors,
+            bufferViews=bufferViews,
+            buffers=buffers,
+            scenes=scenes,
+            extras=self.extras,
+            extensions=self.extensions,
+            animations=[],
+            extensionsUsed=self.extensionsUsed,
+            extensionsRequired=self.extensionsRequired,
+            **scene_info,
+        )
+        if len(self.buffers) == 1 :
+            state = self.state(self.buffers[0])
+            data = state.blob
+        else:
+            raise ValueError("Only one buffer is supported by pygltflib.")
+        g.set_binary_blob(data) # type: ignore
+        return g
+
+    def do_compile(self, phase: Phase):
+        def _do_compile(n):
+            return n.compile(self, self, phase)
+        def _do_compile_n(*n: Iterable[Element]):
+            for g in n:
+                for e in g:
+                    e.compile(self, self, phase)
+
+        match phase:
+            case Phase.COLLECT:
+                if self.scene:
+                    self.scenes.add(self.scene)
+                collected = [
+                    *(_do_compile(n) for n in self.scenes),
+                    *(_do_compile(n) for n in self.skins),
+                    *(_do_compile(n) for n in self.nodes),
+                    *(_do_compile(c) for c in self.cameras),
+                    *(_do_compile(m) for m in self.meshes),
+                    *(_do_compile(m) for m in self.materials),
+                    *(_do_compile(s) for s in self.samplers),
+                    *(_do_compile(t) for t in self.textures),
+                    *(_do_compile(i) for i in self.images),
+                    *(_do_compile(a) for a in self.accessors),
+                    *(_do_compile(v) for v in self.views),
+                    *(_do_compile(b) for b in self.buffers),
+                ]
+                ordered = sorted(list(self.views),
+                                                key=lambda v: v.byteStride or 4,
+                                                reverse=True)
+                self.__ordered_views = ordered
+                LOG.debug('Collected %s items.', len(collected))
+                def log_collected(collected: Iterable[_Collected], indent: int = 0):
+                    for item, children in collected:
+                        LOG.debug('. ' * indent + str(item))
+                        for child in children:
+                            LOG.debug('. ' * (indent +1) + '=> ' + str(child))
+                        log_collected(children, indent + 2)
+                if LOG.isEnabledFor(logging.DEBUG):
+                    log_collected(collected)
+            case Phase.ENUMERATE:
+                def assign_index(items: Iterable[Element]):
+                    for i, n in enumerate(items):
+                        s = self.state(n)
+                        s.index = i
+                assign_index(self.buffers)
+                assign_index(self.__ordered_views)
+                assign_index(self.accessors)
+                assign_index(self.images)
+                assign_index(self.cameras)
+                assign_index(self.materials)
+                assign_index(self.meshes)
+                assign_index(self.scenes)
+                assign_index(self.samplers)
+                assign_index(self.skins)
+                assign_index(self.textures)
+                assign_index(self.nodes)
+            case Phase.SIZES:
+                _do_compile_n(self.nodes, self.accessors, self.views, self.buffers)
+            case Phase.OFFSETS:
+                _do_compile_n(self.buffers, self.views, self.accessors, self.nodes)
+            case Phase.EXTENSIONS:
+                actual = {
+                            s
+                            for elt in self._elements()
+                            for s in cast(set[str]|None, _do_compile(elt)) or ()
+                        }
+                specified = {
+                    *self.extensionsUsed,
+                    *self.extensionsRequired
+                }
+                unused = specified - actual
+                if unused:
+                    LOG.warning(f'Unused extensions: {unused}')
+                self.extensionsUsed = list(specified | actual)
+            case _:
+                _do_compile_n(
+                    self.scenes,
+                    self.skins,
+                    self.nodes,
+                    self.cameras,
+                    self.meshes,
+                    self.materials,
+                    self.textures,
+                    self.images,
+                    self.samplers,
+                    self.accessors,
+                    self.__ordered_views if self.views else (),
+                    self.buffers,
+                )
+
+
+    def _elements(self) -> Iterable[Element]:
+        '''
+        Get all the elements in the builder.
+        '''
+        yield from self.nodes
+        yield from self.meshes
+        yield from self.cameras
+        yield from self.materials
+        yield from self.textures
+        yield from self.images
+        yield from self.samplers
+        yield from self.skins
+        yield from self.scenes
+        yield from self.accessors
+        yield from self.views
+        yield from self.buffers
+
 
     def __repr__(self) -> str:
         return std_repr(self, (

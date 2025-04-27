@@ -3,44 +3,59 @@ Builder representation of a glTF Buffer
 '''
 
 from collections.abc import Iterable
-from typing import Literal, Optional, overload, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn
+from gltf_builder.compiler import _GLTF, _STATE,  _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
-    JsonObject, Phase, BufferViewTarget, ScopeName,
+    JsonObject, Phase, ScopeName,
 )
-from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
+from gltf_builder.protocols import _BufferViewKey
 from gltf_builder.elements import (
     BBuffer, BBufferView,
     _Scope, Element,
 )
-from gltf_builder.holders import _Holder
-from gltf_builder.views import _BufferView
 if TYPE_CHECKING:
-    from gltf_builder.builder import Builder
+    from gltf_builder.global_state import _GlobalState
 
 class _BufferState(_CompileState[gltf.Buffer, '_BufferState']):
     '''
     State for the compilation of a buffer.
     '''
-    bytearray: bytearray
+    _bytearray: bytearray
     __blob: bytes|None = None
-    _views: dict[_BufferViewKey, BBufferView]
+    _byteOffset: int|None = 0
     @property
     def blob(self):
         if self.__blob is None:
-            self.__blob = bytes(self.bytearray)
+            self.__blob = bytes(self._bytearray)
         return self.__blob
 
+    _views: dict[_BufferViewKey, BBufferView]
+    @property
+    def views(self) -> Iterable[BBufferView]:
+        return self._views.values()
+
+    def add_view(self, view: BBufferView) -> None:
+        '''
+        Add a view to the buffer
+        '''
+        key = _BufferViewKey(
+            view.buffer,
+            view.target,
+            view.byteStride,
+            view.name,
+        )
+        self._views[key] = view
 
     def __init__(self,
                  buffer: '_Buffer',
                  name: str='',
                  /,
                  ) -> None:
-        super().__init__(name, buffer)
+        self._bytearray = bytearray()
+        super().__init__(buffer, name)
         self._views = {}
 
 
@@ -48,33 +63,16 @@ class _Buffer(BBuffer):
     '''
     Implementation class for `BBuffer`.
     '''
-    
+    _scope_name = ScopeName.BUFFER
+
     @classmethod
     def state_type(cls):
         return _BufferState
-    
-    _scope_name = ScopeName.BUFFER
-    __buffer: bytearray
-    @property
-    def bytearray(self) -> bytearray:
-        return self.__buffer
 
-    __blob: bytes|None = None
-    @property
-    def blob(self):
-        if self.__blob is None:
-            self.__blob = bytes(self.bytearray)
-        return self.__blob
-    
-    views: _Holder[BBufferView]
-
-    _views: dict[_BufferViewKey, BBufferView]
-    
     def __init__(self,
-                 builder: 'Builder',
-                 /,
+                 gbl: '_GlobalState',
                  name: str='',
-                 views: Iterable[BBufferView]=(),
+                 /,
                  extras: Optional[JsonObject]=None,
                  extensions: Optional[JsonObject]=None,
                  is_accessor_scope: bool=False,
@@ -85,70 +83,52 @@ class _Buffer(BBuffer):
             extras=extras,
             extensions=extensions)
         _Scope.__init__(self,
-                        builder=builder,
+                        gbl=gbl,
                         buffer=self,
                         is_accessor_scope=is_accessor_scope,
                         is_view_scope=is_view_scope,
                     )
-        self.__buffer = bytearray()
-        self.views = _Holder(BBufferView, *views)
-        self._views = {}
 
-    @overload
     def _do_compile(self,
-                    builder: _BuilderProtocol,
-                    scope: _Scope,
-                    phase: Literal[Phase.COLLECT],
-                    state: _CompileState,
-                    /
-                ) -> Iterable[_Collected]: ...
-    @overload
-    def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState,
-                    /
-                ) -> _DoCompileReturn[gltf.Buffer]: ...
-    def _do_compile(self,
-                    builder: _BuilderProtocol,
-                    scope: _Scope,
-                    phase: Phase,
-                    state: _CompileState[gltf.Buffer, _BufferState],
+                    state: _BufferState,
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
         def _compile1(elt: Element[_GLTF, _STATE]):
-            return elt.compile(builder, scope, phase)
+            return elt.compile(gbl, scope, phase)
         def _compile_views():
-            for view in self.views:
+            for view in state.views:
                 _compile1(view)
         match phase:
             case Phase.COLLECT:
-                builder._views.add(*self.views)
+                gbl.views.add(*state.views)
                 return (
-                    view.compile(builder, scope, Phase.COLLECT)
-                    for view in self.views
+                    view.compile(gbl, scope, Phase.COLLECT)
+                    for view in state.views
                 )
             case Phase.SIZES:
                 bytelen = sum(
-                    view.compile(builder, scope, Phase.SIZES)
-                    for view in self.views
+                    view.compile(gbl, scope, Phase.SIZES)
+                    for view in state.views
                 )
-                self.__buffer = self.__buffer.zfill(bytelen)
+                state._bytearray = state._bytearray.zfill(bytelen)
                 return bytelen
             case Phase.OFFSETS:
                 offset = 0
-                for view in self.views:
-                    view.byteOffset = offset
+                for view in state.views:
+                    vstate = gbl.state(view)
+                    vstate.byteOffset = offset
                     _compile1(view)
-                    offset += len(view)
+                    offset += len(vstate.memory)
             case Phase.BUILD:
                 namespec = {
                     'gltf_builder:name': self.name,
                 } if self.name else {}
                 extras = self.extras or {}
                 b = gltf.Buffer(
-                    byteLength=len(self.blob),
+                    byteLength=len(state.blob),
                     extras={
                         **extras,
                         **namespec,
@@ -159,30 +139,4 @@ class _Buffer(BBuffer):
             case _:
                 _compile_views()
 
-    def create_view(self,
-                  target: BufferViewTarget,
-                  /, *,
-                  byteStride: int=0,
-                  name: str='',
-                  extras:  Optional[JsonObject]=None,
-                  extensions:  Optional[JsonObject]=None,
-                ) -> BBufferView:
-        '''
-        Get a compatible buffer view. Specifying a name permits the use of distinct views
-        for the same target and byteStride for possible optimizations.
-        '''
-        key = _BufferViewKey(self, target, byteStride, name)
-        view = self._views.get(key)
-        if view is None:
-            view = _BufferView(self, name, byteStride, target,
-                                    extras=extras,
-                                    extensions=extensions)
-            self._views[key] = view
-            self.views.add(view)
-            return view
-        else:
-            return view
-    
-    def __len__(self) -> int:
-        return len(self.__buffer)
-    
+

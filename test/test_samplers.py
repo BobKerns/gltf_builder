@@ -30,6 +30,5 @@ def test_create_sampler():
     assert s.minFilter == MinFilter.LINEAR_MIPMAP_LINEAR
     assert s.extras == TEST_EXTRAS
     assert s.extensions == TEST_EXTENSIONS
-    assert s._index == -1
     assert s._scope_name == ScopeName.SAMPLER
 

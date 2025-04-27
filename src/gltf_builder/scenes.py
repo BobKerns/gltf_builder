@@ -3,15 +3,16 @@ Scene definitions for glTF
 '''
 
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
 from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.elements import BNode, BScene
-from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _SceneState(_CompileState[gltf.Scene, '_SceneState']):
@@ -46,9 +47,9 @@ class _Scene(BScene):
         return dict(
             nodes=self.nodes,
         )
-    
+
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
                     state: _CompileState[gltf.Scene, _SceneState],
@@ -56,17 +57,17 @@ class _Scene(BScene):
         match phase:
             case Phase.COLLECT:
                 for n in self.nodes:
-                    builder.nodes.add(n)
-                return [n.compile(builder, scope, phase) for n in self.nodes]
+                    gbl.nodes.add(n)
+                return [n.compile(gbl, scope, phase) for n in self.nodes]
             case Phase.BUILD:
                 return gltf.Scene(
-                    nodes=[n._index for n in self.nodes],
+                    nodes=[gbl.idx(n) for n in self.nodes],
                     extras=self.extras,
                     extensions=self.extensions,
                 )
             case _:
                 for n in self.nodes:
-                    n.compile(builder, scope, phase)
+                    n.compile(gbl, scope, phase)
 
     def __repr__(self):
         return std_repr(self, (

@@ -8,7 +8,7 @@ import pygltflib as gltf
 
 from gltf_builder.core_types import CameraType, JsonObject, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
-from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.protocols import _GlobalBinary
 from gltf_builder.utils import std_repr
 from gltf_builder.compiler import _CompileState, _Scope
 
@@ -27,7 +27,7 @@ class _Camera(BCamera):
     @classmethod
     def state_type(cls):
         return _CameraState
-    
+
     def __init__(self,
                  name: str='',
                  extras: Optional[JsonObject]=None,
@@ -72,9 +72,9 @@ class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
         self.znear=znear
         self.zfar=zfar
         self.aspectRatio=aspectRatio
-                 
+
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    builder: _GlobalBinary,
                     scope: _Scope,
                     phase: Phase,
                     state: _CompileState[gltf.Camera, _CameraState],
@@ -89,7 +89,7 @@ class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
                     extras=self.extras,
                     extensions=self.extensions,
                 )
-    
+
     def __repr__(self):
         return std_repr(self, (
             'yfov',
@@ -97,7 +97,7 @@ class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
             'zfar',
             'aspectRatio',
         ))
-    
+
 
 class _OrthographicCampera(_Camera, BOrthographicCamera):
     '''
@@ -140,7 +140,7 @@ class _OrthographicCampera(_Camera, BOrthographicCamera):
         )
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    builder: _GlobalBinary,
                     scope: _Scope,
                     phase: Phase,
                     state: _CompileState[gltf.Camera, _CameraState],
@@ -154,7 +154,7 @@ class _OrthographicCampera(_Camera, BOrthographicCamera):
                     extras=self.extras,
                     extensions=self.extensions,
                 )
-            
+
     def __repr__(self):
         return std_repr(self, (
             'xmag',

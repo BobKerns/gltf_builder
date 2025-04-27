@@ -2,7 +2,7 @@
 Builder description that compiles to a BufferView
 '''
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
@@ -13,17 +13,44 @@ from gltf_builder.core_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView, _Scope,
 )
-from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.compiler import _CompileState
 from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 
 class _BufferViewState(_CompileState[gltf.BufferView, '_BufferViewState']):
     '''
     State for the compilation of a buffer view.
     '''
-    pass
+    memory: memoryview
+    accessors: _Holder['BAccessor[NPTypes, AttributeData]']
+
+    __blob: bytes|None = None
+    @property
+    def blob(self):
+        if self.__blob is None:
+            self.__blob = self.memory.tobytes()
+        return self.__blob
+
+    def __init__(self,
+                 buffer: '_BufferView',
+                 name: str='',
+                 /,
+                 ) -> None:
+        super().__init__(buffer, name,
+                         byteOffset=None,)
+        self.memory = memoryview(bytearray())
+        self.accessors = _Holder(type_=BAccessor[NPTypes, AttributeData],)
+
+
+    def add_accessor(self, acc: BAccessor[NPTypes, AttributeData]) -> None:
+        '''
+        Add an accessor to the buffer view
+        '''
+        self.accessors.add(acc)
+
 
 class _BufferView(BBufferView):
     '''
@@ -34,14 +61,6 @@ class _BufferView(BBufferView):
     def state_type(cls):
         return _BufferViewState
 
-    __memory: memoryview
-    
-    __blob: bytes|None = None
-    @property
-    def blob(self):
-        if self.__blob is None:
-            self.__blob = self.__memory.tobytes()
-        return self.__blob
 
     def __init__(self,
                  buffer: BBuffer,
@@ -54,20 +73,21 @@ class _BufferView(BBufferView):
         super().__init__(name, extras, extensions)
         self.buffer = buffer
         self.target = target
-        buffer.views.add(self)
         self.byteStride = byteStride
-        
+
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.BufferView, _BufferViewState],
+                    state: _BufferViewState,
                     /):
         match phase:
             case Phase.COLLECT:
-                builder._accessors.add(*self.accessors)
-                return [acc.compile(builder, scope, phase)
-                        for acc in self.accessors]
+                gbl.accessors.add(*state.accessors)
+                bstate = gbl.state(self.buffer)
+                bstate.add_view(self)
+                return [acc.compile(gbl, scope, phase)
+                        for acc in state.accessors]
             case Phase.SIZES:
                 self.byteStride = (
                     int(self.byteStride or 4)
@@ -75,27 +95,30 @@ class _BufferView(BBufferView):
                     else 0
                 )
                 return sum(
-                    accessor.compile(builder, scope, phase)
-                    for accessor in self.accessors
+                    accessor.compile(gbl, scope, phase)
+                    for accessor in state.accessors
                 )
             case Phase.OFFSETS:
-                end = self.byteOffset + len(self)
-                buf_memview = memoryview(self.buffer.bytearray) 
-                self.__memory = buf_memview[self.byteOffset:end]
+                end = state.byteOffset + len(state)
+                bstate = gbl.state(self.buffer)
+                buf_memview = memoryview(bstate._bytearray)
+                state.memory = buf_memview[state.byteOffset:end]
                 offset = 0
-                for acc in self.accessors:
-                    acc.byteOffset = offset
-                    offset +=  len(acc)
-                    acc.compile(builder, scope, phase)
+                for acc in state.accessors:
+                    astate = gbl.state(acc)
+                    astate.byteOffset = offset
+                    a_state = gbl.state(acc)
+                    offset +=  len(a_state)
+                    acc.compile(gbl, scope, phase)
                 return end
             case Phase.BUILD:
-                for acc in self.accessors:
-                    acc.compile(builder, scope, Phase.BUILD)
+                for acc in state.accessors:
+                    acc.compile(gbl, scope, Phase.BUILD)
                 return gltf.BufferView(
                     name=self.name,
-                    buffer=self.buffer._index,
-                    byteOffset=self.byteOffset,
-                    byteLength=len(self),
+                    buffer=gbl.idx(self.buffer),
+                    byteOffset=state.byteOffset,
+                    byteLength=len(state),
                     byteStride=self.byteStride or None,
                     target=self.target,
                 )

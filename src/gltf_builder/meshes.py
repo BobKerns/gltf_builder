@@ -3,7 +3,7 @@ Builder representation of a mesh to be compiled.
 '''
 
 from collections.abc import Iterable, Sequence
-from typing import Optional, Self, cast, overload
+from typing import Optional, Self, cast, overload, TYPE_CHECKING
 
 import pygltflib as gltf
 
@@ -15,11 +15,12 @@ from gltf_builder.attribute_types import (
     AttributeDataIterable, PointSpec, Vector3Spec,
     TangentSpec, ColorSpec, UvSpec, color, point, tangent, uv, vector3,
 )
-from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.elements import BMesh, BPrimitive, _Scope
 from gltf_builder.primitives import _Primitive
 from gltf_builder.utils import std_repr
 from gltf_builder.vertices import Vertex
+if TYPE_CHECKING:
+    from gltf_builder.global_state import _GlobalState
 
 class _MeshState(_CompileState[gltf.Mesh, '_MeshState']):
     '''
@@ -131,34 +132,35 @@ class _Mesh(BMesh):
         return prim
 
     def _do_compile(self,
-                    builder: _BuilderProtocol,
+                    gbl: '_GlobalState',
                     scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Mesh, '_MeshState'],
+                    state: _MeshState,
                     /
                 ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:
             case Phase.PRIMITIVES:
-                builder.meshes.add(self)
+                gbl.meshes.add(self)
                 for i, prim in enumerate(self.primitives):
-                    prim._index = i
-                    prim.compile(builder, scope, phase)
+                    p_state = gbl.state(prim)
+                    p_state.index = i
+                    prim.compile(gbl, scope, phase)
             case Phase.COLLECT:
-                builder.meshes.add(self)
+                gbl.meshes.add(self)
                 return (
-                    prim.compile(builder, scope, Phase.COLLECT)
+                    prim.compile(gbl, scope, Phase.COLLECT)
                     for prim in self.primitives
                 )
             case Phase.SIZES:
                 return sum(
-                    prim.compile(builder, scope, Phase.SIZES)
+                    prim.compile(gbl, scope, Phase.SIZES)
                     for prim in self.primitives
                 )
             case Phase.BUILD:
                 return gltf.Mesh(
                     name=self.name,
                     primitives=[
-                        p.compile(builder, scope, phase)
+                        p.compile(gbl, scope, phase)
                         for p in self.primitives
                     ],
                     weights=self.weights,
@@ -167,7 +169,7 @@ class _Mesh(BMesh):
                 )
             case _:
                 for prim in self.primitives:
-                    prim.compile(builder, scope, phase)
+                    prim.compile(gbl, scope, phase)
 
     def __repr__(self):
         return std_repr(self, (

@@ -5,16 +5,12 @@ a glTF object.
 
 import sys
 from collections.abc import Iterable, Mapping
-from typing import Literal, Optional, cast
-from itertools import count
-from datetime import datetime
-import logging
+from typing import Optional
 from pathlib import Path
 import re
 from warnings import warn
 
 import pygltflib as gltf
-import numpy as np
 
 from gltf_builder.attribute_types import (
     BTYPE, Color, Joint, Point, Tangent,
@@ -22,8 +18,8 @@ from gltf_builder.attribute_types import (
     color, point, tangent, uv, vector3,
 )
 from gltf_builder.core_types import (
-     BufferViewTarget, ImageType, IndexSize, JsonObject,
-     NPTypes, NameMode, NamePolicy, Phase,
+     ImageType, IndexSize, JsonObject,
+     NameMode, NamePolicy,
      ElementType, ComponentType, ScopeName, NameMode,
 )
 from gltf_builder.assets import BAsset, __version__
@@ -32,21 +28,18 @@ from gltf_builder.holders import _Holder
 from gltf_builder.buffers import _Buffer
 from gltf_builder.matrix import Matrix4Spec
 from gltf_builder.quaternions import QuaternionSpec
-from gltf_builder.accessors import _Accessor
 from gltf_builder.meshes import _Mesh
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.images import _Image
 from gltf_builder.scenes import scene
-from gltf_builder.protocols import _AttributeParser, _GlobalConfiguration, AttributeType, _BuilderProtocol
+from gltf_builder.protocols import (
+    _AttributeParser, _GlobalConfiguration, AttributeType,
+)
 from gltf_builder.elements import (
      BAccessor, BBuffer, BBufferView, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
-     Element, _GLTF,
 )
-from gltf_builder.compiler import _STATE, _Compilable, _Collected
-from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
-
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -77,8 +70,6 @@ _RE_ATTRIB_NAME = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(?:_\d+)$')
 
 class Builder(_BNodeContainer, _GlobalConfiguration):
     _scope_name = ScopeName.BUILDER
-    _id_counters: dict[str, count]
-    __ordered_views: list[BBufferView]
 
     __index_size: IndexSize = IndexSize.AUTO
     '''
@@ -126,7 +117,6 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         '''
         return self._buffers[0]
 
-    _global_state: '_GlobalState'
     '''
     The global state for the compilation of the glTF file.
     This is used to store the global state of the compilation process.
@@ -159,21 +149,17 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 extensionsRequired: Optional[list[str]]=None,
         ):
         super().__init__(nodes=nodes)
+        
         name_policy = name_policy or {}
         self.name_policy = {
             scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
             for scope in ScopeName
         }
-        if not buffers:
-            buffers = [_Buffer(self, 'main')]
-        else:
-            buffers = list(buffers)
         self.asset = asset
         self.meshes = _Holder(BMesh, *meshes)
         self.cameras = _Holder(BCamera, *cameras)
         self._buffers = _Holder(BBuffer, *buffers)
         self._views = _Holder(BBufferView)
-        self.__ordered_views = []
         self._accessors = _Holder(BAccessor)
         self.images = _Holder(BImage, *images)
         self.materials = _Holder(BMaterial, *materials)
@@ -196,7 +182,6 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         self.define_attrib('JOINTS', ElementType.VEC4, ComponentType.UNSIGNED_SHORT, Joint)
         self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
-        self._global_state = _GlobalState(self)
 
     def create_mesh(self,
                 name: str='',
@@ -213,111 +198,6 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         )
         return mesh
 
-    def _elements(self) -> Iterable[Element]:
-        '''
-        Get all the elements in the builder.
-        '''
-        yield from self.nodes
-        yield from self.meshes
-        yield from self.cameras
-        yield from self.materials
-        yield from self.textures
-        yield from self.images
-        yield from self.samplers
-        yield from self.skins
-        yield from self.scenes
-        yield from self._accessors
-        yield from self._views
-        yield from self._buffers
-
-    def compile(self, phase: Phase):
-        def _do_compile(n):
-            return n.compile(self, self, phase)
-        def _do_compile_n(*n: Iterable[Element]):
-            for g in n:
-                for e in g:
-                    e.compile(self._global_state, self._global_state, phase)
-
-        match phase:
-            case Phase.COLLECT:
-                if self.scene:
-                    self.scenes.add(self.scene)
-                collected = [
-                    *(_do_compile(n) for n in self.scenes),
-                    *(_do_compile(n) for n in self.skins),
-                    *(_do_compile(n) for n in self.nodes),
-                    *(_do_compile(c) for c in self.cameras),
-                    *(_do_compile(m) for m in self.meshes),
-                    *(_do_compile(m) for m in self.materials),
-                    *(_do_compile(s) for s in self.samplers),
-                    *(_do_compile(t) for t in self.textures),
-                    *(_do_compile(i) for i in self.images),
-                    *(_do_compile(a) for a in self._accessors),
-                    *(_do_compile(v) for v in self._views),
-                    *(_do_compile(b) for b in self._buffers),
-                ]
-                ordered = sorted(list(self._views),
-                                                key=lambda v: v.byteStride or 4,
-                                                reverse=True)
-                self.__ordered_views = ordered
-                LOG.debug('Collected %s items.', len(collected))
-                def log_collected(collected: Iterable[_Collected], indent: int = 0):
-                    for item, children in collected:
-                        LOG.debug('. ' * indent + str(item))
-                        for child in children:
-                            LOG.debug('. ' * (indent +1) + '=> ' + str(child))
-                        log_collected(children, indent + 2)
-                if LOG.isEnabledFor(logging.DEBUG):
-                    log_collected(collected)
-            case Phase.ENUMERATE:
-                def assign_index(items: Iterable[Element]):
-                    for i, n in enumerate(items):
-                        n._index = i
-                assign_index(self._buffers)
-                assign_index(self.__ordered_views)
-                assign_index(self._accessors)
-                assign_index(self.images)
-                assign_index(self.cameras)
-                assign_index(self.materials)
-                assign_index(self.meshes)
-                assign_index(self.scenes)
-                assign_index(self.samplers)
-                assign_index(self.skins)
-                assign_index(self.textures)
-                assign_index(self.nodes)
-            case Phase.SIZES:
-                _do_compile_n(self.nodes, self._buffers)
-            case Phase.OFFSETS:
-                _do_compile_n(self._buffers, self.nodes)
-            case Phase.EXTENSIONS:
-                actual = {
-                            s
-                            for elt in self._elements()
-                            for s in cast(set[str]|None, _do_compile(elt)) or ()
-                        }
-                specified = {
-                    *self.extensionsUsed,
-                    *self.extensionsRequired
-                }
-                unused = specified - actual
-                if unused:
-                    warn(f'Unused extensions: {unused}')
-                self.extensionsUsed = list(specified | actual)
-            case _:
-                _do_compile_n(
-                    self.scenes,
-                    self.skins,
-                    self.nodes,
-                    self.cameras,
-                    self.meshes,
-                    self.materials,
-                    self.textures,
-                    self.images,
-                    self.samplers,
-                    self._accessors,
-                    self.__ordered_views if self._views else (),
-                    self._buffers,
-                )
 
     def build(self, /,
             index_size: Optional[IndexSize]=None,
@@ -336,89 +216,8 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         })
         # Add all the child nodes.
         self.nodes.add(*(n for n in nodes if not n.root))
-        python = sys.version_info
-        self.asset.extras = self.asset.extras or {}
-        builder_info = self.asset.extras.get('gltf-builder', {})
-        builder_info: JsonObject = {
-                'version': __version__,
-                'pygltflib': gltf.__version__,
-                'numpy': np.__version__,
-                'python': {
-                    'major': python.major,
-                    'minor': python.minor,
-                    'micro': python.micro,
-                    'releaselevel': python.releaselevel,
-                    'serial': python.serial,
-                },
-                'creation_time': datetime.now().isoformat(),
-                **builder_info
-            }
-        self.asset.extras = {
-            'gltf-builder': builder_info,
-                'username': USERNAME,
-                'user': USER,
-                'date': datetime.now().isoformat(),
-            **self.asset.extras,
-        }
-        # Filter out empty values.
-        self.asset.extras = {
-            key: value
-            for key, value in self.asset.extras.items()
-            if value is not None
-        }
-        # Add a default scene if none provided.
-        if len(self.scenes) == 0:
-            self.scenes.add(scene('DEFAULT', *(n for n in self.nodes if n.root)))
-        self._states = {}
-        for phase in Phase:
-            if phase != Phase.BUILD:
-               self.compile(phase)
-
-        def build_list(l: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
-            return [
-                v.compile(self._global_state, self._global_state, Phase.BUILD)
-                for v in l
-            ]
-        nodes = build_list(self.nodes)
-        cameras = build_list(self.cameras)
-        meshes = build_list(self.meshes)
-        materials = build_list(self.materials)
-        samplers = build_list(self.samplers)
-        skins = build_list(self.skins)
-        textures = build_list(self.textures)
-        images = build_list(self.images)
-        accessors = build_list(a for a in self._accessors if a.count > 0)
-        bufferViews = build_list(self.__ordered_views)
-        buffers = build_list(b for b in self._buffers if len(b.blob) > 0)
-        scenes = build_list(self.scenes)
-        _scene = self.scene or self.scenes[0]
-        g = gltf.GLTF2(
-            asset = self.asset,
-            nodes=nodes,
-            cameras=cameras,
-            meshes=meshes,
-            materials=materials,
-            textures=textures,
-            images=images,
-            samplers=samplers,
-            skins=skins,
-            accessors=accessors,
-            bufferViews=bufferViews,
-            buffers=buffers,
-            scenes=scenes,
-            scene=_scene._index,
-            extras=self.extras,
-            extensions=self.extensions,
-            animations=[],
-            extensionsUsed=self.extensionsUsed,
-            extensionsRequired=self.extensionsRequired,
-        )
-        if len(self._buffers) == 1 :
-            data = self._buffers[0].blob
-        else:
-            raise ValueError("Only one buffer is supported by pygltfllib.")
-        g.set_binary_blob(data) # type: ignore
-        return g
+        global_state = _GlobalState(self)
+        return global_state.compile()
 
     def define_attrib(self,
                       name: str,
@@ -537,45 +336,3 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 )
         self.nodes.add(node)
         return node
-
-    def _gen_name(self, obj, /, *, prefix = '', scope = None, index = None, suffix = ''):
-        return self._global_state._gen_name(
-            obj,
-            prefix=prefix,
-            scope=scope,
-            index=index,
-            suffix=suffix,
-        )
-    
-    def _create_accessor(self,
-                elementType: ElementType,
-                componentType: ComponentType,
-                btype: type[BTYPE],
-                name: str='',
-                normalized: bool=False,
-                buffer: Optional['BBuffer']=None,
-                count: int=0,
-                target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-            ) -> 'BAccessor[NPTypes, BTYPE]':
-        '''
-        Create a `BAccessor` for the given element type and component type.
-        PARAMETERS
-        ----------
-        elementType: ElementType
-            The element type for the accessor.
-        componentType: ComponentType
-            The component type for the accessor.
-        btype: type[BTYPE]
-            The type of the accessor data.
-        name: str
-            The name of the accessor.
-        normalized: bool
-            Whether the accessor data is normalized.
-        target: BufferViewTarget
-            The target for the buffer view.
-        RETURNS
-        -------
-        BAccessor[NPTypes, BTYPE]
-            The created accessor.
-        '''
-        raise NotImplementedError('This method is not implemented on Builder.')
