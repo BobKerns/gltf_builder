@@ -217,7 +217,7 @@ def save(out_dir, request):
     out = out_dir / sanitize(request.node.name)
     gltf = out.with_suffix('.gltf')
     glb = out.with_suffix('.glb')
-    def save(b: '_BuilderProtocol|gltf.GLTF2',
+    def save(b: 'Builder|gltf.GLTF2',
             ignoredIssues: Optional[list[str]]=None,
             severityOverrides: Optional[dict[str, Severity]]=None,
             maxIssues: int=100,

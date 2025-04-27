@@ -21,6 +21,9 @@ from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
     from gltf_builder.elements import BBufferView, BBuffer
+    from gltf_builder.builder import Builder
+
+
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 

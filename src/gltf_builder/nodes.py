@@ -27,17 +27,17 @@ from gltf_builder.utils import std_repr
 
 
 class _BNodeContainer(_BNodeContainerProtocol):
-    children: _Holder[BNode]
+    nodes: _Holder[BNode]
     @property
-    def nodes(self):
-        return self.children
+    def chhildren(self):
+        return self.nodes
     
     def __init__(self, /,
-                children: Iterable[BNode]=(),
+                nodes: Iterable[BNode]=(),
             ):
         self._local_views = {}
-        self.children = _Holder(BNode, *children)
-        for c in children:
+        self.nodes = _Holder(BNode, *nodes)
+        for c in nodes:
             if isinstance(self, BNode):
                 if c._parent is not None and c._parent is not self:
                     raise ValueError(f'Node {c.name} already has a parent')
@@ -155,6 +155,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
     def __len__(self) -> int:
         return len(self.children)
 
+
 class _NodeState(_CompileState[gltf.Node, '_NodeState']):
     '''
     State for the compilation of a node.
@@ -193,7 +194,7 @@ class _Node(_BNodeContainer, BNode):
                          index=index,
                         )
         _BNodeContainer.__init__(self,
-                                children=children,
+                                nodes=children,
                             )
         self.root = root or False
         self.mesh = mesh

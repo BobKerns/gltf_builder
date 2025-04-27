@@ -27,6 +27,7 @@ from gltf_builder.core_types import (
      ElementType, ComponentType, ScopeName, NameMode,
 )
 from gltf_builder.assets import BAsset, __version__
+from gltf_builder.global_state import _GlobalState
 from gltf_builder.holders import _Holder
 from gltf_builder.buffers import _Buffer
 from gltf_builder.matrix import Matrix4Spec
@@ -36,7 +37,7 @@ from gltf_builder.meshes import _Mesh
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.images import _Image
 from gltf_builder.scenes import scene
-from gltf_builder.protocols import _AttributeParser, AttributeType, _BuilderProtocol
+from gltf_builder.protocols import _AttributeParser, _GlobalConfiguration, AttributeType, _BuilderProtocol
 from gltf_builder.elements import (
      BAccessor, BBuffer, BBufferView, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
@@ -74,12 +75,11 @@ Default naming mode for each scope.
 _RE_ATTRIB_NAME = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(?:_\d+)$')
 
 
-class Builder(_BNodeContainer, _BuilderProtocol):
+class Builder(_BNodeContainer, _GlobalConfiguration):
     _scope_name = ScopeName.BUILDER
     _id_counters: dict[str, count]
     __ordered_views: list[BBufferView]
 
-    
     __index_size: IndexSize = IndexSize.AUTO
     '''
     Number of bytes to use for indices. Default is NONE, meaning no index.
@@ -125,6 +125,15 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         The primary `BBuffer` for the glTF file.
         '''
         return self._buffers[0]
+    
+    _global_state: '_GlobalState'
+    '''
+    The global state for the compilation of the glTF file.
+    This is used to store the global state of the compilation process.
+
+    While it is temporarily stored in the builder, it will be allocated
+    on each build.
+    '''
 
     '''
     The main object that collects all the geometry info and compiles it into a glTF object.
@@ -149,7 +158,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 extensionsUsed: Optional[list[str]]=None,
                 extensionsRequired: Optional[list[str]]=None,
         ):
-        super().__init__(children=nodes)
+        super().__init__(nodes=nodes)
         name_policy = name_policy or {}
         self.name_policy = {
             scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
@@ -187,6 +196,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.define_attrib('JOINTS', ElementType.VEC4, ComponentType.UNSIGNED_SHORT, Joint)
         self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
+        self._global_state = _GlobalState(self)
     
     def create_mesh(self,
                 name: str='',
@@ -226,7 +236,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         def _do_compile_n(*n: Iterable[Element]):
             for g in n:
                 for e in g:
-                    e.compile(self, self, phase)
+                    e.compile(self._global_state, self._global_state, phase)
                     
         match phase:
             case Phase.COLLECT:
@@ -366,7 +376,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         
         def build_list(l: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
             return [
-                v.compile(self, self, Phase.BUILD)
+                v.compile(self._global_state, self._global_state, Phase.BUILD)
                 for v in l
             ]
         nodes = build_list(self.nodes)
@@ -485,95 +495,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 return IndexSize.NONE
             case _:
                 raise ValueError(f'Invalid index size: {self.index_size}')
-
-    __names: set[str] = set()
-
-    def _gen_name(self,
-                  obj: _Compileable[_GLTF, _STATE], /, *,
-                  prefix: str|object='',
-                  scope: ScopeName|None=None,
-                  index: int|None=None,
-                  suffix: str|None=None,
-                  ) -> str:
-        '''
-        Generate a name according to the current name mode policy
-        '''
-        scope = scope or obj._scope_name
-        def get_count(obj: object) -> int:
-            tname = type(obj).__name__[1:]
-            counters = self._id_counters
-            if tname not in counters:
-                counters[tname] = count()
-            return next(counters[tname])
-        
-        def gen(obj: _Compileable[_GLTF, _STATE]) -> str:
-            nonlocal prefix, suffix
-            name_mode = self.name_policy[scope]
-            match obj:
-                case Element() if obj.name and name_mode != NameMode.UNIQUE:
-                    # Increment the count anyway for stability.
-                    # Naming one node should not affect the naming of another.
-                    get_count(obj)
-                    return obj.name
-                case _:
-                    if prefix == '':
-                        prefix = type(obj).__name__[1:]
-                    else:
-                        prefix = prefix
-                    suffix = suffix or ''
-                    if index is not None:
-                        suffix = f'{suffix}[{index}]'
-                    return f'{prefix}{get_count(obj)}{suffix}'
-        
-        def register(name: object|None) -> str:
-            match name:
-                case str():
-                    name = name.strip()
-                case Element():
-                    name = name.name.strip()
-                case _:
-                    raise ValueError(f'Invalid name: {name}')
-            if not name:
-                return ''
-            self.__names.add(name)
-            return name
-        match self.name_policy[scope]:
-            case NameMode.AUTO:
-                return register(gen(obj))
-            case NameMode.MANUAL:
-                return register(obj)
-            case NameMode.UNIQUE:
-                name = gen(obj)
-                while obj in self.__names:
-                    name = gen(obj)
-                return register(name)
-            case NameMode.NONE:
-                return ''
-            case _:
-                raise ValueError(f'Invalid name mode: {self.name_mode}') # pragma: no cover
-
-    def _create_accessor(self,
-                elementType: ElementType,
-                componentType: ComponentType,
-                btype: type[BTYPE],
-                name: str='',
-                normalized: bool=False,
-                buffer: Optional['BBuffer']=None,
-                count: int=0,
-                target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-                ) -> BAccessor[NPTypes, BTYPE]:
-            dtype = decode_dtype(elementType, componentType)
-            return _Accessor(
-                elementType=elementType,
-                componentType=componentType,
-                btype=btype,
-                buffer=buffer or self._buffers[0],
-                name=name,
-                dtype=dtype,
-                count=count,
-                normalized=normalized,
-                target=target,
-            )
     
     def create_image(self,
                 imageType: ImageType,
@@ -617,3 +538,44 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.nodes.add(node)
         return node
 
+    def _gen_name(self, obj, /, *, prefix = '', scope = None, index = None, suffix = ''):
+        return self._global_state._gen_name(
+            obj,
+            prefix=prefix,
+            scope=scope,
+            index=index,
+            suffix=suffix,
+        )
+    
+    def _create_accessor(self,
+                elementType: ElementType,
+                componentType: ComponentType,
+                btype: type[BTYPE],
+                name: str='',
+                normalized: bool=False,
+                buffer: Optional['BBuffer']=None,
+                count: int=0,
+                target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
+            ) -> 'BAccessor[NPTypes, BTYPE]':
+        '''
+        Create a `BAccessor` for the given element type and component type.
+        PARAMETERS
+        ----------
+        elementType: ElementType
+            The element type for the accessor.
+        componentType: ComponentType
+            The component type for the accessor.
+        btype: type[BTYPE]
+            The type of the accessor data.
+        name: str
+            The name of the accessor.
+        normalized: bool
+            Whether the accessor data is normalized.
+        target: BufferViewTarget
+            The target for the buffer view.
+        RETURNS
+        -------
+        BAccessor[NPTypes, BTYPE]
+            The created accessor.
+        '''
+        raise NotImplementedError('This method is not implemented on Builder.')

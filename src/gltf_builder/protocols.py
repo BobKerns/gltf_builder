@@ -51,11 +51,11 @@ class AttributeType(NamedTuple):
 
 class _BNodeContainerProtocol(Protocol):
     _parent: Optional['BNode'] = None
-    children: _Holder['BNode']
-    descendants: dict[str, 'BNode']   
+    nodes: _Holder['BNode']
+    descendants: dict[str, 'BNode']
     @property
-    def nodes(self):
-        return self.children
+    def children(self):
+        return self.nodes
     
     @abstractmethod
     def create_node(self,
@@ -130,9 +130,9 @@ class _BNodeContainerProtocol(Protocol):
         ...
 
 @runtime_checkable
-class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
+class _GlobalConfiguration(Protocol):
     '''
-    Abstract class for a Builder.  This exists to avoid circular dependencies.
+    Protocol for the global configuration of the glTF file.
     '''
     asset: gltf.Asset
     '''
@@ -145,17 +145,6 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     cameras: _Holder['BCamera']
     '''
     The cameras in the glTF file.
-    '''
-    _buffers: _Holder['BBuffer']
-    '''
-    The buffers in the glTF file.'''
-    _views: _Holder['BBufferView']
-    '''
-    The buffer views in the glTF file.
-    '''
-    _accessors: _Holder['BAccessor[NPTypes, AttributeData]']
-    '''
-    The accessors in the glTF file.
     '''
     images: _Holder['BImage']
     '''
@@ -210,14 +199,66 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         '''
         ...
 
-    @index_size.setter
     @abstractmethod
-    def index_size(self, size: IndexSize, /):
+    def get_attribute_type(self, name: str) -> AttributeType:
+        ...
+
+
+    @abstractmethod
+    def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
+                    name: str='',
+                    translation: Optional[Vector3Spec]=None,
+                    rotation: Optional[QuaternionSpec]=None,
+                    scale: Optional[Vector3Spec]=None,
+                    matrix: Optional[Matrix4]=None,
+                    extras: Optional[JsonObject]=None,
+                    extensions: Optional[JsonObject]=None,
+                ) -> 'BNode':
         '''
-        Set the size of the index buffer.
+        Instantiate a node or mesh with the given parameters.
+        PARAMETERS
+        ----------
+        node_or_mesh: BNode|BMesh
+            The node or mesh to instantiate.
+        name: str
+            The name of the node.
+        translation: Vector3Spec
+            The translation of the node.
+        rotation: QuaternionSpec
+            The rotation of the node.
+        scale: Vector3Spec
+            The scale of the node.
+        matrix: Matrix4
+            The transformation matrix of the node.
+        extras: JsonObject
+            Extra data for the node.
+        extensions: JsonObject
+            Extensions for the node.
+        RETURNS
+        -------
+        BNode
+            The instantiated node.
         '''
         ...
 
+
+@runtime_checkable
+class _BuilderProtocol(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Protocol):
+    '''
+    Abstract class for a Builder.  This exists to avoid circular dependencies.
+    '''
+
+    _buffers: _Holder['BBuffer']
+    '''
+    The buffers in the glTF file.'''
+    _views: _Holder['BBufferView']
+    '''
+    The buffer views in the glTF file.
+    '''
+    _accessors: _Holder['BAccessor[NPTypes, AttributeData]']
+    '''
+    The accessors in the glTF file.
+    '''
 
     @property
     @abstractmethod
@@ -228,33 +269,9 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     _states: dict[int, _BaseCompileState]
-    
-    @abstractmethod
-    def create_mesh(self,
-                 name: str='',
-                 primitives: Optional[Iterable['BPrimitive']]=None,
-                 weights: Optional[Iterable[float]]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
-            ) -> 'BMesh':
-        
-        ...
-    
-    @abstractmethod
-    def build(self) -> gltf.GLTF2:
-        ...
-
-    @abstractmethod
-    def define_attrib(self, name: str,
-                      elementType: ElementType,
-                      componentType: ComponentType,
-                      type: type[BTYPE],
-                      parser: _AttributeParser[BTYPE]|None=None):
-        ...
-
-    @abstractmethod
-    def get_attribute_type(self, name: str) -> AttributeType:
-        ...
+    '''
+    The per-element states for the compilation of the glTF file.
+    '''
 
     @abstractmethod
     def _get_index_size(self, max_value: int) -> IndexSize:
@@ -310,70 +327,5 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         -------
         BAccessor[NPTypes, BTYPE]
             The created accessor.
-        '''
-        ...
-
-    def create_image(self,
-                imageType: ImageType,
-                name: str='',
-                /, *,
-                blob: Optional[bytes]=None,
-                uri: Optional[str|Path]=None,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
-            ) -> 'BImage':
-        '''
-        Create a `BImage` for the given image type.
-        PARAMETERS
-        ----------
-        imageType: ImageType
-            The image type for the image.
-        name: str
-            The name of the image.
-        blob: bytes
-            The image data as a byte array.
-        uri: str|Path
-            The URI for the image.
-        RETURNS
-        -------
-        BImage
-            The created image.
-        '''
-        ...
-
-    @abstractmethod
-    def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
-                    name: str='',
-                    translation: Optional[Vector3Spec]=None,
-                    rotation: Optional[QuaternionSpec]=None,
-                    scale: Optional[Vector3Spec]=None,
-                    matrix: Optional[Matrix4]=None,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject]=None,
-                ) -> 'BNode':
-        '''
-        Instantiate a node or mesh with the given parameters.
-        PARAMETERS
-        ----------
-        node_or_mesh: BNode|BMesh
-            The node or mesh to instantiate.
-        name: str
-            The name of the node.
-        translation: Vector3Spec
-            The translation of the node.
-        rotation: QuaternionSpec
-            The rotation of the node.
-        scale: Vector3Spec
-            The scale of the node.
-        matrix: Matrix4
-            The transformation matrix of the node.
-        extras: JsonObject
-            Extra data for the node.
-        extensions: JsonObject
-            Extensions for the node.
-        RETURNS
-        -------
-        BNode
-            The instantiated node.
         '''
         ...

@@ -3,7 +3,7 @@ Builder representation of a glTF Buffer
 '''
 
 from collections.abc import Iterable
-from typing import Literal, Optional, overload
+from typing import Literal, Optional, overload, TYPE_CHECKING
 
 import pygltflib as gltf
 
@@ -18,6 +18,8 @@ from gltf_builder.elements import (
 )
 from gltf_builder.holders import _Holder
 from gltf_builder.views import _BufferView
+if TYPE_CHECKING:
+    from gltf_builder.builder import Builder
 
 class _BufferState(_CompileState[gltf.Buffer, '_BufferState']):
     '''
@@ -69,7 +71,7 @@ class _Buffer(BBuffer):
     _views: dict[_BufferViewKey, BBufferView]
     
     def __init__(self,
-                 builder: _BuilderProtocol,
+                 builder: 'Builder',
                  /,
                  name: str='',
                  views: Iterable[BBufferView]=(),
