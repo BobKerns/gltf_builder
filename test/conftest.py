@@ -78,7 +78,7 @@ def out_file(module_out, request) -> Path:
     unlink_tree(file)
     return file
 
-RE_PARAAM = re.compile(r'\[([a-zA-Z0-9_+=@-]*)\]')
+RE_PARAM = re.compile(r'\[([a-zA-Z0-9_+=@-]*)\]')
 
 @pytest.fixture
 def out_dir(module_out, request):
@@ -86,12 +86,12 @@ def out_dir(module_out, request):
     Provide a directory to save test results.
     '''
     name = request.node.name
-    
+
     if name.startswith('test_geo_'):
         name = name[9:]
     elif name.startswith('test_'):
         name = name[5:]
-    name = RE_PARAAM.sub('', name)
+    name = RE_PARAM.sub('', name)
     dir: Path = module_out / name
     dir.mkdir(exist_ok=True)
     return dir
@@ -128,7 +128,7 @@ def sanitize(name: str):
     '''
     Get the test name with any special characters removed.
     '''
-    return RE_PARAAM.sub(r'_\1', name)
+    return RE_PARAM.sub(r'_\1', name)
 
 class ProxyBuilder(Builder):
     result: gltf.GLTF2|None = None
@@ -179,7 +179,7 @@ class ProxyBuilder(Builder):
                           writeTimestamp=writeTimestamp,
                           )
             return result
-    
+
     def __getitem__(self, name: str): # type: ignore[override]
         return (
             self.nodes.get(name)
@@ -236,7 +236,7 @@ def save(out_dir, request):
             extras['gltf_builder'] = {}
         if outfile is None:
             outfile = out.with_suffix('.json')
-        
+
         validation = extras['gltf_builder'].get('validation')
         if validation is None:
             g.convert_images(ImageFormat.BUFFERVIEW)
@@ -362,7 +362,7 @@ def validate_gltf(file_path: Path,
         arg_writeTimestamp = ()
         if not writeTimestamp:
             arg_writeTimestamp = '--writeTimestamp', 'false'
-        
+
         cmd = [str(w) for w in (
             NODE, VALIDATOR_JS,
             '--out', outfile,

@@ -30,5 +30,13 @@
     "testing.coverageToolbarEnabled": true,
     "github.copilot.chat.generateTests.codeLens": true,
     "npm.enableRunFromFolder": true,
-    "npm.packageManager": "npm"
+    "npm.packageManager": "npm",
+    "cSpell.customDictionaries": {
+        "custom-dictionary-workspace": {
+            "name": "custom-dictionary-workspace",
+            "path": "${workspaceFolder:gltf_builder}/.cspell/custom-dictionary-workspace.txt",
+            "addWords": true,
+            "scope": "workspace"
+        }
+    }
 }

@@ -28,10 +28,10 @@ class _Holder(Iterable[T]):
         self.__by_name = {}
         self.__by_value = set()
         self.add(*items)
-     
+
     def add(self, *items: T):
         '''
-        Add itens to the holder, if not already present.
+        Add items to the holder, if not already present.
         '''
         for item in items:
             if item not in self.__by_value:
@@ -54,13 +54,13 @@ class _Holder(Iterable[T]):
             return self[key]
         except KeyError:
             return default
-                
+
     def __iter__(self):
         '''
         We can iterate over all items in the `Holder`.
         '''
         return iter(self.__by_index)
-    
+
     def __getitem__(self, key: str|int) -> T:
         '''
         We can get items by index (position) or name, if named.
@@ -68,13 +68,13 @@ class _Holder(Iterable[T]):
         if isinstance(key, str):
             return self.__by_name[key]
         return self.__by_index[key]
-    
+
     def __len__(self):
         '''
         The number of items held.
         '''
         return len(self.__by_index)
-    
+
     def __contains__(self, item: T|str|int):
         '''
         Return `True` if the item, it's name, or its index is present.
@@ -86,7 +86,7 @@ class _Holder(Iterable[T]):
                 return item >= 0 and item < len(self)
             case _:
                 return item in self.__by_index
-            
+
     def __repr__(self):
         '''
         A string representation of the `Holder`.

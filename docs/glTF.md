@@ -3,7 +3,7 @@
 [![glTF Logo](glTF_100px_June16.png)](https://www.khronos.org/gltf/)
 [![WebGL Logo](WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
 
-glTF™ is the WebGL-oritented "WebGL Transfer Format", a format designed consumption by WebGL™. It is standardized by the [The Khronos® 3D Formats Working Group](https://www.khronos.org/gltf/). For technical details, see [the glTF 2.0 standard](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)
+glTF™ is the WebGL-oriented "WebGL Transfer Format", a format designed consumption by WebGL™. It is standardized by the [The Khronos® 3D Formats Working Group](https://www.khronos.org/gltf/). For technical details, see [the glTF 2.0 standard](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)
 
 The [WebGL 2.0 Specification](https://registry.khronos.org/webgl/specs/latest/2.0/) provides relevant context.
 

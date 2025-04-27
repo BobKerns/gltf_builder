@@ -84,14 +84,14 @@ class VectorLike(NamedTuple, Generic[V, VT]):
     '''
     def __bool__(self) -> bool:
         return sum(v*v for v in self) >= EPSILON2
-    
+
     @property
     def length(self):
         return sqrt(sum(v*v for v in self))
-    
+
     def _t1(self, x: V) -> V:
         return x
-    
+
     def _t2(self, x: VT) -> VT:
         return x
 
@@ -105,22 +105,22 @@ class VectorLike(NamedTuple, Generic[V, VT]):
                 return cast(VT, vtype(*x))
             case _:
                 return None
-    
+
     def __add__(self, other: V|VT) -> Self: # type: ignore
         o = self._other_vector(other)
         if o is None:
             return NotImplemented
         return type(self)(*(a+b for a,b in zip(self, other)))
-    
+
     def __sub__(self, other: V|VT) -> Self:
         o = self._other_vector(other)
         if o is None:
             return NotImplemented
-        return type(self)(*(a-b for a,b in zip(self, other)))   
-                                                                                                                                                                                                                                                                                                                                                                                                        
+        return type(self)(*(a-b for a,b in zip(self, other)))
+
     def __neg__(self) -> Self:
         return type(self)(*(-a for a in self))
-    
+
     def __mul__(self, other: Scalar|V|VT) -> Self|float: # type: ignore
         match other:
             case float()|np.floating()|int()|np.integer():
@@ -143,7 +143,7 @@ class VectorLike(NamedTuple, Generic[V, VT]):
                 return type(self)(*(a/other for a in self))
             case _:
                 return NotImplemented
-    
+
     def dot(self, other: V|VT) -> float:
         o = self._other_vector(other)
         if o is None:
@@ -215,7 +215,7 @@ class Vector3(_Floats3, VectorLike['Vector3', 'Vector3Spec'], _Arrayable): # typ
     '''
     A 3D vector, x, y, and z. 3D vectors support cross products.
     '''
-    
+
     def __matmul__(self, other: 'Self|Tangent') -> 'Vector3':
         '''
         Return the cross product of this vector and another.
@@ -231,7 +231,7 @@ class Vector3(_Floats3, VectorLike['Vector3', 'Vector3Spec'], _Arrayable): # typ
         return Vector3(
             sign * (self.y * other.z - self.z * other.y),
             sign * (self.z * other.x - self.x * other.z),
-            sign * (self.x * other.y - self.y * other.x) 
+            sign * (self.x * other.y - self.y * other.x)
         )
 
 
@@ -270,7 +270,7 @@ class Tangent(Tangent_, VectorLike['Tangent|Vector3', 'Vector3Spec|TangentSpec']
         '''
         x, y, z, _ = self
         return (x*x + y*y + z*z) > EPSILON*EPSILON
-    
+
     def __add__(self, other: 'Vector3Spec|TangentSpec') -> 'Tangent': # type: ignore
         o = self._other_vector(other)
         if o is None:
@@ -281,7 +281,7 @@ class Tangent(Tangent_, VectorLike['Tangent|Vector3', 'Vector3Spec|TangentSpec']
                 return NotImplemented
         # Should not be needed, but an Unknown slips past the flow analysis.
         return Tangent(float(self.x + o[0]), float(self.y + o[1]), float(self.z + o[2]), self.w)
-    
+
     def __sub__(self, other: 'Vector3Spec|TangentSpec') -> 'Tangent':
         match other:
             case Tangent()|Vector3():
@@ -299,7 +299,7 @@ class Tangent(Tangent_, VectorLike['Tangent|Vector3', 'Vector3Spec|TangentSpec']
         # Should not be needed, but an Unknown slips past the flow analysis.
         o = cast('Tangent|Vector3', other)
         return Tangent(self.x - o.x, self.y - o.y, self.z - o.z, self.w)
-    
+
     @overload
     def __mul__(self, other: Scalar) -> 'Tangent': ...
     @overload
@@ -315,15 +315,15 @@ class Tangent(Tangent_, VectorLike['Tangent|Vector3', 'Vector3Spec|TangentSpec']
                 if o is None:
                     return NotImplemented
         return self.x * float(o[0]) + self.y * float(o[1]) + self.z * float(o[2])
-    
+
     @property
     def length(self):
         x, y, z, _ = self
         return sqrt(x*x + y*y + z*z)
-    
+
     def __neg__(self) -> 'Tangent':
         return Tangent(-self.x, -self.y, -self.z, self.w)
-    
+
     def __truediv__(self, other: Scalar) -> 'Tangent':
         match other:
             case float()|np.floating()|int()|np.integer():
@@ -331,13 +331,13 @@ class Tangent(Tangent_, VectorLike['Tangent|Vector3', 'Vector3Spec|TangentSpec']
             case _:
                 return NotImplemented
         return Tangent(self.x / other, self.y / other, self.z / other, self.w)
-    
+
     def dot(self, other: 'Vector3Spec|TangentSpec') -> float:
         match other:
             case Tangent():
                 pass
             case  VectorLike() if len(other) == 3:
-                pass 
+                pass
             case _:
                 raise TypeError('Invalid vector dot product')
         return self.x * other.x + self.y * other.y + self.z * other.z
@@ -405,13 +405,13 @@ class UvFloat(_Uvf, PointLike[Vector2], UvPoint, _Sizedf): # type: ignore
     '''
     A 2D texture coordinate (in U and V) in floating point.
     '''
-    
+
     def __sub__(self, other: Self) -> Vector2: # type: ignore
         '''Return a vector from one point to another.'''
         if type(self) is not type(other):
             return NotImplemented
         return Vector2(self.x - other.x, self.y - other.y)
-    
+
     def __add__(self, other: Vector2) -> Self: # type: ignore
         '''
         Return a new point by adding a vector to this point.
@@ -423,11 +423,11 @@ class UvFloat(_Uvf, PointLike[Vector2], UvPoint, _Sizedf): # type: ignore
 
 class _UvInt(NamedTuple):
     '''
-    A 2D texture coordinate (in U and V) in normalied ints.
+    A 2D texture coordinate (in U and V) in normalized ints.
     '''
     u: int
     v: int
-    
+
     @property
     def x(self) -> int:
         return self.u
@@ -441,7 +441,7 @@ class _UvInt(NamedTuple):
         if type(self) is not type(other):
             return NotImplemented
         return Vector2(float(self.x - other.x), float(self.y - other.y))
-    
+
     def __add__(self, other: Vector2) -> '_UvInt': # type: ignore
         '''
         Return a new point by adding a vector to this point.
@@ -527,7 +527,7 @@ class RGB8(_RGBI, _Sized8, Color): # type: ignore
 
 class RGBA8(_RGBAI, _Sized8, Color): # type: ignore
     '''
-    An RGAB color with 8-bit integer values between 0 and 255, inclusive.
+    An RGBA color with 8-bit integer values between 0 and 255, inclusive.
     '''
     pass
 
@@ -575,7 +575,7 @@ class _Joint16(Joint, _Sized16): # type: ignore
 
 class Weight(NamedTuple):
     '''
-    A weioght for a joint animation. May be in 8-bit, 16-bit, or float format.
+    A weight for a joint animation. May be in 8-bit, 16-bit, or float format.
     '''
     pass
 
@@ -686,11 +686,11 @@ A texture coordinate object
 '''
 
 NormalSpec: TypeAlias = Vector3Spec
-'''Specificaton for a normal vector, x, y, and z. (an ordinary Vector3)'''
+'''Specification for a normal vector, x, y, and z. (an ordinary Vector3)'''
 ScaleSpec: TypeAlias = Vector3Spec|Scalar|Scale
 '''A specification for a scale factor, x, y, and z, or a float to scale uniformly.'''
 ColorSpec: TypeAlias = Color|_Float3Spec|_Float4Spec|_NP4IVector8|_NP4IVector16|_NP3IVector8|_NP3IVector16
-'''A soecification for a color, RGB or RGBA.'''
+'''A specification for a color, RGB or RGBA.'''
 JointSpec: TypeAlias = Joint|_Int4Spec
 '''Specification for up to 4 joint nodes'''
 WeightSpec: TypeAlias = Weight|_Float4Spec|_Int4Spec
@@ -791,11 +791,11 @@ def point(x: Optional[Scalar|PointSpec|np.ndarray[tuple[int], np.dtype[np.float3
     ----------
         x: The x value of the point, or a point object of some type.
         y: The y value of the point.
-        z: The z value of the point. 
+        z: The z value of the point.
 
     Returns
     -------
-        A `_P{oint` object (a `NamedTuple`)
+        A `_Point` object (a `NamedTuple`)
     '''
     match x, y, z:
         case None, None, None:
@@ -814,7 +814,7 @@ def point(x: Optional[Scalar|PointSpec|np.ndarray[tuple[int], np.dtype[np.float3
             return Point(float(x[0]), float(x[1]), float(x[2]))
         case _:
             raise ValueError('Invalid point')
-        
+
 
 @overload
 def uv() -> UvPoint: ...
@@ -882,7 +882,7 @@ def uv(u: Optional[Scalar|UvSpec]=None,
         case float()|int()|np.floating(), float()|int()|np.floating():
             return _uv(scale(u), scale(v)) # type: ignore
         case _:
-            raise ValueError('Invalid uv')     
+            raise ValueError('Invalid uv')
 
 
 @overload
@@ -897,7 +897,7 @@ def vector2(x: Optional[Scalar|Vector2Spec]=None,
         case None, None:
             return Vector2(0.0, 0.0)
         case Vector2(), None:
-            return x 
+            return x
         case (float()|int()|np.floating(), float()|int()|np.floating()), None:
             return Vector2(float(x[0]), float(x[1]))
         case np.ndarray(), None if x.shape == (2,):
@@ -905,7 +905,7 @@ def vector2(x: Optional[Scalar|Vector2Spec]=None,
         case float()|int()|np.floating(), float()|int()|np.floating():
             return Vector2(float(x), float(y))
         case _:
-            raise ValueError('Invalid vector2')  
+            raise ValueError('Invalid vector2')
 
 
 @overload
@@ -929,7 +929,7 @@ def vector3(x: Optional[Scalar|Vector3Spec]=None,
         case float()|int()|np.floating(), float()|int()|np.floating(), float()|int()|np.floating():
             return Vector3(float(x), float(y), float(z))
         case _:
-            raise ValueError('Invalid vector3')   
+            raise ValueError('Invalid vector3')
 
 
 @overload
@@ -1012,7 +1012,7 @@ def tangent(x: Scalar|TangentSpec,
             return x
         case (float()|int()|np.floating(),
               float()|int()|np.floating(),
-              float()|int()|np.floating(), 
+              float()|int()|np.floating(),
               -1|1
               ), None, None, -1|1:
             w = 1 if x[3] == 1 else -1
@@ -1167,11 +1167,11 @@ def joints(joint_map: JointMap, /,
            precision: Literal[0, 1, 2, 4]=0,
         ) -> tuple[tuple[Joint, ...], tuple['Weight', ...]]:
     '''
-    Validate and return tuples of `Joint` objects and `Weight` objects. Each object holds up to 4 valuies.
+    Validate and return tuples of `Joint` objects and `Weight` objects. Each object holds up to 4 values.
     '''
     match joint_map:
         case Mapping():
-           # An Iterable[X] is incorrectliy promotted to a Mapping[X, Unknown]
+           # An Iterable[X] is incorrectly promoted to a Mapping[X, Unknown]
            w = cast(Mapping[IntScalar, Scalar], joint_map)
            return joint(*w.keys(), size=size), weight(*w.values(), precision=precision)
         case Sequence():
@@ -1262,7 +1262,7 @@ def joint(*ids: IntScalar|Iterable[IntScalar]|_NPIVector,
                 case Sequence():
                     raise ValueError('Joint ids out of range')
                 case Iterable():
-                    # So we avoid two passes (identifying size, then collecting), which may not be posssible
+                    # So we avoid two passes (identifying size, then collecting), which may not be possible
                     # if the iterable is e.g. a generator.
                     return joint(tuple(id_list), size=0)
                 case _:
@@ -1282,12 +1282,12 @@ def joint(*ids: IntScalar|Iterable[IntScalar]|_NPIVector,
         if not all(isinstance(i, (int, np.integer)) and i <= lim for i in id_list):
             raise ValueError('Invalid joint ids')
         validated = True
-    return tuple(jtype(*chunk) for chunk in chunk4i(id_list))  
+    return tuple(jtype(*chunk) for chunk in chunk4i(id_list))
 
 
 def chunk4(values: Iterable[Scalar|None]) -> Iterable[tuple[float, float, float, float]]:
     '''
-    Chunk an iterable of float values into groups of 4. The last chuunk will be
+    Chunk an iterable of float values into groups of 4. The last chunk will be
     extended with 0s if it is less than 4 values.
     '''
     viter = iter(values)
@@ -1426,7 +1426,7 @@ def _weightf(arg: Iterable[Scalar|None]) -> tuple[_Weightf, ...]:
                 for v in values
             )
     if abs(total) < EPSILON:
-        raise ValueError('No meaningfully non-zero weightw')
+        raise ValueError('No meaningfully non-zero weights')
     return tuple(_Weightf(*(c/total for c in chunk)) for chunk in chunk4(values))
 
 
@@ -1469,7 +1469,7 @@ def find_dtype(values: Iterable[IntScalar]) -> np.dtype[np.uint8]|np.dtype[np.ui
         try:
             v = int(v)
         except TypeError:
-            raise ValueError("Values must be convertable to int")
+            raise ValueError("Values must be convertible to int")
         if v < 0:
             raise ValueError('values must be non-negative')
         if v > 255:

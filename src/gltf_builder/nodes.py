@@ -1,5 +1,5 @@
 '''
-Builder representation of a gltr node. This will be compiled down during
+Builder representation of a gltf node. This will be compiled down during
 the build phase.
 '''
 
@@ -29,9 +29,9 @@ from gltf_builder.utils import std_repr
 class _BNodeContainer(_BNodeContainerProtocol):
     nodes: _Holder[BNode]
     @property
-    def chhildren(self):
+    def children(self):
         return self.nodes
-    
+
     def __init__(self, /,
                 nodes: Iterable[BNode]=(),
             ):
@@ -48,7 +48,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
                 c._parent = None
             c.root = False
         self.descendants: dict[str, BNode] = {}
-    
+
     def create_node(self,
                 name: str='',
                 /, *,
@@ -142,7 +142,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
 
     def __getitem__(self, name: str) -> BNode:
         return self.descendants[name]
-    
+
     def __setitem__(self, name: str, node: 'BNode'):
         self.descendants[name] = node
 
@@ -151,7 +151,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
 
     def __iter__(self):
         return iter(self.children)
-    
+
     def __len__(self) -> int:
         return len(self.children)
 
@@ -166,7 +166,7 @@ class _NodeState(_CompileState[gltf.Node, '_NodeState']):
 class _Node(_BNodeContainer, BNode):
     '''
     Implementation class for `BNode`.
-    ''' 
+    '''
 
     @classmethod
     def state_type(cls):
@@ -216,7 +216,7 @@ class _Node(_BNodeContainer, BNode):
             matrix=self.matrix,
             root=self.root,
         )
-        
+
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
@@ -275,7 +275,7 @@ class _Node(_BNodeContainer, BNode):
                 )
         self.mesh = m
         return m
-    
+
     def __repr__(self):
         return std_repr(self, (
             'name',

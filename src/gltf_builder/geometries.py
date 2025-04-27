@@ -23,7 +23,7 @@ def _make(name: str,
          extensions: Optional[JsonObject]|None = None,
          ) -> Iterator[BNode]:
     '''
-    Create a detatched node to add geometry to.
+    Create a detached node to add geometry to.
     '''
     extras = extras or {}
     extensions = extensions or {}
@@ -158,7 +158,7 @@ def define_geometry(name: str, fn: GeometryFn, /, *,
                     extensions: Optional[JsonObject] = None,
                     ) -> None:
     '''
-    Define a detatched node to add geometry to.
+    Define a detached node to add geometry to.
 
     Creation is deferred until first use
     '''
@@ -189,7 +189,7 @@ def _cube(cube: BNode):
         name = f'FACE{i+1}'
         node = cube.create_node(name)
         mesh = node.create_mesh(name)
-               
+
         uvx = uv(0.0, 0.0), uv(0.0, 1.0), uv(1.0, 1.0), uv(1.0, 0.0)
         mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE_VERTICES[i] for i in face],)
     CUBE = cube

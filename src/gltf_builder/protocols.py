@@ -13,7 +13,7 @@ import math
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compileable, _Scope
+from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _CompileState, _Compilable, _Scope
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType, ImageType, IndexSize, JsonObject,
@@ -56,7 +56,7 @@ class _BNodeContainerProtocol(Protocol):
     @property
     def children(self):
         return self.nodes
-    
+
     @abstractmethod
     def create_node(self,
                 name: str='',
@@ -101,9 +101,9 @@ class _BNodeContainerProtocol(Protocol):
             if self.rotation:
                 (x, y, z), r = Q.to_axis_angle(self.rotation)
                 print(f'{pre}⇒ Rotation: <{x:.2f}, {y:.2f}, {z:.2f}> @ {r*180/math.pi:.2f}°')
-            if self.translation:  
-                x, y, z = self.translation  
-                print(f'{pre}⇒ Translation: <{x:.2f}, {y:.2f}, {z:.2f}>') 
+            if self.translation:
+                x, y, z = self.translation
+                print(f'{pre}⇒ Translation: <{x:.2f}, {y:.2f}, {z:.2f}>')
             if self.matrix:
                 print(f'{pre}⇒ Matrix: {self.matrix}')
         for child in self.children:
@@ -277,8 +277,9 @@ class _BuilderProtocol(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Pr
     def _get_index_size(self, max_value: int) -> IndexSize:
         ...
 
+    @abstractmethod
     def _gen_name(self,
-                  obj: _Compileable[_GLTF, _STATE], /, *,
+                  obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str='',
                   scope: ScopeName|None=None,
                   index: Optional[int]=None,
@@ -297,6 +298,7 @@ class _BuilderProtocol(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Pr
         '''
         ...
 
+    @abstractmethod
     def _create_accessor(self,
                 elementType: ElementType,
                 componentType: ComponentType,

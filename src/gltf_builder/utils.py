@@ -114,7 +114,7 @@ def distribute_floats(*values: float,
         return tuple(d / c + lower for _ in values)
     return tuple(d * (v - lower) / total + lower for v in values)
 
-    
+
 def distribute_ints(*values: int|float, lower: int=0, upper: int=255) -> tuple[int, ...]:
     '''
     Distribute the ints to a tuple of ints. By default, the target range is 0 to 255.
@@ -332,7 +332,7 @@ def _get_human_name():
     """
     Returns the full name of the current user, falling back to the username if necessary.
     """
-    
+
     try:
         full_name = None
 
@@ -341,7 +341,7 @@ def _get_human_name():
                 full_name = pwd.getpwuid(os.getuid()).pw_gecos.split(',')[0].strip()
             except KeyError:
                 pass
-            
+
             # Try getent as a fallback
             if not full_name:
                 try:

@@ -20,7 +20,7 @@ _RotMatrix: TypeAlias = np.ndarray[tuple[Literal[3], Literal[3]], np.dtype[np.fl
 
 class Quaternion(NamedTuple):
     '''
-    A quaterhion with x, y, z, and w components. Used here to
+    A quaternion with x, y, z, and w components. Used here to
     represent a rotation or orientation.
     '''
     x: float
@@ -30,7 +30,7 @@ class Quaternion(NamedTuple):
 
     def __neg__(self):
         return Quaternion(-self.x, -self.y, -self.z, -self.w)
-    
+
     def __mul__(self, other: 'Quaternion|Scalar') -> 'Quaternion': # type: ignore
         if isinstance(other, Quaternion):
             x1, y1, z1, w1 = self
@@ -41,7 +41,7 @@ class Quaternion(NamedTuple):
             z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
             w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
             return Quaternion(x, y, z, w)
-        
+
         elif isinstance(other, (int, float, np.floating)): # type: ignore
             return Quaternion(float(self.x * other),
                                float(self.y * other),
@@ -60,7 +60,7 @@ class Quaternion(NamedTuple):
                                 float(self.w * other))
         else:
             return NotImplemented
-        
+
     def __truediv__(self, other: 'Quaternion|Scalar'):
         if isinstance(other, (int, float, np.floating)):
             other = float(other)
@@ -70,10 +70,10 @@ class Quaternion(NamedTuple):
                                 self.w / other)
         else:
             return NotImplemented
-        
+
     def norm(self) -> float:
         return float(np.linalg.norm(self))
-        
+
     def normalize(self) -> 'Quaternion':
         n = self.norm()
         if n < EPSILON:
@@ -116,7 +116,7 @@ class Quaternion(NamedTuple):
         if norm_sq < EPSILON:
             raise ValueError("Cannot invert a zero-norm quaternion.")
         return Quaternion(*(v / norm_sq for v in self.conjugate()))
-    
+
 
     def conjugate(self) -> 'Quaternion':
         """
@@ -137,7 +137,7 @@ class Quaternion(NamedTuple):
         -------
         Quaternion
             The logarithm of the quaternion (axis-angle representation) as
-            a pure-imaginnary Quaternion.
+            a pure-imaginary Quaternion.
         """
         v = Quaternion(*self[:3], 0)
         w = self[3]
@@ -172,7 +172,7 @@ class Quaternion(NamedTuple):
             sin_theta = np.sin(theta)
             return Quaternion(*np.concatenate([axis * sin_theta, [np.cos(theta)]]))
         return IDENTITY # Identity
-    
+
     @staticmethod
     def decompose_trs(m: Matrix[Literal[4]]) -> tuple[Vector3, 'Quaternion', Scale]:
         """
@@ -244,7 +244,7 @@ class Quaternion(NamedTuple):
 
         Parameters
         ----------
-        quaternion : Qaternion
+        quaternion : Quaternion
             A 1D array or sequence representing the quaternion (x, y, z, w).
 
         Returns
@@ -265,7 +265,7 @@ class Quaternion(NamedTuple):
             (2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy), 1),
             (0, 0, 0, 1)
         ))
-    
+
     @staticmethod
     def from_matrix(m: Matrix[Literal[4]]) -> 'Quaternion':
         """
@@ -324,7 +324,7 @@ class Quaternion(NamedTuple):
         q = np.array([x, y, z, w], dtype=np.float32)
         norm = float(np.linalg.norm(q))
         return Quaternion(*(float(v / norm) for v in q))
-    
+
     def to_axis_angle(self) -> tuple[Vector3, float]:
         """
         Convert a quaternion (x, y, z, w) to axis-angle representation.
@@ -374,23 +374,23 @@ class Quaternion(NamedTuple):
         """
         x, y, z = vector3(axis)
         norm = math.sqrt(x**2 + y**2 + z**2)
-        
+
         if norm == 0:
             raise ValueError("Axis vector must be nonzero.")
-        
+
         # Normalize the axis
         x /= norm
         y /= norm
         z /= norm
-        
+
         half_angle = angle / 2
         sin_half_angle = math.sin(half_angle)
-        
+
         qx = x * sin_half_angle
         qy = y * sin_half_angle
         qz = z * sin_half_angle
         w = math.cos(half_angle)
-        
+
         return Quaternion(qx, qy, qz, w)
 
     @staticmethod
@@ -441,7 +441,7 @@ class Quaternion(NamedTuple):
 
     @staticmethod
     def slerp(
-            q1: 'QuaternionSpec', 
+            q1: 'QuaternionSpec',
             q2: 'QuaternionSpec',
             t: float01
         ) -> 'Quaternion':
@@ -488,7 +488,7 @@ class Quaternion(NamedTuple):
 
         theta_0 = math.acos(dot)  # Initial angle
         sin_theta_0 = math.sin(theta_0)
-        
+
         theta = theta_0 * t  # Scaled angle
         sin_theta = math.sin(theta)
 

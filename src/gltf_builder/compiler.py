@@ -1,5 +1,5 @@
 '''
-Compilation interfce for the glTF builder.
+Compilation interface for the glTF builder.
 '''
 
 from abc import abstractmethod
@@ -18,6 +18,7 @@ from gltf_builder.core_types import (
 )
 from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
+from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
     from gltf_builder.elements import BBufferView, BBuffer
@@ -35,7 +36,7 @@ This is used to indicate the type of the gltf element being compiled.
 
 
 _Collected: TypeAlias = tuple[
-    '_Compileable',
+    '_Compilable',
     Sequence['_Collected'],
 ]
 
@@ -60,7 +61,7 @@ class _BaseCompileState(Generic[_GLTF]):
     '''
     Base state for compiling an element.
 
-    Seperate from `_CompileState` to allow for more generic use.
+    Separate from `_CompileState` to allow for more generic use.
     '''
     name: str
     index: int = -1
@@ -88,10 +89,11 @@ class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
     '''
     State for compiling an element.
     '''
-    element: '_Compileable[_GLTF, _STATE]'
+    element: '_Compilable[_GLTF, _STATE]'
+
     def __init__(self,
                  name: str,
-                 element: '_Compileable[_GLTF, _STATE]',
+                 element: '_Compilable[_GLTF, _STATE]',
                 ) -> None:
         super().__init__(
             name=name,
@@ -114,7 +116,7 @@ class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
             'phase',
         ))
 
-class _Compileable(Generic[_GLTF, _STATE], Protocol):
+class _Compilable(Generic[_GLTF, _STATE], Protocol):
     __phases: list[Phase]
     _len: int = -1
     _scope_name: ScopeName
@@ -320,9 +322,9 @@ class _Scope(Protocol):
     Scope for allocating `BBufferView` and `BAccessor` objects.
 
     Scopes include meshes, nodes, and buffers, with meshes at the top
-    and buffersat the bottom. Between, the nodes have their own hierarchy,
+    and buffers at the bottom. Between, the nodes have their own hierarchy,
     so a parent node can have a view scope, but a child node can have an
-    accessor scope. This allows control over sharing of verticies, accessors,
+    accessor scope. This allows control over sharing of vertices, accessors,
     and views. Vertex sharing follows the same scope as accessors, while
     views can follow the same scope as the accessors they contain, or any
     scope above them.

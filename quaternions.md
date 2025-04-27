@@ -4,7 +4,7 @@
 
 Quaternions are a powerful mathematical tool for representing rotations in three-dimensional space. They offer advantages over other representations, such as Euler angles, by avoiding issues like gimbal lock and providing smooth interpolation between orientations. However, implementing quaternion operations requires careful attention to numerical stability to ensure accurate and reliable results.
 
-# Quaternion to Rotation Matrix Conversion
+## Quaternion to Rotation Matrix Conversion
 
 Converting a quaternion to a rotation matrix is a common operation in 3D graphics and robotics. The conversion is defined by the following formula:
 
@@ -17,7 +17,7 @@ $$
 
 In this formula, $q_w$ is the scalar component, and $q_x$, $q_y$, $q_z$ are the vector components of the quaternion. It’s crucial to ensure that the quaternion is normalized (i.e., it has a unit norm) before performing this conversion. Normalization prevents scaling issues in the resulting rotation matrix and maintains the orthogonality properties essential for accurate rotations.
 
-# Rotation Matrix to Quaternion Conversion
+## Rotation Matrix to Quaternion Conversion
 
 Converting a rotation matrix back to a quaternion is more intricate and susceptible to numerical instability, especially when the matrix elements are near the limits of floating-point precision. A common method involves computing the trace of the rotation matrix:
 
@@ -35,7 +35,7 @@ Based on the value of the trace, the quaternion components can be computed as:
 
 This approach minimizes numerical errors by selecting the computation path that avoids small denominators. For a detailed discussion on this method, refer to [Accurate Computation of Quaternions from Rotation Matrices](https://digital.csic.es/bitstream/10261/179990/1/Accurate%20Computation_Sarabandi.pdf).
 
-# Quaternion Multiplication
+## Quaternion Multiplication
 
 Quaternion multiplication is used to combine rotations. Given two quaternions $q_1 = (x_1, y_1, z_1, w_1)$ and $q_2 = (x_2, y_2, z_2, w_2)$, their product $q = q_1 \times q_2$ is computed as:
 
@@ -57,9 +57,10 @@ It’s essential to normalize the resulting quaternion after multiplication to c
 ## Numerical Stability Considerations
 
 When implementing quaternion operations, consider the following to enhance numerical stability:
-* Normalization: Regularly normalize quaternions, especially after operations like multiplication or interpolation, to prevent the accumulation of numerical errors.
-* Thresholding: Implement thresholds to handle cases where computations approach numerical limits, such as very small denominators, to avoid instability.
-* Precision: Use appropriate data types (e.g., double precision) to minimize rounding errors in critical computations.
+
+- Normalization: Regularly normalize quaternions, especially after operations like multiplication or interpolation, to prevent the accumulation of numerical errors.
+- Thresholding: Implement thresholds to handle cases where computations approach numerical limits, such as very small denominators, to avoid instability.
+- Precision: Use appropriate data types (e.g., double precision) to minimize rounding errors in critical computations.
 
 For an in-depth exploration of numerical stability in quaternion computations, consult [A Survey on the Computation of Quaternions from Rotation Matrices](https://digital.csic.es/bitstream/10261/202072/1/A%20Survey%20on%20the%20Computation_Sarabandi.pdf).
 

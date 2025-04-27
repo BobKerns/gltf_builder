@@ -36,8 +36,7 @@ class _Mesh(BMesh):
     def state_type(cls):
         return _MeshState
 
-    indicies: Optional[int]
-    
+
     def __init__(self,
                  name: str='', /,
                  primitives: Iterable[BPrimitive]=(),
@@ -63,7 +62,7 @@ class _Mesh(BMesh):
             extras={**self.extras, **(extras or {})},
             extensions={**self.extensions, **(extensions or {})},
         )
-    
+
     @overload
     def add_primitive(self, primitive: BPrimitive, /, *,
                       extras: Optional[JsonObject]=None,
@@ -130,7 +129,7 @@ class _Mesh(BMesh):
                                 **attribs)
         self.primitives.append(prim)
         return prim
-    
+
     def _do_compile(self,
                     builder: _BuilderProtocol,
                     scope: _Scope,
@@ -205,7 +204,7 @@ def mesh(
         Extra data to be added to the mesh.
     extensions : Optional[JsonObject]
         Extensions to be added to the mesh.
-    
+
     Returns
     -------
     BMesh

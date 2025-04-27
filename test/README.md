@@ -4,7 +4,7 @@ There is a large and growing suite of test cases.  Generally, the test modules a
 
 Documentation examples are tested in [test_examples.py](test_examples.py), and should be kept in sync.
 
-Tests which produce output files do so in the `test/out` heirarchy, which is arranged like this:
+Tests which produce output files do so in the `test/out` hierarchy, which is arranged like this:
 
 ```text
 test/

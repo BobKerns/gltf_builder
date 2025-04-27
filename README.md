@@ -1,11 +1,11 @@
-# GTLF Builder
+# glLF Builder
 
 [![glTF Logo](docs/glTF_100px_June16.png)](https://www.khronos.org/gltf/)
 [![WebGL Logo](docs/WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
 
 This library wraps the [`pygltflib`](https://github.com/lukas-shawford/gltflib) library to handle the low-level details of managing buffers, buffer views, and accessors.
 
-In this document, we will generalliy refer to  the `pygltflib` library with the `gltf` prefix.
+In this document, we will generally refer to  the `pygltflib` library with the `gltf` prefix.
 
 For more information about the underlying glTF model, see [our page on glTF](docs/glTF.md).
 
@@ -33,7 +33,7 @@ Not started:
 
 ## Usage
 
-You start by creating a `Builder` instance. There are abstract types corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classe are compiled to the corresponding `gltf` clases with the `compile()` method, which returns a `pygltflib.GLTF2` instance.
+You start by creating a `Builder` instance. There are abstract types corresponding to the major classes from the `pygltflib` library, with names prepended with 'B'. For example, this library supplies a `BNode` class that plays the same role as `gltf.Node`. These classes are compiled to the corresponding `gltf` classes with the `compile()` method, which returns a `pygltflib.GLTF2` instance.
 
 The `BXxxxx` names are abstract; the implementation classes bear names like `_Xxxxx`.
 
@@ -91,7 +91,7 @@ Notes:
 - Using `Builder.create_node()` rather than `node()` associates it with the builder immediately.
   - This allows you to retrieve it with `builder.nodes[`_name_`]`.
   - `node()` produces a detached node, which can instantiated or added later.
-- Objects do not need to be added to the buillder explicitly if they are referenced by other objects.
+- Objects do not need to be added to the builder explicitly if they are referenced by other objects.
 - Using `Builder.create_mesh()` or `Builder.create_node()` adds the resulting mesh to the file, even if not referenced. They are otherwise equivalent to `mesh()` or `node()`.
 
 ## Instancing
@@ -128,7 +128,7 @@ Adjusting the `name_policy` allows for greater flexibility and control over the 
 
 ## Matrices, Vector types, colors, etc
 
-This includes types and functions for creating vectors, colors, etc. These are useful for providing attribute values, but if you provide the appropriate `tuple` or `np.ndarray` of values, they will be converted with the apporpriate constructor function.
+This includes types and functions for creating vectors, colors, etc. These are useful for providing attribute values, but if you provide the appropriate `tuple` or `np.ndarray` of values, they will be converted with the appropriate constructor function.
 
 Using the provided functions gives error and range checking, and may inform the library of the intended data type to use, and allows you to use operations like matrix or vector operations.
 
@@ -136,7 +136,7 @@ Using the provided functions gives error and range checking, and may inform the 
 
 The main user objects have functions to construct them, rather than using the classes directly.
 
-The functions are declared to return abstract types; the concrete implemention classes are hidden. The public interface is through these abstract types.
+The functions are declared to return abstract types; the concrete implementation classes are hidden. The public interface is through these abstract types.
 
 | Constructor       | Type                | Description                                     |
 |-------------------|---------------------|-------------------------------------------------|
@@ -159,14 +159,14 @@ The functions are declared to return abstract types; the concrete implemention c
 These take the expected values, with the following notes:
 
 - All functions, if provided an instance of their constructed type, will return it unchanged.
-- `color` takes values betwee 0..1 inlusive. The `size=` keyword argument specifies the data format used, 1, 2, or 4 bytes. 4 bytes uses `np.float32` format.
+- `color` takes values between 0..1 inclusive. The `size=` keyword argument specifies the data format used, 1, 2, or 4 bytes. 4 bytes uses `np.float32` format.
 - `rgb` and `rgba` takes values between 0..1 inclusive, like color, and always uses the `np.float32` format.
-- `rgb8`, `rgba8` use integer values between 0..255 inculusive and the 1-byte format.
+- `rgb8`, `rgba8` use integer values between 0..255 inclusive and the 1-byte format.
 - `rgb16` and `rgba16` use integer values between 0..65535 inclusive and the 2-byte format.
-- `matrix2`, `matric3`, and `matric4` will accept tuples of 4, 9, or 16 values, or tuples of tuples in 2x2, 3x3, or 4x4 form.
+- `matrix2`, `matrix3`, and `matrix4` will accept tuples of 4, 9, or 16 values, or tuples of tuples in 2x2, 3x3, or 4x4 form.
 - `scale` will accept 3 values, a tuple or `np.ndarray` of 3 values, or a single value to be applied to all three dimensions.
 - The `tangent` function constructs `Tangent` values for use as the `TANGENT` vertex attribute. As such, it takes the _X_, _Y_, and _Z_ values like a `Vector3` and a fourth value, either -1 or 1, to indicate its orientation. The `Tangent` value can be treated like a `Vector3`, ie. it supports cross product via the `@` operator.
-- `uv` returns texture coordinaes. The `size` argument specifies 1, 2, or 4-byte formats, with the 4-byte format being `np.float32`
+- `uv` returns texture coordinates. The `size` argument specifies 1, 2, or 4-byte formats, with the 4-byte format being `np.float32`
 - Points (including uv texture coordinates) and vectors are not the same, so have different types:
   - They behave differently under transformation.
   - Vectors add, points do not.

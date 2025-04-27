@@ -26,7 +26,7 @@ from gltf_builder import (
     ByteSize, Weight,
     joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
     weight,
-    color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
+    color, rgb8, rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16,
     Vector2, Vector3, Vector4,
     Tangent, Scale, Point, PointLike, UvFloat, Uv16, Uv8,
     Joint, EPSILON,
@@ -59,7 +59,7 @@ class Constructor(Function, Protocol, Generic[RET_cov]):
     Type for the constructor function.
     '''
     def __call__(self, *args: Any, **kwargs: Any) -> RET_cov: ...
-    
+
 
 class _CaseFnSized(Function, Protocol, Generic[RET]):
     '''
@@ -244,7 +244,7 @@ def validator_fn(tcase: Callable[[Callable[..., Any], tuple[Any, ...]], tuple[An
 
         An exception is expected if ndata is outside the range of
         min_data and max_data, or if exc is supplied.
-        
+
         Parameters
         ----------
         t : type
@@ -360,7 +360,7 @@ def validator_nested(request: type[pt.FixtureRequest],
 
     '''
     return validator_fn(request.param) # type: ignore
-    
+
 
 @fixture(params=[case_tuple,
                          case_obj,
@@ -385,7 +385,7 @@ def validator_uv(request: type[pt.FixtureRequest]):
 
     '''
     return validator_fn(request.param) # type: ignore
-    
+
 
 SCALED_PARAMS: list[tuple[tuple[Any, ...], type[ValueError]|None]] = [
     ((0.4, 0.3, 0.2, 0.1), None),
@@ -494,7 +494,7 @@ def test_uv(
     (scale, Scale, (1.0, 1.0, 1.0)),
     (point, Point, (0.0, 0.0, 0.0)),
 ])
-def test_emvty(cnst, t, vals):
+def test_empty(cnst, t, vals):
     '''
     Test the empty type constructor.
     '''
@@ -665,7 +665,7 @@ def weight16(*args, **kwargs):
 ])
 @mark.parametrize('tcase, zeropad', [
     (case_tuple, False),
-    (case_numpy, False)   
+    (case_numpy, False)
 ])
 def test_weight(tcase,
                 zeropad,
@@ -940,4 +940,3 @@ def test_vector_add(v1, v2, expected):
     rr = v2 + v1
     assert tuple(r) == approx(tuple(expected))
     assert tuple(rr) == approx(tuple(expected))
-    

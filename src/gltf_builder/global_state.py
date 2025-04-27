@@ -7,7 +7,8 @@ from itertools import count
 
 from gltf_builder.accessors import _Accessor
 from gltf_builder.attribute_types import BTYPE
-from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compileable
+from gltf_builder.buffers import _Buffer
+from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compilable
 from gltf_builder.core_types import BufferViewTarget, ComponentType, ElementType, IndexSize, NPTypes, NameMode, ScopeName
 from gltf_builder.elements import BAccessor, BBuffer, BNode, Element
 from gltf_builder.nodes import _BNodeContainer
@@ -32,14 +33,14 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
         The default buffer for the glTF document.
         '''
         return self.builder.buffer
-    
+
     @property
     def index_size(self) -> IndexSize:
         '''
         The size of the index type for the glTF document.
         '''
         return self.builder.index_size
-    
+
     def get_attribute_type(self, name: str) -> AttributeType:
         '''
         Get the attribute type for the given name.
@@ -74,7 +75,7 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
 
     def _get_index_size(self, max_value):
         return self.builder._get_index_size(max_value)
-    
+
 
     __names: set[str] = set()
 
@@ -95,8 +96,8 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
             if tname not in counters:
                 counters[tname] = count()
             return next(counters[tname])
-        
-        def gen(obj: _Compileable[_GLTF, _STATE]) -> str:
+
+        def gen(obj: _Compilable[_GLTF, _STATE]) -> str:
             nonlocal prefix, suffix
             name_mode = self.builder.name_policy[scope]
             match obj:
@@ -114,7 +115,7 @@ class _GlobalState(_BNodeContainer, _BuilderProtocol):
                     if index is not None:
                         suffix = f'{suffix}[{index}]'
                     return f'{prefix}{get_count(obj)}{suffix}'
-        
+
         def register(name: object|None) -> str:
             match name:
                 case str():

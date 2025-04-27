@@ -1,5 +1,5 @@
 '''
-The initial objedt that collects the geometry info and compiles it into
+The initial object that collects the geometry info and compiles it into
 a glTF object.
 '''
 
@@ -43,7 +43,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
      Element, _GLTF,
 )
-from gltf_builder.compiler import _STATE, _Compileable, _Collected
+from gltf_builder.compiler import _STATE, _Compilable, _Collected
 from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 
@@ -83,13 +83,13 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
     __index_size: IndexSize = IndexSize.AUTO
     '''
     Number of bytes to use for indices. Default is NONE, meaning no index.
-    
+
     This is used to determine the component type of the indices.
 
     A value of AUTO will use the smallest possible size for a particular
     mesh.
 
-    A value of NONE will disaable indexed goemetry.
+    A value of NONE will disable indexed geometry.
 
     This is only used when creating the indices buffer view.
     '''
@@ -100,7 +100,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         The number of bits to use for indices.
         '''
         return self.__index_size
-    
+
     @index_size.setter
     def index_size(self, size: IndexSize, /):
         self.__index_size = size
@@ -125,7 +125,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         The primary `BBuffer` for the glTF file.
         '''
         return self._buffers[0]
-    
+
     _global_state: '_GlobalState'
     '''
     The global state for the compilation of the glTF file.
@@ -197,7 +197,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
         self._global_state = _GlobalState(self)
-    
+
     def create_mesh(self,
                 name: str='',
                 primitives: Optional[Iterable[BPrimitive]]=None,
@@ -212,7 +212,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                      extensions=extensions,
         )
         return mesh
-    
+
     def _elements(self) -> Iterable[Element]:
         '''
         Get all the elements in the builder.
@@ -237,7 +237,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
             for g in n:
                 for e in g:
                     e.compile(self._global_state, self._global_state, phase)
-                    
+
         match phase:
             case Phase.COLLECT:
                 if self.scene:
@@ -261,14 +261,14 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                                                 reverse=True)
                 self.__ordered_views = ordered
                 LOG.debug('Collected %s items.', len(collected))
-                def log_collcted(collected: Iterable[_Collected], indent: int = 0):
+                def log_collected(collected: Iterable[_Collected], indent: int = 0):
                     for item, children in collected:
                         LOG.debug('. ' * indent + str(item))
                         for child in children:
                             LOG.debug('. ' * (indent +1) + '=> ' + str(child))
-                        log_collcted(children, indent + 2)
+                        log_collected(children, indent + 2)
                 if LOG.isEnabledFor(logging.DEBUG):
-                    log_collcted(collected)
+                    log_collected(collected)
             case Phase.ENUMERATE:
                 def assign_index(items: Iterable[Element]):
                     for i, n in enumerate(items):
@@ -318,7 +318,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                     self.__ordered_views if self._views else (),
                     self._buffers,
                 )
-    
+
     def build(self, /,
             index_size: Optional[IndexSize]=None,
         ) -> gltf.GLTF2:
@@ -328,7 +328,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
             yield node
             for n in node.children:
                 yield from flatten(n)
-        
+
         nodes = list({
             i
             for n in self.nodes
@@ -373,7 +373,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         for phase in Phase:
             if phase != Phase.BUILD:
                self.compile(phase)
-        
+
         def build_list(l: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
             return [
                 v.compile(self._global_state, self._global_state, Phase.BUILD)
@@ -419,7 +419,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
             raise ValueError("Only one buffer is supported by pygltfllib.")
         g.set_binary_blob(data) # type: ignore
         return g
-    
+
     def define_attrib(self,
                       name: str,
                       elementType: ElementType,
@@ -495,7 +495,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 return IndexSize.NONE
             case _:
                 raise ValueError(f'Invalid index size: {self.index_size}')
-    
+
     def create_image(self,
                 imageType: ImageType,
                 name: str='',
@@ -516,7 +516,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
             extras=extras,
             extensions=extensions,
         )
-    
+
     def instantiate(self, node_or_mesh: 'BNode|BMesh',
                     name: str='', /,
                     translation: Optional[Vector3Spec]=None,

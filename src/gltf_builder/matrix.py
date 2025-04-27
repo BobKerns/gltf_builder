@@ -71,13 +71,13 @@ class Matrix(Generic[DIMS]):
 
     def __repr__(self):
         return f"Matrix({self._data.tolist()})"
-    
+
     @classmethod
     def dims(cls) -> DIMS: ...
 
     def as_array(self) -> np.ndarray[tuple[DIMS, DIMS], np.dtype[np.float32]]:
         '''
-        Acess the underlying numpy array.
+        Access the underlying numpy array.
         '''
         return self._data
 
@@ -92,18 +92,18 @@ class Matrix(Generic[DIMS]):
 
 class Matrix2(Matrix[2]):
     '''A 2x2 matrix.'''
-    
+
     @classmethod
     def dims(cls) -> Literal[2]:
         return 2
-    
+
     @classmethod
     def identity(cls) -> 'Matrix2':
         return cls(np.identity(cls.dims(), dtype=np.float32))
 
 class Matrix3(Matrix[3]):
     '''A 3x3 matrix.'''
-    
+
     @classmethod
     def dims(cls) -> Literal[3]:
         return 3
@@ -114,7 +114,7 @@ class Matrix3(Matrix[3]):
 
 class Matrix4(Matrix[4]):
     '''A 4x4 matrix.'''
-    
+
     @classmethod
     def dims(cls) -> Literal[4]:
         return 4
@@ -249,11 +249,11 @@ def matrix(m: MatrixSpec) -> Matrix:
             return m
         case np.ndarray():
             match m.shape:
-                case (2, 2)|(4,): 
+                case (2, 2)|(4,):
                     return Matrix2(m)
-                case (3, 3)|(9,): 
+                case (3, 3)|(9,):
                     return Matrix3(m)
-                case (4, 4)|(16,): 
+                case (4, 4)|(16,):
                     return Matrix4(m)
         case tuple() if (
             len(m) in (2, 3, 4)

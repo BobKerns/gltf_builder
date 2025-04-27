@@ -29,7 +29,7 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.matrix import Matrix4
 from gltf_builder.compiler import (
-    _STATE, _CompileState, _Compileable, _GLTF,
+    _STATE, _CompileState, _Compilable, _GLTF,
     _Scope
 )
 from gltf_builder.protocols import _BNodeContainerProtocol, _BuilderProtocol
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 @runtime_checkable
-class Element(_Compileable[_GLTF, _STATE], Protocol):
+class Element(_Compilable[_GLTF, _STATE], Protocol):
     def __init__(self,
                  name: str='',
                  extras: Optional[JsonObject]=None,
@@ -69,10 +69,10 @@ class Element(_Compileable[_GLTF, _STATE], Protocol):
             extensions=extensions,
             index=index,
         )
-    
+
     def __hash__(self):
         return id(self)
-        
+
     def __eq__(self, other: Any):
         return self is other
 
@@ -80,7 +80,7 @@ class Element(_Compileable[_GLTF, _STATE], Protocol):
         return std_repr(self, (
             'name'
         ), id=id(self))
-    
+
     def __str__(self):
         typ = type(self).__name__.lstrip('_')
         return f'{typ}-{self.name or "?"}'
@@ -171,7 +171,7 @@ class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, 
     '''
     Add a Sequence of data to the accessor.
     '''
-    
+
     @abstractmethod
     def _add_data_item(self, data: BTYPE) -> None:
         ...
@@ -187,7 +187,7 @@ class BPrimitive(Element[gltf.Primitive, '_PrimitiveState'], Protocol):
     attribs: dict[str, AttributeDataList]
     indices: Sequence[int]
     mesh: Optional['BMesh']
-    
+
 
 @runtime_checkable
 class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
@@ -245,7 +245,7 @@ class BCamera(Element[gltf.Camera, '_CameraState'], Protocol):
 
     type_extras: JsonObject
     type_extensions: JsonObject
-    
+
 
 @runtime_checkable
 class BOrthographicCamera(BCamera, Protocol):
@@ -271,7 +271,7 @@ class BOrthographicCamera(BCamera, Protocol):
     @property
     def perspective(self) -> Optional[gltf.Perspective]:
         return None
-    
+
     def _init__(self,
                 name: str='',
                 /, *,
@@ -316,7 +316,7 @@ class BPerspectiveCamera(BCamera, Protocol):
             zfar=self.zfar,
             znear=self.znear,
         )
-    
+
     def __init__(self,
                  name: str='',
                  /, *,
@@ -336,7 +336,7 @@ class BPerspectiveCamera(BCamera, Protocol):
         self.znear = znear
         self.zfar = zfar
         self.aspectRatio = aspectRatio
-    
+
 
 @runtime_checkable
 class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope, Protocol):
@@ -400,7 +400,7 @@ class BImage(Element[gltf.Image, '_ImageState'], Protocol):
     blob: Optional[bytes] = None
     uri: Optional[str|Path] = None
     view: Optional[BBufferView] = None
-    
+
     @property
     def mimeType(self) -> str:
         '''

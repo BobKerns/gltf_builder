@@ -145,7 +145,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     min=min_axis,
                 )
             case _: pass
-                 
+
     def __repr__(self):
         return std_repr(self, (
             'name',
