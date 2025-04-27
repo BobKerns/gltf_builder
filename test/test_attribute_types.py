@@ -28,12 +28,12 @@ from gltf_builder import (
     weight,
     color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
     Vector2, Vector3, Vector4,
-    _Weightf, _Weight8, _Weight16, # type: ignore
     Tangent, Scale, Point, PointLike, UvFloat, Uv16, Uv8,
     Joint, EPSILON,
 )
 from gltf_builder.attribute_types import (
     _Joint8, _Joint16,
+    _Weightf, _Weight8, _Weight16,
 )
 
 
