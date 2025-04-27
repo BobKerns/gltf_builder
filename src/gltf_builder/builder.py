@@ -77,7 +77,6 @@ _RE_ATTRIB_NAME = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(?:_\d+)$')
 class Builder(_BNodeContainer, _BuilderProtocol):
     _scope_name = ScopeName.BUILDER
     _id_counters: dict[str, count]
-    name: str = ''
     __ordered_views: list[BBufferView]
 
     
@@ -106,6 +105,19 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     def index_size(self, size: IndexSize, /):
         self.__index_size = size
 
+    attr_type_map: dict[str, AttributeType]
+    '''
+    The mapping of attribute names to their types.
+    '''
+    name_policy: dict[ScopeName, NameMode]
+    '''
+    The mode for handling names, for each `ScopeName`
+
+    AUTO: Automatically generate names for objects that do not have one.
+    MANUAL: Use the name provided.
+    UNIQUE: Ensure the name is unique.
+    NONE: Do not use names.
+    '''
 
     @property
     def buffer(self) -> 'BBuffer':
@@ -137,6 +149,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 extensionsUsed: Optional[list[str]]=None,
                 extensionsRequired: Optional[list[str]]=None,
         ):
+        super().__init__(children=nodes)
         name_policy = name_policy or {}
         self.name_policy = {
             scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
@@ -146,7 +159,6 @@ class Builder(_BNodeContainer, _BuilderProtocol):
             buffers = [_Buffer(self, 'main')]
         else:
             buffers = list(buffers)
-        super().__init__(children=nodes)
         self.asset = asset
         self.meshes = _Holder(BMesh, *meshes)
         self.cameras = _Holder(BCamera, *cameras)

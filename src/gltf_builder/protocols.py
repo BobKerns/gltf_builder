@@ -219,19 +219,6 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
 
-    attr_type_map: dict[str, AttributeType]
-    '''
-    The mapping of attribute names to their types.
-    '''
-    name_policy: dict[ScopeName, NameMode]
-    '''
-    The mode for handling names, for each `ScopeName`
-
-    AUTO: Automatically generate names for objects that do not have one.
-    MANUAL: Use the name provided.
-    UNIQUE: Ensure the name is unique.
-    NONE: Do not use names.
-    '''
     @property
     @abstractmethod
     def buffer(self) -> 'BBuffer':
