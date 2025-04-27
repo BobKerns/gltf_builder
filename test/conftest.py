@@ -16,7 +16,7 @@ import pytest
 from pathlib import Path
 
 from gltf_builder import Builder
-from gltf_builder.core_types import JsonObject, NamePolicy
+from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy
 from gltf_builder.elements import GLTF_LOG
 from gltf_builder.protocols import _BuilderProtocol
 
@@ -138,7 +138,7 @@ class ProxyBuilder(Builder):
     A proxy builder that can be used to test the builder interface.
     '''
     def __init__(self, /, *,
-                    index_size: int = -1,
+                    index_size: Optional[IndexSize] = None,
                     name_policy: Optional[NamePolicy]=None,
                     extras: Optional[dict] = None,
                     extensions: Optional[dict] = None,
@@ -155,7 +155,7 @@ class ProxyBuilder(Builder):
         self.validation = None
 
     def build(self, /,
-              index_size: Optional[int]=None,
+              index_size: Optional[IndexSize]=None,
               ignoredIssues: Optional[list[str]]=None,
               severityOverrides: Optional[dict[str, Severity]]=None,
               maxIssues: int=100,
@@ -275,7 +275,6 @@ def save(out_dir, request):
 @pytest.fixture
 def test_builder(request, save):
     builder = ProxyBuilder(
-        index_size=-1,
         save=save,
         extras={
             'gltf_builder': {

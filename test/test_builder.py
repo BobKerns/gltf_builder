@@ -14,6 +14,7 @@ import pygltflib as gltf
 from gltf_builder import (
     Builder, PrimitiveMode, BMesh, Quaternion as Q,
 )
+from gltf_builder.core_types import IndexSize
 from gltf_builder.elements import BNode
 from gltf_builder.geometries import (
     _CUBE,
@@ -90,7 +91,7 @@ def test_cube(cube):
 
 
 def test_faces(save):
-    b = Builder(index_size=8)
+    b = Builder(index_size=IndexSize.UNSIGNED_BYTE)
     def face(name, indices: Iterable[int]):
         m = b.create_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
@@ -125,7 +126,7 @@ def test_faces2(save):
     face('FACE4', _CUBE_FACE4)
     face('FACE5', _CUBE_FACE5)
     face('FACE6', _CUBE_FACE6)
-    g = b.build()
+    g = b.build(index_size=IndexSize.UNSIGNED_INT)
     save(g)
     assert len(g.buffers) == 1
     assert len(g.bufferViews) == 2
@@ -134,7 +135,13 @@ def test_faces2(save):
     assert len(g.binary_blob()) == size
     
 
-@pytest.mark.parametrize('index_size', [-1, 0, 8, 16, 32])
+@pytest.mark.parametrize('index_size', [
+    IndexSize.NONE,
+    IndexSize.AUTO,
+    IndexSize.UNSIGNED_BYTE,
+    IndexSize.UNSIGNED_SHORT,
+    IndexSize.UNSIGNED_INT,
+    ])
 def test_cubeX(index_size, cube):
     cube.builder.index_size = index_size
     m = cube.meshes['CUBE_MESH']
@@ -144,12 +151,18 @@ def test_cubeX(index_size, cube):
     g = cube.build()
     assert len(g.nodes) == 2
     match index_size:
-        case -1:
+        case IndexSize.NONE:
             views, ibytes = 1, 0
-        case 0:
+        case IndexSize.AUTO:
             views, ibytes = 2, 1
+        case IndexSize.UNSIGNED_BYTE:
+            views, ibytes = 2, 1
+        case IndexSize.UNSIGNED_SHORT:
+            views, ibytes = 2, 2
+        case IndexSize.UNSIGNED_INT:
+            views, ibytes = 2, 4
         case _:
-            views, ibytes = 2, (index_size + 7) // 8
+            raise ValueError(f'Unknown index size: {index_size}')
     assert len(g.bufferViews) == views
     size = 6 * 3 * 4 * 4 + ibytes * 4 * 6
     assert len(g.binary_blob()) ==  size
@@ -191,7 +204,7 @@ def test_instances(cube):
     assert len(g.binary_blob()) ==  size
 
 def test_normal(save):
-    b = Builder(index_size=-1)
+    b = Builder()
     m = b.create_mesh('CUBE_MESH')
     m.add_primitive(PrimitiveMode.LINE_LOOP,
                     *[_CUBE[i] for i in _CUBE_FACE1],

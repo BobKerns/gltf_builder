@@ -13,11 +13,11 @@ import math
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compileable, _Scope, _CompileState
+from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _Compileable, _Scope
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
-    BufferViewTarget, ElementType, ComponentType, ImageType, JsonObject,
-    NPTypes, NameMode, ScopeName,
+    BufferViewTarget, ElementType, ComponentType, ImageType, IndexSize, JsonObject,
+    NPTypes, ScopeName,
 )
 from gltf_builder.attribute_types import (
     AttributeData, Vector3Spec, BTYPE
@@ -201,22 +201,24 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     The extensions required to load this file.
     '''
-    index_size: int = -1
-    '''
-    Number of bits to use for indices. Default is -, meaning no index.
-    
-    This is used to determine the component type of the indices.
-    8 bits will use UNSIGNED_BYTE, 16 bits will use UNSIGNED_SHORT,
-    and 32 bits will use UNSIGNED_INT.
 
-    A value of 0 will use the smallest possible size for a particular
-    mesh.
+    @property
+    @abstractmethod
+    def index_size(self) -> IndexSize:
+        '''
+        The size of the index buffer.
+        '''
+        ...
 
-    A value of -1 will disaable indexed goemetry.
+    @index_size.setter
+    @abstractmethod
+    def index_size(self, size: IndexSize, /):
+        '''
+        Set the size of the index buffer.
+        '''
+        ...
 
-    This is only used when creating the indices buffer view.
 
-    '''
     attr_type_map: dict[str, AttributeType]
     '''
     The mapping of attribute names to their types.
@@ -232,10 +234,12 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
     '''
     @property
     @abstractmethod
-    def buffer(self) -> 'BBuffer': ...
-    '''
-    The primary `BBuffer` for the glTF file.
-    '''
+    def buffer(self) -> 'BBuffer':
+        '''
+        The main buffer for the glTF file.
+        '''
+        ...
+
     _states: dict[int, _BaseCompileState]
     
     @abstractmethod
@@ -266,7 +270,7 @@ class _BuilderProtocol(_BNodeContainerProtocol, _Scope, Protocol):
         ...
 
     @abstractmethod
-    def _get_index_size(self, max_value: int) -> ComponentType|Literal[-1]:
+    def _get_index_size(self, max_value: int) -> IndexSize:
         ...
 
     def _gen_name(self,

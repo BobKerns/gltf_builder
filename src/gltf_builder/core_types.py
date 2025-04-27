@@ -140,6 +140,16 @@ class ComponentType(IntEnum):
     UNSIGNED_INT = gltf.UNSIGNED_INT
     FLOAT = gltf.FLOAT
 
+class IndexSize(IntEnum):
+    '''
+    The size of the index values in the glTF file.
+    '''
+    NONE = -1
+    AUTO = 0
+    UNSIGNED_BYTE = gltf.UNSIGNED_BYTE
+    UNSIGNED_SHORT = gltf.UNSIGNED_SHORT
+    UNSIGNED_INT = gltf.UNSIGNED_INT
+
 ElementSize: TypeAlias = Literal[1, 2, 3, 4, 9, 16]
 '''
 The number of components in an element.

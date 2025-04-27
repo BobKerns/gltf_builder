@@ -22,7 +22,7 @@ from gltf_builder.attribute_types import (
     color, point, tangent, uv, vector3,
 )
 from gltf_builder.core_types import (
-     BufferViewTarget, ImageType, JsonObject,
+     BufferViewTarget, ImageType, IndexSize, JsonObject,
      NPTypes, NameMode, NamePolicy, Phase,
      ElementType, ComponentType, ScopeName, NameMode,
 )
@@ -80,6 +80,33 @@ class Builder(_BNodeContainer, _BuilderProtocol):
     name: str = ''
     __ordered_views: list[BBufferView]
 
+    
+    __index_size: IndexSize = IndexSize.AUTO
+    '''
+    Number of bytes to use for indices. Default is NONE, meaning no index.
+    
+    This is used to determine the component type of the indices.
+
+    A value of AUTO will use the smallest possible size for a particular
+    mesh.
+
+    A value of NONE will disaable indexed goemetry.
+
+    This is only used when creating the indices buffer view.
+    '''
+
+    @property
+    def index_size(self) ->  IndexSize:
+        '''
+        The number of bits to use for indices.
+        '''
+        return self.__index_size
+    
+    @index_size.setter
+    def index_size(self, size: IndexSize, /):
+        self.__index_size = size
+
+
     @property
     def buffer(self) -> 'BBuffer':
         '''
@@ -105,7 +132,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 extras: Optional[JsonObject]=None,
                 extensions: Optional[JsonObject]=None,
                 scene: Optional[BScene]=None,
-                index_size: int=32,
+                index_size: Optional[IndexSize]=None,
                 name_policy: Mapping[ScopeName, NameMode]|None = None,
                 extensionsUsed: Optional[list[str]]=None,
                 extensionsRequired: Optional[list[str]]=None,
@@ -133,7 +160,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.scenes = _Holder(BScene, *scenes)
         self.skins = _Holder(BSkin, *skins)
         self.textures = _Holder(BTexture, *textures)
-        self.index_size = index_size
+        self.index_size = index_size or IndexSize.NONE
         self.extras = extras or {}
         self.extensions = extensions or {}
         self.scene = scene
@@ -271,7 +298,7 @@ class Builder(_BNodeContainer, _BuilderProtocol):
                 )
     
     def build(self, /,
-            index_size: Optional[int]=None,
+            index_size: Optional[IndexSize]=None,
         ) -> gltf.GLTF2:
         if index_size is not None:
             self.index_size = index_size
@@ -408,36 +435,42 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.attr_type_map[name] = attr
         return attr
 
-    def _get_index_size(self, max_value: int) -> ComponentType|Literal[-1]:
+    def _get_index_size(self, max_value: int) -> IndexSize:
         '''
         Get the index size based on the configured size or the maximum value.
+
+        If the index size is set to other than AUTO or NONE,
+        the configured size is validated against the maximum value and returned.
+
+        If the index size is set to AUTO, the maximum value is used to determine
+        the index size.
         '''
         match self.index_size:
-            case size if size > 16 and size <= 32:
+            case IndexSize.UNSIGNED_INT:
                 if max_value < 4294967295:
-                    return ComponentType.UNSIGNED_INT
+                    return IndexSize.UNSIGNED_INT
                 raise ValueError("Index size is too large.")
-            case size if size > 8 and size <= 16:
+            case IndexSize.UNSIGNED_SHORT:
                 if max_value < 65535:
-                    return ComponentType.UNSIGNED_SHORT
-                return ComponentType.UNSIGNED_INT
-            case size if size > 0 and size <= 8:
+                    return IndexSize.UNSIGNED_SHORT
+                return IndexSize.UNSIGNED_INT
+            case IndexSize.UNSIGNED_BYTE:
                 if max_value < 255:
-                    return ComponentType.UNSIGNED_BYTE
-                return ComponentType.UNSIGNED_SHORT
-            case 0:
+                    return IndexSize.UNSIGNED_BYTE
+                return IndexSize.UNSIGNED_SHORT
+            case IndexSize.AUTO:
                 if max_value < 0:
                     raise ValueError("Index size is negative.")
                 if max_value < 255:
-                    return ComponentType.UNSIGNED_BYTE
+                    return IndexSize.UNSIGNED_BYTE
                 if max_value < 65535:
-                    return ComponentType.UNSIGNED_SHORT
+                    return IndexSize.UNSIGNED_SHORT
                 if max_value < 4294967295:
-                    return ComponentType.UNSIGNED_INT
+                    return IndexSize.UNSIGNED_INT
                 # Unlikely!
                 raise ValueError("Index size is too large.")
-            case -1:
-                return -1
+            case IndexSize.NONE:
+                return IndexSize.NONE
             case _:
                 raise ValueError(f'Invalid index size: {self.index_size}')
 

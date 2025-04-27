@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.compiler import _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
-    JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
+    IndexSize, JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
     BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, Point, PointSpec,
@@ -131,7 +131,8 @@ class _Primitive(BPrimitive):
         match phase:
             case Phase.PRIMITIVES:
                 index_size = builder._get_index_size(len(self.points))
-                if index_size != -1:
+                assert index_size != IndexSize.AUTO
+                if index_size != IndexSize.NONE:
                     indices = list(range(len(self.points)))
                     idtype = decode_dtype(gltf.SCALAR, index_size)
                     index = mesh.primitives.index(self)
@@ -141,8 +142,15 @@ class _Primitive(BPrimitive):
                                                    index=index,
                                                    suffix='/indices',
                                                    )
+                    match index_size:
+                        case IndexSize.UNSIGNED_BYTE:
+                            index_type = gltf.UNSIGNED_BYTE
+                        case IndexSize.UNSIGNED_SHORT:
+                            index_type = gltf.UNSIGNED_SHORT
+                        case IndexSize.UNSIGNED_INT:
+                            index_type = gltf.UNSIGNED_INT
                     self.__indices_accessor = _Accessor(
-                        buffer, len(indices), gltf.SCALAR, index_size,
+                        buffer, len(indices), gltf.SCALAR, index_type,
                         btype=int,
                         dtype=idtype,
                         name=name,

@@ -18,7 +18,7 @@ from typing import  Any, Optional, overload
 import numpy as np
 
 from gltf_builder.core_types import (
-    ElementType, ComponentType, BufferType, ComponentSize, ElementSize, NPTypes,
+    ElementType, ComponentType, BufferType, ComponentSize, ElementSize, IndexSize, NPTypes,
 )
 from gltf_builder.attribute_types import (
     AttributeData, VectorSpec, Vector4Spec, Vector3Spec, Vector2Spec, Vector4, Vector3, Vector2, VectorLike,
@@ -26,12 +26,15 @@ from gltf_builder.attribute_types import (
 )
 
 
-COMPONENT_SIZES: dict[ComponentType, tuple[ComponentSize, type[NPTypes], BufferType]] = {
+COMPONENT_SIZES: dict[ComponentType|IndexSize, tuple[ComponentSize, type[NPTypes], BufferType]] = {
     ComponentType.BYTE: (1, np.int8, 'b'),
     ComponentType.UNSIGNED_BYTE: (1, np.uint8, 'B'),
+    IndexSize.UNSIGNED_BYTE: (1, np.uint8, 'B'),
     ComponentType.SHORT: (2, np.int16, 'h'),
     ComponentType.UNSIGNED_SHORT: (2, np.uint16, 'H'),
+    IndexSize.UNSIGNED_SHORT: (2, np.uint16, 'H'),
     ComponentType.UNSIGNED_INT: (4, np.uint32, 'L'),
+    IndexSize.UNSIGNED_INT: (4, np.uint32, 'L'),
     ComponentType.FLOAT: (4, np.float32, 'f'),
 }
 
@@ -45,14 +48,14 @@ ELEMENT_TYPE_SIZES: dict[ElementType, ElementSize] = {
     ElementType.MAT4: 16,
 }
 
-def decode_component_type(componentType: ComponentType) -> tuple[int, type[NPTypes], BufferType]:
+def decode_component_type(componentType: ComponentType|IndexSize) -> tuple[int, type[NPTypes], BufferType]:
     '''
     Decode the component type into a tuple of the component size, numpy dtype, and buffer type.
     '''
     return COMPONENT_SIZES[componentType]
 
 
-def decode_type(type: ElementType, componentType: ComponentType) -> tuple[int, int, int, type[NPTypes], BufferType]:
+def decode_type(type: ElementType, componentType: ComponentType|IndexSize) -> tuple[int, int, int, type[NPTypes], BufferType]:
     '''
     Decode the `ElementType` and `ComponentType` into a tuple of:
     - the component count per element
@@ -74,7 +77,7 @@ def decode_stride(type: ElementType, componentType: ComponentType) -> int:
     return decode_type(type, componentType)[2]
 
 
-def decode_dtype(type: ElementType, componentType: ComponentType) -> type[NPTypes]:
+def decode_dtype(type: ElementType, componentType: ComponentType|IndexSize) -> type[NPTypes]:
     '''
     Decode the `ElementType` and `ComponentType` into the numpy dtype.
     '''
