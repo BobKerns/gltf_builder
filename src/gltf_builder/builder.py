@@ -179,13 +179,13 @@ class Builder(_BNodeContainer, _BuilderProtocol):
         self.extensionsUsed = list(extensionsUsed or ())
         self.extensionsRequired = list(extensionsRequired or ())
         self.attr_type_map = {}
-        self.define_attrib('POSITION', gltf.VEC3, gltf.FLOAT, Point, point)
-        self.define_attrib('NORMAL', gltf.VEC3, gltf.FLOAT, Vector3, vector3)
-        self.define_attrib('COLOR', gltf.VEC4, gltf.FLOAT, Color, color)
-        self.define_attrib('TEXCOORD', gltf.VEC2, gltf.FLOAT, UvPoint, uv)
-        self.define_attrib('TANGENT', gltf.VEC4, gltf.FLOAT, Tangent, tangent)
-        self.define_attrib('JOINTS', gltf.VEC4, gltf.UNSIGNED_SHORT, Joint)
-        self.define_attrib('WEIGHTS', gltf.VEC4, gltf.FLOAT, Weight)
+        self.define_attrib('POSITION', ElementType.VEC3, ComponentType.FLOAT, Point, point)
+        self.define_attrib('NORMAL', ElementType.VEC3, ComponentType.FLOAT, Vector3, vector3)
+        self.define_attrib('COLOR', ElementType.VEC4, ComponentType.FLOAT, Color, color)
+        self.define_attrib('TEXCOORD', ElementType.VEC2, ComponentType.FLOAT, UvPoint, uv)
+        self.define_attrib('TANGENT', ElementType.VEC4, ComponentType.FLOAT, Tangent, tangent)
+        self.define_attrib('JOINTS', ElementType.VEC4, ComponentType.UNSIGNED_SHORT, Joint)
+        self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
     
     def create_mesh(self,
