@@ -12,10 +12,20 @@ wheels/
 # pytest coverage report
 .coverage
 
+# By default, we don't include glTF files in the repository.
+# Specific directories may override this, for example for
+# test data or examples.
 *.glb
 *.gltf
 *.bin
+
+# Never include test output in the repository.
 test/out/
 
 # Node.js dependencies
+
 node_modules/
+
+~*
+\#*
+*#

@@ -1,0 +1,8 @@
+# Don't use git-lfs for images used in the docs
+# Otherwise, viewing the docs in a browser on GitHub will not work.
+
+# Also set at top level.
+
+*.png binary -filter
+*.jpg binary -filter
+*.jpeg binary -filter
