@@ -4,8 +4,9 @@ Tests for the images module.
 
 import numpy as np
 
-from gltf_builder.core_types import ImageType
-from gltf_builder.images import image
+from gltf_builder import (
+    ImageType, image,
+)
 
 def test_image_uri():
     '''

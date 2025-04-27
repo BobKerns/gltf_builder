@@ -13,9 +13,8 @@ import pygltflib as gltf
 
 from gltf_builder import (
     Builder, PrimitiveMode, BMesh, Quaternion as Q,
+    IndexSize, BNode, node,
 )
-from gltf_builder.core_types import IndexSize
-from gltf_builder.elements import BNode
 from gltf_builder.geometries import (
     _CUBE,
     _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3,
@@ -23,7 +22,6 @@ from gltf_builder.geometries import (
     _CUBE_NORMAL1, _CUBE_NORMAL2, _CUBE_NORMAL3,
     _CUBE_NORMAL4, _CUBE_NORMAL5, _CUBE_NORMAL6,
 )
-from gltf_builder.nodes import node
 
 @dataclass
 class GeometryData:

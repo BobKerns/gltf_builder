@@ -8,15 +8,12 @@ decomposition to translation, rotation, and scale.
 from typing import Literal
 import numpy as np
 from pytest import (
-    approx, # type: ignore
-    mark
+    approx, mark,
 )
 
-from gltf_builder.matrix import (
+from gltf_builder import (
     Matrix4Spec, matrix, Matrix,
     IDENTITY4,
-)
-from gltf_builder.attribute_types import (
     vector3, point,
 )
 

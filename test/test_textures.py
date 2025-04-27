@@ -2,10 +2,10 @@
 Test cases for the textures module.
 '''
 
-from gltf_builder.core_types import MagFilter, MinFilter, WrapMode
-from gltf_builder.images import image
-from gltf_builder.samplers import sampler
-from gltf_builder.textures import texture
+from gltf_builder import (
+    MagFilter, MinFilter, WrapMode,
+    image, sampler, texture,
+)
 
 from conftest import TEST_EXTRAS, TEST_EXTENSIONS
 

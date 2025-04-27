@@ -12,13 +12,14 @@ import pytest
 from pytest import approx, mark, raises
 
 from gltf_builder.quaternions import (
-    I, IDENTITY, J, K, MINUS_ONE, QuaternionSpec, quaternion, Quaternion as Q, Quaternion,
+    I, IDENTITY, J, K, MINUS_ONE,
 )
-from gltf_builder.attribute_types import (
-    Vector3Spec, vector3, scale,
-    Vector3, Scale, vector4,
+from gltf_builder import (
+    vector3, Vector3,
+    scale, Scale,
+    quaternion, Quaternion as Q, Quaternion,
+    matrix,
 )
-from gltf_builder.matrix import matrix
 
 
 def test_quaternian():

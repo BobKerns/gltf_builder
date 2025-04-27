@@ -5,7 +5,7 @@ Protocol classes to avoid circular imports.
 from abc import abstractmethod
 from pathlib import Path
 from typing import (
-    Literal, NamedTuple, Protocol, TypeAlias, runtime_checkable,
+    NamedTuple, Protocol, TypeAlias, runtime_checkable,
     Optional, TYPE_CHECKING, Any
 )
 from collections.abc import Callable, Iterable

@@ -6,31 +6,34 @@ Tests for type constructors and types in attribute_types.py.
 
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import Generic, Optional, Literal, Any, Protocol, TypeAlias, TypeVar, cast, overload
+from typing import (
+    Generic, Optional, Literal, Any, Protocol,
+    TypeAlias, TypeVar, cast, overload,
+)
 from functools import wraps
 from inspect import signature
 from math import sqrt, cos, pi
-
 
 import numpy as np
 
 from pytest import (
     mark, raises, fixture,
-    approx, # type: ignore
+    approx,
 )
 import pytest as pt
 
-from gltf_builder.core_types import ByteSize
-from gltf_builder.attribute_types import (
-    Weight, joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
+from gltf_builder import (
+    ByteSize, Weight,
+    joints, vector2, vector3, vector4, tangent, scale, point, uv, joint,
     weight,
     color, rgb8,  rgb16, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, 
     Vector2, Vector3, Vector4,
     _Weightf, _Weight8, _Weight16, # type: ignore
-    Tangent, Scale, Point, PointLike, UvfFloat, Uv16, Uv8,
-    Joint,
-    _Joint8, _Joint16, # type: ignore
-    EPSILON,
+    Tangent, Scale, Point, PointLike, UvFloat, Uv16, Uv8,
+    Joint, EPSILON,
+)
+from gltf_builder.attribute_types import (
+    _Joint8, _Joint16,
 )
 
 
@@ -176,7 +179,7 @@ def case_uvf(cnst: Constructor[Any], data: tuple[Any, ...],):
     '''
     Test a type constructor with a _UvF instance.
     '''
-    return (UvfFloat(*(float(d) for d in data)),)
+    return (UvFloat(*(float(d) for d in data)),)
 
 
 def case_uv8(cnst: Constructor[Uv8], data: tuple[Any, ...],) -> tuple[Uv8]:
@@ -460,7 +463,7 @@ def test_type_constructor_exceptions(
 
 # Constructors and constructed types, floating point unlimited range.
 @mark.parametrize('cnst, ndata, t, size', [
-    (uv, 2, UvfFloat, 'inf',),
+    (uv, 2, UvFloat, 'inf',),
     (uv, 2, Uv16, 2,),
     (uv, 2, Uv8, 1,),
 ])
@@ -487,7 +490,7 @@ def test_uv(
     (vector2, Vector2, (0.0, 0.0)),
     (vector3, Vector3, (0.0, 0.0, 0.0)),
     (vector4, Vector4, (0.0, 0.0, 0.0, 0.0)),
-    (uv, UvfFloat, (0.0, 0.0)),
+    (uv, UvFloat, (0.0, 0.0)),
     (scale, Scale, (1.0, 1.0, 1.0)),
     (point, Point, (0.0, 0.0, 0.0)),
 ])

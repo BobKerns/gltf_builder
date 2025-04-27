@@ -15,7 +15,7 @@ import numpy as np
 import pygltflib as gltf
 
 from gltf_builder.holders import _Holder
-from gltf_builder.quaternions import Quaternion, QuaternionSpec
+from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
     AlphaMode, CameraType, ComponentType, ImageType, JsonObject,
     MagFilter, MinFilter, PrimitiveMode,

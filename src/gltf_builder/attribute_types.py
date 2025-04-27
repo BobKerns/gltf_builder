@@ -401,7 +401,7 @@ class _Uvf(NamedTuple):
         return self.v
 
 
-class UvfFloat(_Uvf, PointLike[Vector2], UvPoint, _Sizedf): # type: ignore
+class UvFloat(_Uvf, PointLike[Vector2], UvPoint, _Sizedf): # type: ignore
     '''
     A 2D texture coordinate (in U and V) in floating point.
     '''
@@ -852,25 +852,25 @@ def uv(u: Optional[Scalar|UvSpec]=None,
                 v = min(1.0, max(0.0, float(v))) # type: ignore
                 return round(v * 65535)
         case 4|'inf':
-            _uv = UvfFloat
+            _uv = UvFloat
             def scale(v): # type: ignore
                 return min(1.0, max(0.0, float(v))) # type: ignore
         case _:
             raise ValueError(f'Invalid size for uv = {size}')
-    def unscale(v: UvfFloat|Uv8|Uv16):
+    def unscale(v: UvFloat|Uv8|Uv16):
         match v:
-            case UvfFloat():
+            case UvFloat():
                 return v
             case Uv8():
-                return UvfFloat(float(v.u) / 255, float(v.v) / 255)
+                return UvFloat(float(v.u) / 255, float(v.v) / 255)
             case Uv16():
-                return UvfFloat(float(v.u) / 65535, float(v.v) / 65535)
+                return UvFloat(float(v.u) / 65535, float(v.v) / 65535)
             case _:
                 return v
     match u, v:
         case None, None:
             return _uv(scale(0.0), scale(0.0)) # type: ignore
-        case UvfFloat()|Uv8()|Uv16(), None:
+        case UvFloat()|Uv8()|Uv16(), None:
             if type(u) is _uv:
                return cast(UvPoint, u)
             u = unscale(u)

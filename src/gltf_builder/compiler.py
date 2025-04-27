@@ -4,25 +4,22 @@ Compilation interfce for the glTF builder.
 
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
 from typing import (
     Literal, Optional, Self, TypeAlias, TypeVar, Protocol, Generic,
-    Any, cast, overload, NamedTuple, TYPE_CHECKING
+    Any, cast, overload, TYPE_CHECKING
 )
 from pathlib import Path
 
 import pygltflib as gltf
 
 from gltf_builder.core_types import (
-    JsonObject, NPTypes, Phase, ElementType,
-    ComponentType, BufferViewTarget, ScopeName
+    JsonObject, Phase,
+    BufferViewTarget, ScopeName
 )
-from gltf_builder.attribute_types import AttributeData, BType
 from gltf_builder.log import GLTF_LOG
-from gltf_builder.utils import decode_stride
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
-    from gltf_builder.elements import BAccessor, BBufferView, BBuffer
+    from gltf_builder.elements import BBufferView, BBuffer
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 
@@ -82,7 +79,7 @@ Type variable for the compile state.
 This is used to indicate the type of the compile state.
 '''
 
-@dataclass
+
 class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
     '''
     State for compiling an element.

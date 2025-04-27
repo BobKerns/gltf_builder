@@ -2,8 +2,10 @@
 Tests for the sampler module in the glTF builder package.
 '''
 
-from gltf_builder.core_types import MagFilter, MinFilter, ScopeName, WrapMode
-from gltf_builder.samplers import sampler
+from gltf_builder import (
+    MagFilter, MinFilter, ScopeName, WrapMode,
+    sampler,
+)
 
 from  conftest import TEST_EXTRAS, TEST_EXTENSIONS
 

@@ -9,6 +9,7 @@ import numpy as np
 import gltf_builder.attribute_types as at
 from gltf_builder.core_types import Scalar
 
+
 MatrixDims: TypeAlias = Literal[2, 3, 4]
 DIMS = TypeVar('DIMS', bound=MatrixDims)
 '''Number of dimensions in the matrix.'''

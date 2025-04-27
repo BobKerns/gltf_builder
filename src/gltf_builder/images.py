@@ -3,7 +3,7 @@ Image data for textures in glTF format.
 '''
 
 
-from typing import Any, Optional, cast
+from typing import Optional, cast
 from pathlib import Path
 
 import pygltflib as gltf

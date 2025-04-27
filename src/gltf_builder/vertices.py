@@ -3,7 +3,7 @@ Share and track vertex data.
 '''
 
 from collections.abc import Iterable, Sequence
-from typing import Any, Optional, cast, overload
+from typing import Optional, cast, overload
 
 import numpy as np
 

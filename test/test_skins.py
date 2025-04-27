@@ -2,9 +2,9 @@
 Test cases for the glTF builder library.
 '''
 
-from gltf_builder.nodes import node
-from gltf_builder.skins import skin
-from gltf_builder.matrix import IDENTITY4
+from gltf_builder import (
+    node, skin, IDENTITY4,
+)
 
 from conftest import TEST_EXTENSIONS, TEST_EXTRAS
 

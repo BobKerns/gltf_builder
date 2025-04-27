@@ -2,8 +2,9 @@
 Test cases for the materials module
 '''
 
-from gltf_builder.core_types import AlphaMode
-from gltf_builder.materials import material
+from gltf_builder import (
+    AlphaMode, material,
+)
 
 from conftest import TEST_EXTRAS, TEST_EXTENSIONS
 

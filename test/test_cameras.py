@@ -2,8 +2,9 @@
 Test cases for the cameras module.
 '''
 
-from gltf_builder.cameras import camera
-from gltf_builder.core_types import CameraType
+from gltf_builder import (
+    camera, CameraType,
+)
 
 from conftest import TEST_EXTRAS, TEST_EXTENSIONS
 

@@ -1,8 +1,9 @@
 import math
 
-from gltf_builder import Builder, PrimitiveMode, Quaternion as Q
-from gltf_builder.meshes import mesh
-from gltf_builder.nodes import node
+from gltf_builder import (
+    PrimitiveMode, Quaternion as Q,
+    mesh, node,
+)
 
 def test_example1(test_builder):
 

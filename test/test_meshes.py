@@ -2,7 +2,7 @@
 Test cases for creating meshes for the glTF Builder library
 '''
 
-from gltf_builder.meshes import mesh
+from gltf_builder import mesh
 
 from conftest import TEST_EXTRAS, TEST_EXTENSIONS
 

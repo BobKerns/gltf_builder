@@ -4,9 +4,8 @@ the build phase.
 '''
 
 
-from abc import abstractmethod
 from collections.abc import Iterable
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import pygltflib as gltf
 
@@ -15,7 +14,7 @@ from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
 from gltf_builder.elements import (
-    BBuffer, BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
+    BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
     _Scope,
 )
 from gltf_builder.meshes import mesh

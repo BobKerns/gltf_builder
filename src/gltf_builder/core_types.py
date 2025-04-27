@@ -5,7 +5,7 @@ Simple common types for the gltf_builder module.
 from enum import IntEnum, StrEnum
 from typing import TypeAlias, Literal
 
-import pygltflib as gltf # type: ignore
+import pygltflib as gltf
 import numpy as np
 
 

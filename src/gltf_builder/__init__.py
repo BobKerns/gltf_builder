@@ -1,34 +1,45 @@
 
 from gltf_builder.core_types import (
     Scalar, ByteSize, ByteSizeAuto, BufferViewTarget, Phase,
-    PrimitiveMode, ElementType,  ComponentType, NameMode, ScopeName, NamePolicy,
+    PrimitiveMode, ElementType,  ComponentType, IndexSize,
+    NameMode, ScopeName, NamePolicy,
     ImageType, JsonObject, JsonArray, JsonData, JsonAtomic,
     CameraType, AlphaMode, WrapMode, MagFilter, MinFilter,
     AnimationInterpolation, AnimationSamplerInterpolation, AnimationTargetPath,
 )
 from gltf_builder.attribute_types import (
-    PointSpec, TangentSpec, NormalSpec, VectorSpec, Vector2Spec, Vector3Spec, Vector4Spec, VectorLike,
-    ScaleSpec, UvSpec,
+    PointSpec, TangentSpec, NormalSpec,
+    VectorSpec, Vector2Spec, Vector3Spec, Vector4Spec, VectorLike,
+    ScaleSpec, UvSpec, WeightSpec,
+    Vector2, Vector3, Vector4, Weight, Tangent,
+    UvPoint, Point, PointLike, Color, Joint, Scale,
+    JointMap, UvFloat, Uv8, Uv16,
     ColorSpec, RGB, RGBA, RGB8, RGBA8, RGB16, RGBA16, color, rgb8, rgb16,
     point, scale, vector2, vector3, vector4, tangent, uv, joint, joints, weight,
     AttributeDataSpec,
+    EPSILON, EPSILON2,
 )
 from gltf_builder.elements import (
     BPrimitive, BMesh, BNode, BBuffer, BBufferView, BAccessor, BImage,
-    BSampler, BTexture, BCamera, BPerspectiveCamera, BOrthographicCamera,
+    BSampler, BScene, BTexture, BSkin,
+    BCamera, BPerspectiveCamera, BOrthographicCamera,
 )
 from gltf_builder.utils import (
     distribute_floats, distribute_ints, normalize, map_range,
 )
 from gltf_builder.accessors import BAccessor
 from gltf_builder.assets import BAsset, __version__
+from gltf_builder.builder import Builder
 from gltf_builder.cameras import camera
 from gltf_builder.images import image
+from gltf_builder.materials import material
 from gltf_builder.meshes import mesh
 from gltf_builder.nodes import node
+from gltf_builder.primitives import primitive
 from gltf_builder.samplers import sampler
+from gltf_builder.scenes import scene
+from gltf_builder.skins import skin
 from gltf_builder.textures import texture
-from gltf_builder.builder import Builder
 from gltf_builder.vertices import (
     vertex, Vertex
 )
@@ -63,6 +74,8 @@ __all__ = [
     'BPerspectiveCamera',
     'BPrimitive',
     'BSampler',
+    'BScene',
+    'BSkin',
     'BTexture',
     'BufferViewTarget',
     'Builder',
@@ -71,19 +84,25 @@ __all__ = [
     'camera',
     'CameraType',
     'ColorSpec',
+    'Color',
     'color',
     'ComponentType',
     'define_geometry',
     'distribute_floats',
     'distribute_ints',
     'ElementType',
+    'EPSILON',
+    'EPSILON2',
     'get_geometry',
     'IDENTITY2',
     'IDENTITY3',
     'IDENTITY4',
     'image',
     'ImageType',
+    'IndexSize',
+    'Joint',
     'joint',
+    'JointMap',
     'joints',
     'JsonArray',
     'JsonAtomic',
@@ -91,6 +110,7 @@ __all__ = [
     'JsonObject',
     'MagFilter',
     'map_range',
+    'material',
     'matrix',
     'Matrix',
     'Matrix2',
@@ -109,8 +129,11 @@ __all__ = [
     'NormalSpec',
     'normalize',
     'Phase',
+    'Point',
+    'PointLike',
     'PointSpec',
     'point',
+    'primitive',
     'PrimitiveMode',
     'Quaternion',
     'quaternion',
@@ -125,25 +148,38 @@ __all__ = [
     'rgb8',
     'sampler',
     'Scalar',
+    'Scale',
     'ScaleSpec',
     'scale',
+    'scene',
     'ScopeName',
+    'skin',
+    'Tangent',
     'TangentSpec',
     'tangent',
     'texture',
+    'UvPoint',
     'UvSpec',
+    'UvFloat',
+    'Uv8',
+    'Uv16',
     'uv',
     'VectorSpec',
+    'Vector2',
     'Vector2Spec',
     'vector2',
+    'Vector3',
     'Vector3Spec',
     'vector3',
+    'Vector4',
     'Vector4Spec',
     'vector4',
     'VectorLike',
     'Vertex',
     'vertex',
+    'Weight',
     'weight',
+    'WeightSpec',
     'WrapMode',
     '__version__',
 ]

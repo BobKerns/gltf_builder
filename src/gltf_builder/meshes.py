@@ -3,7 +3,7 @@ Builder representation of a mesh to be compiled.
 '''
 
 from collections.abc import Iterable, Sequence
-from typing import Any, Optional, Self, cast, overload
+from typing import Optional, Self, cast, overload
 
 import pygltflib as gltf
 
@@ -12,7 +12,7 @@ from gltf_builder.core_types import (
     JsonObject, Phase, PrimitiveMode,
 )
 from gltf_builder.attribute_types import (
-    AttributeDataIterable, Point, PointSpec, Vector3Spec,
+    AttributeDataIterable, PointSpec, Vector3Spec,
     TangentSpec, ColorSpec, UvSpec, color, point, tangent, uv, vector3,
 )
 from gltf_builder.protocols import _BuilderProtocol

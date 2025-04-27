@@ -2,8 +2,9 @@
 Test that supplied geometries are correctly built
 '''
 
-from gltf_builder.geometries import get_geometry
-from gltf_builder.nodes import node
+from gltf_builder import (
+    get_geometry, node,
+)
 
 def test_geo_cube():
     CUBE = get_geometry('CUBE')

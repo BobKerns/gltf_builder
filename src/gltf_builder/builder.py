@@ -42,7 +42,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
      Element, _GLTF,
 )
-from gltf_builder.compiler import _STATE, _Compileable, _Collected, _CompileState
+from gltf_builder.compiler import _STATE, _Compileable, _Collected
 from gltf_builder.utils import USERNAME, USER, decode_dtype
 from gltf_builder.log import GLTF_LOG
 

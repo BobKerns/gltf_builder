@@ -9,11 +9,11 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from gltf_builder.utils import distribute_ints, distribute_floats, normalize, map_range
-
-from gltf_builder.attribute_types import (
+from gltf_builder import (
+    distribute_ints, distribute_floats, normalize, map_range,
     Vector2, Vector3, Vector4, Tangent, EPSILON,
 )
+
 
 
 @pytest.mark.parametrize('lower, upper, values, expected', [
