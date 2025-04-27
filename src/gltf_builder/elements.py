@@ -34,6 +34,7 @@ from gltf_builder.compiler import (
 )
 from gltf_builder.protocols import _BNodeContainerProtocol, _BuilderProtocol
 from gltf_builder.log import GLTF_LOG
+from gltf_builder.utils import std_repr
 from gltf_builder.vertices import Vertex
 if TYPE_CHECKING:
     from gltf_builder.accessors import _AccessorState
@@ -74,26 +75,15 @@ class Element(_Compileable[_GLTF, _STATE], Protocol):
         
     def __eq__(self, other: Any):
         return self is other
-    
-    def _repr_additional(self) -> str:
-        return ''
-    
+
     def __repr__(self):
-        typ = type(self).__name__.lstrip('_')
-        idx = f'[{self._index}]' if self._index != -1 else ''
-        name = self.name or id(self)
-        more = self._repr_additional()
-        if more:
-            return f'<{typ} {name}{idx} {more}>'
-        return f'<{typ} {name}{idx}>'
+        return std_repr(self, (
+            'name'
+        ), id=id(self))
     
     def __str__(self):
         typ = type(self).__name__.lstrip('_')
-        if self._index == -1:
-            idx = ''
-        else:
-            idx=f'[{self._index}]'
-        return f'{typ}-{self.name or "?"}{idx}'
+        return f'{typ}-{self.name or "?"}'
 
 
 class BBuffer(Element[gltf.Buffer, '_BufferState'], _Scope, Protocol):

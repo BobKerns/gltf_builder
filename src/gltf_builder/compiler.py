@@ -16,6 +16,7 @@ from gltf_builder.core_types import (
     JsonObject, Phase,
     BufferViewTarget, ScopeName
 )
+from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey, _BuilderProtocol
@@ -94,6 +95,22 @@ class _CompileState(Generic[_GLTF, _STATE], _BaseCompileState[_GLTF]):
         )
         self.element = element
 
+    @property
+    def phase(self) -> Phase|None:
+        '''
+        The last phase of the compilation reached.
+        '''
+        return self.phases[-1] if self.phases else None
+
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            #('index', self._index),
+            #('byteOffset', self._byteOffset, "offset"),
+            #('len', self._len),
+            'phase',
+        ))
+
 class _Compileable(Generic[_GLTF, _STATE], Protocol):
     __phases: list[Phase]
     _len: int = -1
@@ -109,7 +126,7 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
             self.__byte_offset = offset
         elif self.__byte_offset != offset:  # pragma: no cover
             raise ValueError(f'Byte offset already set, old={self.__byte_offset}, new={offset}')
-    
+
     extensions: JsonObject
     extras: JsonObject
     _collected: _Collected|None = None
@@ -199,7 +216,7 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
                 ) -> _GLTF: ...
     @overload
     def compile(self,
-                builder: '_BuilderProtocol', 
+                builder: '_BuilderProtocol',
                 scope: '_Scope',
                 phase: Literal[
                         Phase.VIEWS,
@@ -288,7 +305,7 @@ class _Compileable(Generic[_GLTF, _STATE], Protocol):
 
     def __len__(self) -> int:
         return self._len
-    
+
     def __bool__(self) -> bool:
         if self._len < 0:
             return False
@@ -308,24 +325,24 @@ class _Scope(Protocol):
     scope above them.
     '''
     __views: dict['_BufferViewKey', 'BBufferView']
-    
+
     __target_buffer: 'BBuffer'
     @property
     def target_buffer(self) -> 'BBuffer':
         return self.__target_buffer
-    
-    __buidler: '_BuilderProtocol'
+
+    __builder: '_BuilderProtocol'
     @property
     def builder(self) -> '_BuilderProtocol':
-        return self.__buidler
-    
+        return self.__builder
+
     def __init__(self,
                 builder: '_BuilderProtocol',
                 buffer: 'BBuffer',
                 is_accessor_scope: bool=False,
                 is_view_scope: bool=False,
             ):
-        self.__buidler = builder
+        self.__builder = builder
         self.__target_buffer = buffer
         self.__views = {}
 

@@ -76,8 +76,9 @@ class _Texture(BTexture):
     
     def __repr__(self):
         return std_repr(self, (
-            'sampler',
-            'source',
+            'name',
+            ('sampler', self.sampler.name or id(self.sampler)),
+            ('source', self.source.name or id(self.source)),
         ))
             
 def texture(

@@ -284,6 +284,8 @@ class _Node(_BNodeContainer, BNode):
             'rotation',
             'scale',
             'matrix',
+            ('children', len(self.children)),
+            'root',
         ))
 
 def node(

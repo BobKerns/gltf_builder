@@ -11,6 +11,7 @@ from gltf_builder.compiler import _Scope, _CompileState
 from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.elements import BNode, BScene
 from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.utils import std_repr
 
 
 class _SceneState(_CompileState[gltf.Scene, '_SceneState']):
@@ -66,6 +67,12 @@ class _Scene(BScene):
             case _:
                 for n in self.nodes:
                     n.compile(builder, scope, phase)
+
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            ('nodes', [n.name or id(n) for n in self.nodes]),
+        ))
 
 def scene(name: str='', /,
           *nodes: BNode,

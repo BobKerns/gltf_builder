@@ -18,6 +18,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.elements import BMesh, BPrimitive, _Scope
 from gltf_builder.primitives import _Primitive
+from gltf_builder.utils import std_repr
 from gltf_builder.vertices import Vertex
 
 class _MeshState(_CompileState[gltf.Mesh, '_MeshState']):
@@ -169,8 +170,12 @@ class _Mesh(BMesh):
                 for prim in self.primitives:
                     prim.compile(builder, scope, phase)
 
-    def _repr_additional(self) -> str:
-        return f'{len(self.primitives)} primitives'
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            ('primitives', len(self.primitives)),
+            'weights',
+        ), id=id(self))
 
 def mesh(
     name: str='',

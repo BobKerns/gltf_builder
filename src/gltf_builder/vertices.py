@@ -78,7 +78,7 @@ class Vertex:
         s = simple_num
         id_ = f'<{s(x)},{s(y)},{s(z)}>'
         return std_repr(self, (k for k in self if k != 'POSITION'),
-                        id_=id_)
+                        id=id_)
     
 
 @overload

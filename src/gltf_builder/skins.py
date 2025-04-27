@@ -12,6 +12,7 @@ from gltf_builder.core_types import JsonObject, Phase
 from gltf_builder.elements import BNode, BSkin
 from gltf_builder.matrix import Matrix4
 from gltf_builder.protocols import _BuilderProtocol
+from gltf_builder.utils import std_repr
 
 
 class _SkinState(_CompileState[gltf.Skin, '_SkinState']):
@@ -65,6 +66,13 @@ class _Skin(BSkin):
                     extras=self.extras,
                     extensions=self.extensions,
                 )
+            
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            ('skeleton', self.skeleton.name or id(self.skeleton)),
+            ('joints', [j.name or id(j) for j in self.joints]),
+        ))
 
 def skin(
         skeleton: BNode,

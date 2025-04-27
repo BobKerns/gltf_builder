@@ -13,7 +13,7 @@ import ctypes.wintypes
 import subprocess
 import getpass
 from itertools import chain, repeat
-from typing import  Any, Optional, overload
+from typing import  Any, Optional, TypeAlias, overload
 
 import numpy as np
 
@@ -240,6 +240,10 @@ def map_range(value: float|int,
 
 
 def simple_num(x: Any, /) -> str:
+    '''
+    Convert a number to a string with a maximum of 3 decimal places.
+    If the value is an Enum, return the name of the Enum member.
+    '''
     if isinstance(x, Enum):
         return x.name
     if isinstance(x, (float, np.floating)):
@@ -253,14 +257,20 @@ def simple_num(x: Any, /) -> str:
         return f'{x:.3f}'
     return str(x)
 
+AttrSpec: TypeAlias = str|tuple[str, Any]|tuple[str, Any, str]
 
-def std_repr(self: object, keys: Iterable[str], /, id_: Optional[str]=None) -> str:
+def std_repr(self: object,
+             keys: Iterable[AttrSpec],
+             /,
+             id: Optional[str|int]=None,
+             cls: Optional[str]=None,
+             ) -> str:
     '''
     Generic tool for `__repr__` methods.
     Generates a string representation of the object with the given keys.
 
     The format is:
-    <ClassName>@id[key1=value1, key2=value2, ...]
+    <ClassName@id key1=value1, key2=value2, ...>
 
     where `id` is optional and can be None.
 
@@ -268,17 +278,23 @@ def std_repr(self: object, keys: Iterable[str], /, id_: Optional[str]=None) -> s
     ----------
     self: object
         The object to generate a representation for.
-    keys: Iterable[str]
+    keys: Iterable[str|tuple[str, Any]|tuple[str, Any, str]]
         The keys to include in the representation.
+        If a tuple, the first element is the key and the second element is the value.
+        An optional third element can be used to specify the display name.
     id: Optional[str]
         The id to include in the representation. If None, no id is included.
+    cls: Optional[str]
+        The class name to use in the representation. If None, the class name is used.
     '''
     def val(v: AttributeData) -> str:
         if isinstance(v, (tuple, np.ndarray)):
             return f"({','.join(simple_num(x) for x in v)})"
         return simple_num(v)
-    typ = type(self).__name__.lstrip('_')
-    def get(key: str):
+    cls = cls or type(self).__name__.lstrip('_')
+    def get(key: AttrSpec) -> Any:
+        if isinstance(key, tuple):
+            return key[1]
         if hasattr(self, key):
             val = getattr(self, key)
             return val
@@ -287,17 +303,30 @@ def std_repr(self: object, keys: Iterable[str], /, id_: Optional[str]=None) -> s
             if key in attrs:
                 return attrs[key]
         return self[key] # type: ignore
-        raise KeyError(f'{key} not found in vertex attributes')
-    if id_ is not None:
-        id_ = f'@{id_}'
+    def key(key: AttrSpec) -> str:
+        if isinstance(key, tuple):
+            if len(key) == 3:
+                return key[2]
+            return key[0]
+        return key
+    if id is not None:
+        if isinstance(id, int):
+            id = f'00000000{hex(id)}'
+            id = f'#{id[-8:-4]}-{id[-4:]}'
+        else:
+            id = f'@{id}'
     else:
-        id_ = ''
-    return (f'''{typ}{id_}[{
+        id = ''
+    return f'''<{cls}{id} {
             ", ".join(
-                    f"{k}={val(get(k))}"
-                    for k in keys
+                    f"{k}={val(v)}"
+                    for k, v in (
+                        (key(kv),get(kv))
+                        for kv in keys
                     )
-            }]''')
+                    if v not in (None, "")
+                )
+            }>'''
 
 def _get_human_name():
     """

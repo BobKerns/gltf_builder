@@ -16,6 +16,7 @@ from gltf_builder.elements import (
 from gltf_builder.protocols import _BuilderProtocol
 from gltf_builder.compiler import _CompileState
 from gltf_builder.holders import _Holder
+from gltf_builder.utils import std_repr
 
 
 class _BufferViewState(_CompileState[gltf.BufferView, '_BufferViewState']):
@@ -55,20 +56,6 @@ class _BufferView(BBufferView):
         self.target = target
         buffer.views.add(self)
         self.byteStride = byteStride
-        self.accessors = _Holder(type_=BAccessor[NPTypes, AttributeData],)        
-    
-    def _add_accessor(self, acc: BAccessor[NPTypes, AttributeData]) -> None:
-        '''
-        Add an accessor to the buffer view
-        '''
-        self.accessors.add(acc)
-    
-    def memoryview(self, offset: int, size: int) -> memoryview:
-        '''
-        Return a memoryview of the buffer view.se
-        '''
-        end = offset + size
-        return self.__memory[offset:end]
         
     def _do_compile(self,
                     builder: _BuilderProtocol,
@@ -113,3 +100,12 @@ class _BufferView(BBufferView):
                     target=self.target,
                 )
             case _: pass
+
+    def __repr__(self):
+        return std_repr(self, (
+                'name',
+                ('buffer', self.buffer.name or id(self.buffer)),
+                'byteStride',
+                'target',
+            ),
+            cls='view')

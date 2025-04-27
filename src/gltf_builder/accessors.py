@@ -17,7 +17,7 @@ from gltf_builder.elements import (
     BAccessor, BBuffer, NP, BBufferView
 )
 from gltf_builder.compiler import _CompileState, _DoCompileReturn, _Scope
-from gltf_builder.utils import decode_dtype, decode_stride, decode_type
+from gltf_builder.utils import decode_dtype, decode_stride, decode_type, std_repr
 from gltf_builder.log import GLTF_LOG
 
 
@@ -146,3 +146,13 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 )
             case _: pass
                  
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            'byteStride',
+            'normalized',
+            'elementType',
+            'componentType',
+            'target'
+        ),
+        id=id(self))
