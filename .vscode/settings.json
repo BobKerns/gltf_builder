@@ -5,9 +5,9 @@
         "**/.hg": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "**/*.crswap": true,
         "**/CVS": true,
-        "**/.ruby-lsp": true
+        "**/.ruby-lsp": true,
+        "**/*.crswap": true
     },
     "hide-files.files": [],
     "cSpell.words": [
@@ -38,5 +38,7 @@
             "addWords": true,
             "scope": "workspace"
         }
-    }
+    },
+    "ruff.configuration": "",
+    "python.analysis.inlayHints.functionReturnTypes": false
 }

@@ -17,7 +17,7 @@ from gltf_builder.assets import _Asset, __version__
 from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _BaseCompileState, _Compilable, _CompileState,
+    _GLTF, _STATE, _Compilable, _CompileState,
     _Collected,
 )
 from gltf_builder.core_types import (
@@ -41,13 +41,14 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
     _scope_name: ScopeName = ScopeName.BUILDER
 
     _id_counters: dict[str, count]
-    _states: dict[int, _BaseCompileState] = {}
+    _states: dict[int, _CompileState] = {}
     __ordered_views: list[BBufferView]
 
     __builder: 'Builder'
     @property
     def builder(self) -> 'Builder':
         return self.__builder
+
 
     def state(self, elt: _Compilable[_GLTF, _STATE]) -> _STATE:
         '''
@@ -57,13 +58,11 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         _key = id(elt)
         state = cast(_STATE, self._states.get(_key, None))
         if state is None:
-            state_type = cast(type[_CompileState[_GLTF, _STATE]], elt.state_type())
-            state = cast(
-                _STATE,
-                state_type(elt, self._gen_name(elt))
-            )
+            state_type = elt.state_type()
+            state = state_type(cast(_Compilable, elt), self._gen_name(elt))
             self._states[_key] = state
-        return cast(_STATE, state)
+            state.extension_objects.extend(elt.extension_objects)
+        return state
 
     @property
     def buffer(self) -> BBuffer:
@@ -113,6 +112,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         self.extensionsRequired = list(builder.extensionsRequired or ())
         self._id_counters = {}
         self._states = {}
+        self.extension_objects = set()
 
     def _get_index_size(self, max_value):
         return self.builder._get_index_size(max_value)
@@ -257,10 +257,10 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
             if phase != Phase.BUILD:
                self.do_compile(phase)
 
-        def build_list(l: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
+        def build_list(elt: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
             return [
                 v.compile(self, self, Phase.BUILD)
-                for v in l
+                for v in elt
             ]
         nodes = build_list(self.nodes)
         cameras = build_list(self.cameras)
@@ -276,7 +276,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         def check_buffer(b: BBuffer|None) -> bool:
             if b is None:
                 return False
-            s = self.state(b)
+            s = self.state(cast(_Compilable, b))
             return len(s.blob) > 0
         buffers = build_list(
             b
@@ -288,7 +288,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         if self.scene is None:
             scene_info = {}
         else:
-            scene_state = self.state(self.scene)
+            scene_state = self.state(cast(_Compilable, self.scene))
             scene_info = dict(scene=scene_state.index)
         g = gltf.GLTF2(
             asset=_asset,
@@ -312,7 +312,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
             **scene_info,
         )
         if len(self.buffers) == 1 :
-            state = self.state(self.buffers[0])
+            state = self.state(cast(_Compilable, self.buffers[0]))
             data = state.blob
         else:
             raise ValueError("Only one buffer is supported by pygltflib.")

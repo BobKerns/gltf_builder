@@ -3,7 +3,6 @@ Protocol classes to avoid circular imports.
 '''
 
 from abc import abstractmethod
-from pathlib import Path
 from typing import (
     NamedTuple, Protocol, TypeAlias, runtime_checkable,
     Optional, TYPE_CHECKING, Any
@@ -11,14 +10,13 @@ from typing import (
 from collections.abc import Callable, Iterable
 import math
 
-import pygltflib as gltf
-
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _BaseCompileState, _Compilable, _Scope
+    _GLTF, _STATE, _Compilable, _CompileState, _Scope,
 )
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
-    BufferViewTarget, ElementType, ComponentType, ExtensionsData, ExtrasData, IndexSize, JsonObject,
+    BufferViewTarget, ElementType, ComponentType,
+    ExtensionsData, ExtrasData, IndexSize,
     NPTypes, ScopeName,
 )
 from gltf_builder.attribute_types import (
@@ -30,7 +28,7 @@ if TYPE_CHECKING:
     from gltf_builder.elements import(
         BNode, BMesh, BBuffer, BBufferView, BAccessor, BImage,
         BSampler, BTexture, BScene, BSkin, BMaterial, BCamera,
-        BAsset,
+        BAsset, BExtension,
     )
 
 class _BufferViewKey(NamedTuple):
@@ -193,6 +191,7 @@ class _GlobalConfiguration(Protocol):
     '''
     The extensions required to load this file.
     '''
+    extension_objects: set['BExtension']
 
     @property
     @abstractmethod
@@ -271,7 +270,7 @@ class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Proto
         '''
         ...
 
-    _states: dict[int, _BaseCompileState]
+    _states: dict[int, _CompileState]
     '''
     The per-element states for the compilation of the glTF file.
     '''

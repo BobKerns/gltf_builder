@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, NP, BBufferView
 )
-from gltf_builder.compiler import _CompileState, _DoCompileReturn, _Scope
+from gltf_builder.compiler import _Compilable, _CompileState, _DoCompileReturn, _Scope
 from gltf_builder.utils import (
     decode_dtype, decode_stride, decode_type, std_repr,
 )
@@ -42,7 +42,7 @@ class _AccessorState(_CompileState[gltf.Accessor, '_AccessorState']):
                  name: str='',
                  /,
                  ) -> None:
-        super().__init__(accessor, name,
+        super().__init__(cast(_Compilable, accessor), name,
                          byteOffset=None,
                          )
         self.data = []

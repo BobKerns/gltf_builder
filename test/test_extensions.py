@@ -10,4 +10,4 @@ def test_extension_load():
     Test that the extension plugin is loaded correctly.
     '''
     load_extensions()
-    
+

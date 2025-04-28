@@ -16,12 +16,12 @@ import pygltflib as gltf
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
     AlphaMode, CameraType, ComponentType, ExtensionData,
-    ExtensionsData, ExtrasData, ImageType, JsonObject,
+    ExtensionsData, ExtrasData, ImageType,
     MagFilter, MinFilter, PrimitiveMode,
     BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
 )
 from gltf_builder.attribute_types import (
-    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, BTYPE_co,
+    AttributeDataIterable, AttributeDataList, BTYPE_co,
     ColorSpec, Point, Scale, TangentSpec, UvSpec,
     Vector3, Vector3Spec, PointSpec,
     vector3,
@@ -36,27 +36,31 @@ from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import std_repr
 from gltf_builder.vertices import Vertex
 if TYPE_CHECKING:
-    from gltf_builder.accessors import _AccessorState
+    from gltf_builder.accessors import _AccessorState  # noqa: F401
     #from gltf_builder.animations import _AnimationState
-    from gltf_builder.assets import _AssetState
-    from gltf_builder.buffers import _BufferState
-    from gltf_builder.cameras import _CameraState
-    from gltf_builder.extensions import _ExtensionState, ExtensionPlugin
-    from gltf_builder.images import _ImageState
-    from gltf_builder.materials import _MaterialState
-    from gltf_builder.meshes import _MeshState
-    from gltf_builder.primitives import _PrimitiveState
-    from gltf_builder.scenes import _SceneState
-    from gltf_builder.skins import _SkinState
-    from gltf_builder.textures import _TextureState
-    from gltf_builder.nodes import _NodeState
-    from gltf_builder.samplers import _SamplerState
-    from gltf_builder.views import _BufferViewState
+    from gltf_builder.assets import _AssetState  # noqa: F401
+    from gltf_builder.buffers import _BufferState  # noqa: F401
+    from gltf_builder.cameras import _CameraState  # noqa: F401
+    from gltf_builder.extensions import ExtensionPlugin  # noqa: F401
+    from gltf_builder.images import _ImageState  # noqa: F401
+    from gltf_builder.materials import _MaterialState  # noqa: F401
+    from gltf_builder.meshes import _MeshState  # noqa: F401
+    from gltf_builder.primitives import _PrimitiveState  # noqa: F401
+    from gltf_builder.scenes import _SceneState  # noqa: F401
+    from gltf_builder.skins import _SkinState  # noqa: F401
+    from gltf_builder.textures import _TextureState  # noqa: F401
+    from gltf_builder.nodes import _NodeState  # noqa: F401
+    from gltf_builder.samplers import _SamplerState  # noqa: F401
+    from gltf_builder.views import _BufferViewState  # noqa: F401
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 @runtime_checkable
 class Element(_Compilable[_GLTF, _STATE], Protocol):
+    '''
+    A fundamental element of a glTF model.
+    '''
+
     def __init__(self,
                  name: str='',
                  extras: Optional[ExtrasData]=None,

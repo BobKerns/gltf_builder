@@ -25,6 +25,7 @@ from gltf_builder.accessors import _Accessor
 from gltf_builder.utils import decode_dtype
 if TYPE_CHECKING:
     from gltf_builder.global_state import _GlobalState
+    from gltf_builder.compiler import _Compilable
 
 
 class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState']):
@@ -38,7 +39,7 @@ class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState']):
                  name: str='',
                  /,
                 ) -> None:
-        super().__init__(primitive, name)
+        super().__init__(cast('_Compilable', primitive), name)
         self.accessors = {}
 
 class _Primitive(BPrimitive):
@@ -125,7 +126,7 @@ class _Primitive(BPrimitive):
                                  btype=attr_type.type,
                                  dtype=dtype,
                                  name=aname)
-            astate = gbl.state(accessor)
+            astate = gbl.state(cast('_Compilable', accessor))
             astate.add_data(data)
             _compile(accessor)
             return accessor
@@ -161,7 +162,7 @@ class _Primitive(BPrimitive):
                         name=name,
                         target=BufferViewTarget.ELEMENT_ARRAY_BUFFER
                     )
-                    istate = gbl.state(state.indices_accessor)
+                    istate = gbl.state(cast('_Compilable', state.indices_accessor))
                     istate.add_data(indices)
             case Phase.COLLECT:
                 mesh.name = mesh.name or gbl._gen_name(mesh)

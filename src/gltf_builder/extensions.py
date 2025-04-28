@@ -33,7 +33,7 @@ Type variable for the class implementing the state for the extension.
 '''
 
 
-class _Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
+class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
     '''
     Implementation class for `BExtension`.
     '''
@@ -159,12 +159,12 @@ class ExtensionPlugin(Protocol[_EXT]):
     version: str
 
     @classmethod
-    def extension_class(cls) -> type[_Extension]:
+    def extension_class(cls) -> type[Extension]:
         '''
         Return the class implementing the extension.
         This is used by the compiler to create the extension object.
         '''
-        return _Extension
+        return Extension
 
     def __init__(self, name: str, version: str):
         '''
@@ -223,6 +223,19 @@ def load_extensions():
                 continue
             EXTENSION_PLUGINS[ext.name] = plugin
 
+
+def extension(name: str, data: ExtensionData) -> BExtension:
+    '''
+    Create an extension object from the name and data.
+    This is used by the compiler to create the extension object.
+    '''
+    if name not in EXTENSION_PLUGINS:
+        name = 'UNKNOWN'
+    plugin = EXTENSION_PLUGINS[name]
+    ext_class = plugin.extension_class()
+    return ext_class(name, data)
+
+
 class ExampleState(_ExtensionState):
     '''
     Example extension state.
@@ -234,7 +247,7 @@ class ExampleJson(TypedDict, total=True):
     valid: bool
 
 
-class ExampleExtension(_Extension[ExampleState, 'ExamplePlugin', ExtensionData]):
+class ExampleExtension(Extension[ExampleState, 'ExamplePlugin', ExtensionData]):
     '''
     Example extension.
     '''
@@ -247,9 +260,19 @@ class ExampleExtension(_Extension[ExampleState, 'ExamplePlugin', ExtensionData])
         data = cast(ExampleJson, self.data)
         state.valid = bool(data.get('valid', False))
 
+
 class ExamplePlugin(ExtensionPlugin[ExampleExtension]):
     '''
-    Example extension plugin.
+    Example extension plugin. This is identified in the `project.toml`
+    file as an entry-point in the `gltf_builder.extensions` group, e.g.:
+    .. code-block:: ini
+
+        [project.entry-points.'gltf_builder.extensions']
+        GLTFB_example = "gltf_builder.extensions:ExamplePlugin"
+
+    - GLTFB_example is the name of the extension as it appears in the glTF file.
+    - gltf_builder.extensions is the module that contains the plugin.
+    - ExamplePlugin is the class that implements the plugin.
     '''
     @classmethod
     def extension_class(cls) -> type[ExampleExtension]:
@@ -258,3 +281,4 @@ class ExamplePlugin(ExtensionPlugin[ExampleExtension]):
         This is used by the compiler to create the extension object.
         '''
         return ExampleExtension
+

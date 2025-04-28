@@ -3,12 +3,12 @@ Builder representation of a glTF Buffer
 '''
 
 from collections.abc import Iterable
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, cast
 
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE,  _CompileState, _DoCompileReturn,
+    _GLTF, _STATE, _Compilable,  _CompileState, _DoCompileReturn,
     ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import (
@@ -22,7 +22,7 @@ from gltf_builder.elements import (
 if TYPE_CHECKING:
     from gltf_builder.global_state import _GlobalState
 
-class _BufferState(_CompileState[gltf.Buffer, '_BufferState']):
+class _BufferState(_CompileState[gltf.Buffer, _STATE]):
     '''
     State for the compilation of a buffer.
     '''
@@ -58,7 +58,7 @@ class _BufferState(_CompileState[gltf.Buffer, '_BufferState']):
                  /,
                  ) -> None:
         self._bytearray = bytearray()
-        super().__init__(buffer, name)
+        super().__init__(cast(_Compilable, buffer), name)
         self._views = {}
 
 
@@ -114,7 +114,7 @@ class _Buffer(BBuffer):
             case Phase.OFFSETS:
                 offset = 0
                 for view in state.views:
-                    vstate = gbl.state(view)
+                    vstate = gbl.state(cast(_Compilable, view))
                     vstate.byteOffset = offset
                     _compile1(view)
                     offset += len(vstate.memory)

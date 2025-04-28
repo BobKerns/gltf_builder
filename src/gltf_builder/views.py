@@ -2,7 +2,7 @@
 Builder description that compiles to a BufferView
 '''
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, cast
 
 import pygltflib as gltf
 
@@ -13,7 +13,7 @@ from gltf_builder.core_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView, _Scope,
 )
-from gltf_builder.compiler import _CompileState
+from gltf_builder.compiler import _Compilable, _CompileState
 from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
@@ -35,11 +35,11 @@ class _BufferViewState(_CompileState[gltf.BufferView, '_BufferViewState']):
         return self.__blob
 
     def __init__(self,
-                 buffer: '_BufferView',
+                 view: '_BufferView',
                  name: str='',
                  /,
                  ) -> None:
-        super().__init__(buffer, name,
+        super().__init__(cast(_Compilable, view), name,
                          byteOffset=None,)
         self.memory = memoryview(bytearray())
         self.accessors = _Holder(type_=BAccessor[NPTypes, AttributeData],)
@@ -84,7 +84,7 @@ class _BufferView(BBufferView):
         match phase:
             case Phase.COLLECT:
                 gbl.accessors.add(*state.accessors)
-                bstate = gbl.state(self.buffer)
+                bstate = gbl.state(cast(_Compilable, self.buffer))
                 bstate.add_view(self)
                 return [acc.compile(gbl, scope, phase)
                         for acc in state.accessors]
@@ -100,14 +100,14 @@ class _BufferView(BBufferView):
                 )
             case Phase.OFFSETS:
                 end = state.byteOffset + len(state)
-                bstate = gbl.state(self.buffer)
+                bstate = gbl.state(cast(_Compilable, self.buffer))
                 buf_memview = memoryview(bstate._bytearray)
                 state.memory = buf_memview[state.byteOffset:end]
                 offset = 0
                 for acc in state.accessors:
-                    astate = gbl.state(acc)
+                    astate = gbl.state(cast(_Compilable, acc))
                     astate.byteOffset = offset
-                    a_state = gbl.state(acc)
+                    a_state = gbl.state(cast(_Compilable, acc))
                     offset +=  len(a_state)
                     acc.compile(gbl, scope, phase)
                 return end

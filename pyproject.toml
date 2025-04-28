@@ -26,7 +26,7 @@ dependencies = [
 
 [project.entry-points.'gltf_builder.extensions']
 
-GLTFB_example = "gltf_builder.extensions:ExamplePlugin"
+GLTFB_example = "gltf_builder.plugins.example:ExamplePlugin"
 
 [build-system]
 requires = ["hatchling"]
@@ -36,6 +36,14 @@ build-backend = "hatchling.build"
 dev = [
     "pytest-cov>=6.0.0",
     "pytest>=8.3.5",
+]
+
+[tool.ruff.lint]
+ignore = [
+"E701"
+]
+exclude = [
+"*.pyi"
 ]
 
 [tool.pytest.ini_options]

@@ -2,6 +2,7 @@
 _RGBAI
 _RGBI
 allclose
+ALPHAMODES
 aname
 arccos
 argdata
@@ -17,16 +18,20 @@ bstate
 btype
 BUFFERVIEW
 bytelen
+CALMULLROMSPLINE
 cnst
 conftest
 CUBICSPLINE
 DATAURI
 ffeecc
+fileuri
 frombuffer
 fromiter
 GLTFB
 ibytes
 idtype
+IMAGEJPEG
+IMAGEPNG
 instancable
 ivalues
 jtype
@@ -52,6 +57,7 @@ rtol
 scipy
 sizedf
 skel
+skipkeys
 slerp
 Tait
 tanminus

@@ -19,7 +19,6 @@ from gltf_builder import Builder
 from gltf_builder.compiler import ExtensionsData, ExtrasData
 from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy
 from gltf_builder.elements import GLTF_LOG
-from gltf_builder.protocols import _GlobalBinary
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -258,7 +257,7 @@ def save(out_dir, request):
                                 )
             extras['gltf_builder']['validation'] = validation
             if validation is None:
-                raise ValueError(f"Validation failed")
+                raise ValueError("Validation failed")
             issues = validation['issues']
             if issues['numErrors'] + issues['numWarnings'] > 0:
                 def fmt_issue(issue):
@@ -375,10 +374,11 @@ def validate_gltf(file_path: Path,
             file_path,
         )]
         LOG.debug(f"Running command: {' '.join(cmd)}")
-        result = subprocess.run(cmd,
-                                capture_output=True,
-                                text=True,
-                                check=True)
+        subprocess.run(cmd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
 
         with open(outfile, 'r') as f:
             report = json.load(f)

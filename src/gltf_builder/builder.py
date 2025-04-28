@@ -18,9 +18,9 @@ from gltf_builder.attribute_types import (
 from gltf_builder.core_types import (
      ExtensionsData, ExtrasData, ImageType, IndexSize, JsonObject,
      NameMode, NamePolicy,
-     ElementType, ComponentType, ScopeName, NameMode,
+     ElementType, ComponentType, ScopeName,
 )
-from gltf_builder.assets import BAsset, __version__
+from gltf_builder.extensions import load_extensions
 from gltf_builder.global_state import _GlobalState
 from gltf_builder.holders import _Holder
 from gltf_builder.buffers import _Buffer
@@ -29,12 +29,12 @@ from gltf_builder.quaternions import QuaternionSpec
 from gltf_builder.meshes import _Mesh
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.images import _Image
-from gltf_builder.scenes import scene
+
 from gltf_builder.protocols import (
     _AttributeParser, _GlobalConfiguration, AttributeType,
 )
 from gltf_builder.elements import (
-     BAccessor, BBuffer, BBufferView, BCamera, BImage, BMaterial,
+     BAccessor, BAsset, BBuffer, BBufferView, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
 )
 from gltf_builder.log import GLTF_LOG
@@ -185,6 +185,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         self.define_attrib('JOINTS', ElementType.VEC4, ComponentType.UNSIGNED_SHORT, Joint)
         self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
+        self.extension_objects = set()
 
     def create_mesh(self,
                 name: str='',
@@ -205,6 +206,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
     def build(self, /,
             index_size: Optional[IndexSize]=None,
         ) -> gltf.GLTF2:
+        load_extensions()
         if index_size is not None:
             self.index_size = index_size
         def flatten(node: BNode) -> Iterable[BNode]:
