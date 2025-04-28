@@ -11,7 +11,7 @@ import numpy as np
 
 from gltf_builder.compiler import _Scope, _DoCompileReturn, _CompileState
 from gltf_builder.core_types import (
-    BufferViewTarget, ImageType, JsonObject, Phase, ScopeName
+    BufferViewTarget, ExtensionsData, ExtrasData, ImageType, JsonObject, Phase, ScopeName
 )
 from gltf_builder.elements import BBufferView, BImage
 from gltf_builder.utils import std_repr
@@ -62,8 +62,8 @@ class _Image(BImage):
                  blob: Optional[bytes|np.ndarray[tuple[int], np.dtype[np.uint8]]]=None,
                  uri: str|Path|None=None,
                  imageType: ImageType=ImageType.PNG,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(
             name=name,
@@ -135,8 +135,8 @@ def image(
     blob: Optional[bytes|np.ndarray[tuple[int], np.dtype[np.uint8]]]=None,
     uri: str|Path|None=None,
     imageType: ImageType=ImageType.PNG,
-    extras: Optional[JsonObject]=None,
-    extensions: Optional[JsonObject]=None,
+    extras: Optional[ExtrasData]=None,
+    extensions: Optional[ExtensionsData]=None,
 ) -> _Image:
     '''
     Create an image for a texture.

@@ -14,7 +14,7 @@ from pathlib import Path
 import pygltflib as gltf
 
 from gltf_builder.core_types import (
-    JsonObject, Phase,
+    ExtensionsData, ExtrasData, JsonObject, Phase,
     BufferViewTarget, ScopeName
 )
 from gltf_builder.utils import std_repr
@@ -23,14 +23,13 @@ from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey
     from gltf_builder.elements import BBufferView, BBuffer
-    from gltf_builder.builder import Builder
     from gltf_builder.global_state import _GlobalState
 
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 
-_GLTF = TypeVar('_GLTF', bound=gltf.Property, covariant=True)
+_GLTF = TypeVar('_GLTF', bound=gltf.Property|JsonObject, covariant=True)
 '''
 Type variable for glTF elements.
 This is used to indicate the type of the gltf element being compiled.
@@ -161,11 +160,10 @@ class _CompileState(_BaseCompileState[_GLTF], Generic[_GLTF, _STATE]):
         ))
 
 class _Compilable(Generic[_GLTF, _STATE], Protocol):
-    __phases: list[Phase]
     _scope_name: ScopeName
 
-    extensions: JsonObject
-    extras: JsonObject
+    extensions: ExtensionsData
+    extras: ExtrasData
     _collected: _Collected|None = None
     name: str = ''
 
@@ -178,10 +176,9 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
 
     def __init__(self,
                  name: str='', /,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 ):
-        self.__phases = []
         self.extensions = dict(extensions) if extensions else {}
         self.extras = dict(extras) if extras else {}
         self.name = name
@@ -193,8 +190,8 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
         return {} # pragma: no cover
 
     def clone(self, name: str='', /,
-              extras: Optional[JsonObject]=None,
-              extensions: Optional[JsonObject]=None,
+              extras: Optional[ExtrasData]=None,
+              extensions: Optional[ExtensionsData]=None,
               **kwargs: Any,
             ) -> Self:
         '''
@@ -363,8 +360,8 @@ class _Scope(Protocol):
                 target: BufferViewTarget,
                 byteStride: int=0,
                 name: str='',
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
             ) -> 'BBufferView':
         from gltf_builder.protocols import _BufferViewKey
         key = _BufferViewKey(buffer, target, byteStride, name)

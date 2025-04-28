@@ -6,11 +6,11 @@ from typing import Any, Literal, Optional, overload
 
 import pygltflib as gltf
 
-from gltf_builder.core_types import CameraType, JsonObject, Phase
+from gltf_builder.core_types import CameraType, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
 from gltf_builder.protocols import _GlobalBinary
 from gltf_builder.utils import std_repr
-from gltf_builder.compiler import _CompileState, _Scope
+from gltf_builder.compiler import _CompileState, _Scope, ExtensionsData, ExtrasData
 
 
 class _CameraState(_CompileState[gltf.Camera, '_CameraState']):
@@ -30,10 +30,10 @@ class _Camera(BCamera):
 
     def __init__(self,
                  name: str='',
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
-                 type_extras: Optional[JsonObject]=None,
-                 type_extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
+                 type_extras: Optional[ExtrasData]=None,
+                 type_extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(
             name,
@@ -44,7 +44,7 @@ class _Camera(BCamera):
         self.type_extensions: dict[str, Any] = dict(type_extensions or ())
 
 
-class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
+class _PerspectiveCamera(_Camera, BPerspectiveCamera, BCamera):
     '''
     Builder representation of a glTF Perspective Camera
     '''
@@ -56,10 +56,10 @@ class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
                  znear: float=0.1,
                  zfar: float=100.0,
                  aspectRatio: Optional[float]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
-                 type_extras: Optional[JsonObject]=None,
-                 type_extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
+                 type_extras: Optional[ExtrasData]=None,
+                 type_extensions: Optional[ExtensionsData]=None,
                  ):
         super().__init__(
             name,
@@ -99,7 +99,7 @@ class _PerspectiveCanera(_Camera, BPerspectiveCamera, BCamera):
         ))
 
 
-class _OrthographicCampera(_Camera, BOrthographicCamera):
+class _OrthographicCamera(_Camera, BOrthographicCamera):
     '''
     Builder representation of a glTF Orthographic Camera
     '''
@@ -112,10 +112,10 @@ class _OrthographicCampera(_Camera, BOrthographicCamera):
                 znear: float=0.1,
                 zfar: float=100.0,
                  aspectRatio: Optional[float]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
-                 type_extras: Optional[JsonObject]=None,
-                 type_extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
+                 type_extras: Optional[ExtrasData]=None,
+                 type_extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(
             name=name,
@@ -230,7 +230,7 @@ def camera(type: CameraType,
     '''
     match type:
         case CameraType.PERSPECTIVE:
-            return _PerspectiveCanera(
+            return _PerspectiveCamera(
                 name,
                 yfov=yfov,
                 znear=znear,
@@ -240,7 +240,7 @@ def camera(type: CameraType,
                 extensions=extensions
             )
         case CameraType.ORTHOGRAPHIC:
-            return _OrthographicCampera(
+            return _OrthographicCamera(
                 name,
                 xmag=xmag,
                 ymag=ymag,

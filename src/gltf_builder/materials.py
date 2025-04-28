@@ -7,7 +7,7 @@ from typing import Optional, cast, TYPE_CHECKING
 from numpy.random import f
 import pygltflib as gltf
 
-from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn, _ReturnCollect
+from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn, _ReturnCollect, ExtensionsData, ExtrasData
 from gltf_builder.core_types import AlphaMode, JsonObject, Phase
 from gltf_builder.elements import BMaterial, BTexture
 if TYPE_CHECKING:
@@ -46,8 +46,8 @@ class _Material(BMaterial):
                 alphaMode: AlphaMode=AlphaMode.OPAQUE,
                 alphaCutoff: Optional[float]=None,
                 doubleSided: bool=False,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(name, extras, extensions)
         self.baseColorFactor = baseColorFactor
@@ -144,8 +144,8 @@ def material(
     alphaMode: AlphaMode=AlphaMode.OPAQUE,
     alphaCutoff: Optional[float]=0.5,
     doubleSided: bool=False,
-    extras: Optional[JsonObject]=None,
-    extensions: Optional[JsonObject]=None,
+    extras: Optional[ExtrasData]=None,
+    extensions: Optional[ExtensionsData]=None,
 ) -> _Material:
     '''
     Create a new material.

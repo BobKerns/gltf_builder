@@ -10,8 +10,10 @@ from typing import Any, Optional, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import _GLTF, _STATE, _CompileState
-from gltf_builder.core_types import JsonObject, Phase
-from gltf_builder.attribute_types import Vector3Spec, vector3, scale as to_scale
+from gltf_builder.core_types import ExtensionsData, ExtrasData, Phase
+from gltf_builder.attribute_types import (
+    Vector3Spec, vector3, scale as to_scale,
+)
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
 from gltf_builder.elements import (
     BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
@@ -50,8 +52,8 @@ class _BNodeContainer(_BNodeContainerProtocol):
                 rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3Spec]=None,
                 matrix: Optional[Matrix4Spec]=None,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
                 ) -> 'BNode':
         '''
         Add a node to the builder or as a child of another node.
@@ -107,8 +109,8 @@ class _BNodeContainer(_BNodeContainerProtocol):
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4Spec]=None,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject]=None,
+                    extras: Optional[ExtrasData]=None,
+                    extensions: Optional[ExtensionsData]=None,
                 ) -> BNode:
         if isinstance(node_or_mesh, BMesh):
             return self.create_node(
@@ -175,8 +177,8 @@ class _Node(_BNodeContainer, BNode):
                  rotation: Optional[QuaternionSpec]=None,
                  scale: Optional[Vector3Spec]=None,
                  matrix: Optional[Matrix4Spec]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                  ):
         super(Element, self).__init__(
                          name,
@@ -262,8 +264,8 @@ class _Node(_BNodeContainer, BNode):
                   /, *,
                  primitives: Optional[Iterable['BPrimitive']]=None,
                  weights: Optional[Iterable[float]]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
             ) -> 'BMesh':
         m = mesh(name=name,
                     primitives=primitives,
@@ -296,8 +298,8 @@ def node(
     rotation: Optional[QuaternionSpec]=None,
     scale: Optional[Vector3Spec]=None,
     matrix: Optional[Matrix4Spec]=None,
-    extras: Optional[JsonObject]=None,
-    extensions: Optional[JsonObject]=None,
+    extras: Optional[ExtrasData]=None,
+    extensions: Optional[ExtensionsData]=None,
 ) -> _Node:
     '''
     Create a detached node with the given attributes.

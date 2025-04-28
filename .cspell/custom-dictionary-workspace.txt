@@ -6,6 +6,7 @@ aname
 arccos
 argdata
 arrayable
+Arrayable
 astate
 attribs
 avalues

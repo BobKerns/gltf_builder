@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.compiler import  _CompileState, _DoCompileReturn
 from gltf_builder.core_types import (
-    JsonObject, Phase, PrimitiveMode,
+    ExtensionsData, ExtrasData, Phase, PrimitiveMode,
 )
 from gltf_builder.attribute_types import (
     AttributeDataIterable, PointSpec, Vector3Spec,
@@ -42,8 +42,8 @@ class _Mesh(BMesh):
                  name: str='', /,
                  primitives: Iterable[BPrimitive]=(),
                  weights: Iterable[float]=(),
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
             ):
         super().__init__(name, extras, extensions)
         self.primitives = list(primitives)
@@ -52,8 +52,8 @@ class _Mesh(BMesh):
 
     def clone(self,
                 name: str='', /,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
                 **_,
             ) -> Self:
         return self.__class__(
@@ -66,8 +66,8 @@ class _Mesh(BMesh):
 
     @overload
     def add_primitive(self, primitive: BPrimitive, /, *,
-                      extras: Optional[JsonObject]=None,
-                      extensions: Optional[JsonObject]=None,) -> BPrimitive: ...
+                      extras: Optional[ExtrasData]=None,
+                      extensions: Optional[ExtensionsData]=None,) -> BPrimitive: ...
     @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *points: PointSpec,
@@ -76,15 +76,15 @@ class _Mesh(BMesh):
                       TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
                       TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
                       COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                      extras: Optional[JsonObject]=None,
-                      extensions: Optional[JsonObject]=None,
+                      extras: Optional[ExtrasData]=None,
+                      extensions: Optional[ExtensionsData]=None,
                       **attribs: AttributeDataIterable
                     ) -> BPrimitive: ...
     @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *vertices: Vertex,
-                      extras: Optional[JsonObject]=None,
-                      extensions: Optional[JsonObject]=None,
+                      extras: Optional[ExtrasData]=None,
+                      extensions: Optional[ExtensionsData]=None,
                     ) -> BPrimitive: ...
     def add_primitive(self, mode: PrimitiveMode|BPrimitive, /,
                       *points: PointSpec|Vertex,
@@ -93,8 +93,8 @@ class _Mesh(BMesh):
                       TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
                       TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
                       COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                      extras: Optional[JsonObject]=None,
-                      extensions: Optional[JsonObject]=None,
+                      extras: Optional[ExtrasData]=None,
+                      extensions: Optional[ExtensionsData]=None,
                       **attribs: AttributeDataIterable|None
                     ) -> BPrimitive:
         if isinstance(mode, BPrimitive):
@@ -182,8 +182,8 @@ def mesh(
     name: str='',
     primitives: Optional[Iterable[BPrimitive]]=None,
     weights: Optional[Iterable[float]]=None,
-    extras: Optional[JsonObject]=None,
-    extensions: Optional[JsonObject]=None
+    extras: Optional[ExtrasData]=None,
+    extensions: Optional[ExtensionsData]=None
 ) -> BMesh:
     '''
     Create a mesh with the given name and primitives.

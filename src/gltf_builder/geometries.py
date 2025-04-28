@@ -8,10 +8,11 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional, Protocol
 
+from gltf_builder.compiler import ExtensionsData, ExtrasData
 from gltf_builder.nodes import node
 from gltf_builder.vertices import vertex
 from gltf_builder.attribute_types import color, point, uv, vector3
-from gltf_builder.core_types import JsonObject,  NamePolicy, PrimitiveMode
+from gltf_builder.core_types import NamePolicy, PrimitiveMode
 from gltf_builder.elements import BNode
 
 
@@ -19,8 +20,8 @@ from gltf_builder.elements import BNode
 def _make(name: str,
          index_size: int = -1,
          name_policy: Optional[NamePolicy]=None,
-         extras: Optional[JsonObject]=None,
-         extensions: Optional[JsonObject]|None = None,
+         extras: Optional[ExtrasData]=None,
+         extensions: Optional[ExtensionsData]|None = None,
          ) -> Iterator[BNode]:
     '''
     Create a detached node to add geometry to.
@@ -103,8 +104,8 @@ class _GeometryFn:
     _fn: GeometryFn
     index_size: int
     name_policy: Optional[NamePolicy]
-    extras: Optional[JsonObject]
-    extensions: Optional[JsonObject]
+    extras: Optional[ExtrasData]
+    extensions: Optional[ExtensionsData]
     __name__: str
     __qualname__: str
     __module__: str
@@ -114,8 +115,8 @@ class _GeometryFn:
                  fn: GeometryFn, /, *,
                  index_size: int = -1,
                  name_policy: Optional[NamePolicy]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject] = None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData] = None,
                  ):
         self.name = name
         self._fn = fn
@@ -154,8 +155,8 @@ Predefined named geometry functions
 def define_geometry(name: str, fn: GeometryFn, /, *,
                     index_size: int = -1,
                     name_policy: Optional[NamePolicy]=None,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject] = None,
+                    extras: Optional[ExtrasData]=None,
+                    extensions: Optional[ExtensionsData] = None,
                     ) -> None:
     '''
     Define a detached node to add geometry to.

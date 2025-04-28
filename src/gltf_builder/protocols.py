@@ -13,10 +13,12 @@ import math
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _STATE, _BaseCompileState, _CompileState, _Compilable, _Scope
+from gltf_builder.compiler import (
+    _GLTF, _STATE, _BaseCompileState, _Compilable, _Scope
+)
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
-    BufferViewTarget, ElementType, ComponentType, IndexSize, JsonObject,
+    BufferViewTarget, ElementType, ComponentType, ExtensionsData, ExtrasData, IndexSize, JsonObject,
     NPTypes, ScopeName,
 )
 from gltf_builder.attribute_types import (
@@ -28,6 +30,7 @@ if TYPE_CHECKING:
     from gltf_builder.elements import(
         BNode, BMesh, BBuffer, BBufferView, BAccessor, BImage,
         BSampler, BTexture, BScene, BSkin, BMaterial, BCamera,
+        BAsset,
     )
 
 class _BufferViewKey(NamedTuple):
@@ -67,8 +70,8 @@ class _BNodeContainerProtocol(Protocol):
                 rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3Spec]=None,
                 matrix: Optional[Matrix4]=None,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
                 ) -> 'BNode':
         ...
 
@@ -79,8 +82,8 @@ class _BNodeContainerProtocol(Protocol):
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4]=None,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject]=None,
+                    extras: Optional[ExtrasData]=None,
+                    extensions: Optional[ExtensionsData]=None,
                 ) -> 'BNode':
         ...
 
@@ -134,7 +137,7 @@ class _GlobalConfiguration(Protocol):
     '''
     Protocol for the global configuration of the glTF file.
     '''
-    asset: gltf.Asset
+    asset: Optional['BAsset']
     '''
     The asset information for the glTF file.
     '''
@@ -211,8 +214,8 @@ class _GlobalConfiguration(Protocol):
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4]=None,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject]=None,
+                    extras: Optional[ExtrasData]=None,
+                    extensions: Optional[ExtensionsData]=None,
                 ) -> 'BNode':
         '''
         Instantiate a node or mesh with the given parameters.

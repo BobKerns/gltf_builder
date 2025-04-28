@@ -21,14 +21,15 @@ from gltf_builder.attribute_types import (
 )
 from gltf_builder.elements import (
     BPrimitive, BMesh, BNode, BBuffer, BBufferView, BAccessor, BImage,
-    BSampler, BScene, BTexture, BSkin,
+    BSampler, BScene, BTexture, BSkin, BAsset,
     BCamera, BPerspectiveCamera, BOrthographicCamera,
 )
 from gltf_builder.utils import (
     distribute_floats, distribute_ints, normalize, map_range,
 )
 from gltf_builder.accessors import BAccessor
-from gltf_builder.assets import BAsset, __version__
+from gltf_builder.assets import asset, __version__
+from gltf_builder.buffers import buffer
 from gltf_builder.builder import Builder
 from gltf_builder.cameras import camera
 from gltf_builder.images import image
@@ -56,11 +57,12 @@ from gltf_builder.quaternions import (
     QuaternionSpec, Quaternion, quaternion,
 )
 
-__all__ = [ 
+__all__ = [
     'AlphaMode',
     'AnimationInterpolation',
     'AnimationSamplerInterpolation',
     'AnimationTargetPath',
+    'asset',
     'AttributeDataSpec',
     'BAccessor',
     'BAsset',
@@ -77,6 +79,7 @@ __all__ = [
     'BScene',
     'BSkin',
     'BTexture',
+    'buffer',
     'BufferViewTarget',
     'Builder',
     'ByteSize',

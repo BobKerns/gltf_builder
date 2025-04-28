@@ -13,7 +13,7 @@ import pygltflib as gltf
 import numpy as np
 
 from gltf_builder.accessors import _Accessor
-from gltf_builder.assets import __version__
+from gltf_builder.assets import _Asset, __version__
 from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
@@ -93,7 +93,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         self.buffers = _Holder(BBuffer)
         self.views = _Holder(BBufferView)
         self.accessors = _Holder(BAccessor)
-        buffer = _Buffer(self, 'main')
+        buffer = _Buffer('main')
         self.buffers.add(buffer)
         _Scope.__init__(self, self, buffer)
         self.__builder = builder
@@ -214,8 +214,14 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         '''
 
         python = sys.version_info
-        self.asset.extras = self.asset.extras or {}
-        builder_info = self.asset.extras.get('gltf-builder', {})
+        if self.asset is None:
+            self.asset = asset = _Asset()
+        else:
+            asset = self.asset
+        extras = asset.extras = asset.extras or {}
+        builder_info = cast(JsonObject,
+                            extras.get('gltf_builder', {}))
+        # Supplied builder_info overrides the default.
         builder_info: JsonObject = {
                 'version': __version__,
                 'pygltflib': gltf.__version__,
@@ -231,10 +237,10 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
                 **builder_info
             }
         self.asset.extras = {
-            'gltf-builder': builder_info,
-                'username': USERNAME,
-                'user': USER,
-                'date': datetime.now().isoformat(),
+            'gltf_builder': builder_info,
+            'username': USERNAME,
+            'user': USER,
+            'date': datetime.now().isoformat(),
             **self.asset.extras,
         }
         # Filter out empty values.
@@ -266,6 +272,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         images = build_list(self.images)
         accessors = build_list(a for a in self.accessors if a.count > 0)
         bufferViews = build_list(self.__ordered_views)
+        _asset = self.asset.compile(self, self, Phase.BUILD)
         def check_buffer(b: BBuffer|None) -> bool:
             if b is None:
                 return False
@@ -284,7 +291,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
             scene_state = self.state(self.scene)
             scene_info = dict(scene=scene_state.index)
         g = gltf.GLTF2(
-            asset = self.asset,
+            asset=_asset,
             nodes=nodes,
             cameras=cameras,
             meshes=meshes,

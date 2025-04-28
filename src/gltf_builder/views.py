@@ -8,7 +8,7 @@ import pygltflib as gltf
 
 from gltf_builder.attribute_types import AttributeData
 from gltf_builder.core_types import (
-    BufferViewTarget, JsonObject, NPTypes, Phase,
+    BufferViewTarget, ExtensionsData, ExtrasData, NPTypes, Phase,
 )
 from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView, _Scope,
@@ -67,8 +67,8 @@ class _BufferView(BBufferView):
                  name: str='',
                  byteStride: int=0,
                  target: BufferViewTarget = BufferViewTarget.ARRAY_BUFFER,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                  ):
         super().__init__(name, extras, extensions)
         self.buffer = buffer

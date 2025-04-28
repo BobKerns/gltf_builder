@@ -8,7 +8,7 @@ from typing import Optional, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn
-from gltf_builder.core_types import JsonObject, Phase
+from gltf_builder.core_types import ExtensionsData, ExtrasData, Phase
 from gltf_builder.elements import BNode, BSkin
 from gltf_builder.matrix import Matrix4
 from gltf_builder.utils import std_repr
@@ -38,8 +38,8 @@ class _Skin(BSkin):
                  /,
                  joints: Iterable[BNode]=(),
                  inverseBindMatrices: Optional[Matrix4]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(name, extras, extensions)
         self.skeleton = skeleton
@@ -81,8 +81,8 @@ def skin(
         /,
         joints: Iterable[BNode]=(),
         inverseBindMatrices: Optional[Matrix4]=None,
-        extras: Optional[JsonObject]=None,
-        extensions: Optional[JsonObject]=None,
+        extras: Optional[ExtrasData]=None,
+        extensions: Optional[ExtensionsData]=None,
     ) -> BSkin:
     '''
     Create a skin object for a given node with the given attributes.

@@ -9,14 +9,19 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 from gltf_builder.core_types import (
-    ComponentType, ElementType, JsonObject, Phase, BufferViewTarget, ScopeName,
+    ComponentType, ElementType, ExtensionsData, ExtrasData,
+    Phase, BufferViewTarget, ScopeName,
 )
-from gltf_builder.attribute_types import BTYPE, AttributeData, BTYPE_co, BType
+from gltf_builder.attribute_types import (
+    BTYPE, AttributeData, BTYPE_co, BType,
+)
 from gltf_builder.elements import (
     BAccessor, BBuffer, NP, BBufferView
 )
 from gltf_builder.compiler import _CompileState, _DoCompileReturn, _Scope
-from gltf_builder.utils import decode_dtype, decode_stride, decode_type, std_repr
+from gltf_builder.utils import (
+    decode_dtype, decode_stride, decode_type, std_repr,
+)
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.global_state import _GlobalState
@@ -85,8 +90,8 @@ class _Accessor(BAccessor[NP, BTYPE]):
                  normalized: bool=False,
                  max: Optional[list[float]]=None,
                  min: Optional[list[float]]=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                  target: BufferViewTarget = BufferViewTarget.ARRAY_BUFFER,
     ):
         super().__init__(name=name,

@@ -51,7 +51,7 @@ class Phase(StrEnum):
     '''
     COLLECT = 'collect'
     '''
-    Create the accessors and views for the glTF file, and collect all 
+    Create the accessors and views for the glTF file, and collect all
     subordinate objects.
     '''
     ENUMERATE = 'enumerate'
@@ -86,7 +86,7 @@ class Phase(StrEnum):
     '''
     Construct the binary data for the glTF file.
     '''
-    
+
 
 class PrimitiveMode(IntEnum):
     '''
@@ -99,14 +99,14 @@ class PrimitiveMode(IntEnum):
     TRIANGLES = gltf.TRIANGLES
     TRIANGLE_STRIP = gltf.TRIANGLE_STRIP
     TRIANGLE_FAN = gltf.TRIANGLE_FAN
-    
+
 class BufferViewTarget(IntEnum):
     '''
     The glTF target for a buffer view.
     '''
     ARRAY_BUFFER = gltf.ARRAY_BUFFER
     ELEMENT_ARRAY_BUFFER = gltf.ELEMENT_ARRAY_BUFFER
-    
+
 class ElementType(StrEnum):
     '''
     glTF element types—the composite group of values that live in the accessors.
@@ -128,7 +128,7 @@ The values are:
 - 2: 2 bytes integer
 - 4: 4 bytes float32
 '''
-    
+
 class ComponentType(IntEnum):
     '''
     glTF component types—the size of the values that live in the elements.
@@ -193,6 +193,11 @@ class ScopeName(StrEnum):
     '''
     Enum for the scope of a policy.
     '''
+
+    ASSET = 'asset'''
+    '''
+    The policy applies to the asset.
+    '''
     PRIMITIVE = 'primitive'
     '''
     The policy applies to the primitives.
@@ -253,12 +258,28 @@ class ScopeName(StrEnum):
     '''
     The policy applies to the scene.
     '''
+    EXTENSION = 'extension'
+    '''
+    The policy applies to the extension.
+    '''
+    ANIMATION = 'animation'
+    '''
+    The policy applies to the animation.
+    '''
+    ANIMATION_CHANNEL = 'animation_channel'
+    '''
+    The policy applies to the animation channel.
+    '''
+    ANIMATION_SAMPLER = 'animation_sampler'
+    '''
+    The policy applies to the animation sampler.
+    '''
 
 class NameMode(StrEnum):
     '''
     Enum for how to handle or generate names for objects.
     '''
-    
+
     AUTO = 'auto'
     '''
     Automatically generate names for objects which do not have one.
@@ -292,6 +313,16 @@ A JSON-compatible atomic type.
 JsonData: TypeAlias = JsonObject|JsonArray|JsonAtomic
 '''
 A JSON-compatible data type.
+'''
+
+ExtrasData: TypeAlias = dict[str, JsonData]
+'''
+A dictionary of extra data to be stored with the object.
+'''
+
+ExtensionsData: TypeAlias = dict[str, JsonObject]
+'''
+A dictionary of extensions to be stored with the object.
 '''
 
 NamePolicy: TypeAlias = dict[ScopeName, NameMode]
@@ -429,7 +460,7 @@ class AnimationTargetPath(StrEnum):
     '''
     Weights target path.
     '''
-    
+
 
 class AnimationSamplerInterpolation(StrEnum):
     '''

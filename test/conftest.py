@@ -16,6 +16,7 @@ import pytest
 from pathlib import Path
 
 from gltf_builder import Builder
+from gltf_builder.compiler import ExtensionsData, ExtrasData
 from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy
 from gltf_builder.elements import GLTF_LOG
 from gltf_builder.protocols import _GlobalBinary
@@ -386,5 +387,5 @@ def validate_gltf(file_path: Path,
          print(f"Error validating glTF: {e}")
          raise
 
-TEST_EXTRAS: JsonObject={"EXTRA": "DATA"}
-TEST_EXTENSIONS: JsonObject={"TEST_extension": {"EXTRA": "DATA"}}
+TEST_EXTRAS: ExtrasData={"EXTRA": "DATA"}
+TEST_EXTENSIONS: ExtensionsData={"TEST_extension": {"EXTRA": "DATA"}}

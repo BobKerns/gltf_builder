@@ -7,8 +7,10 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _Scope, _CompileState
-from gltf_builder.core_types import JsonObject, Phase
+from gltf_builder.compiler import (
+    _Scope, _CompileState, ExtensionsData, ExtrasData,
+)
+from gltf_builder.core_types import Phase
 from gltf_builder.elements import BNode, BScene
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
@@ -34,8 +36,8 @@ class _Scene(BScene):
     def __init__(self,
                  name: str='', /,
                  nodes: Iterable[BNode]=(),
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(name,
                        extras=extras,
@@ -77,8 +79,8 @@ class _Scene(BScene):
 
 def scene(name: str='', /,
           *nodes: BNode,
-          extras: Optional[JsonObject]=None,
-          extensions: Optional[JsonObject]=None,
+          extras: Optional[ExtrasData]=None,
+          extensions: Optional[ExtensionsData]=None,
           ):
     '''
     Create a scene with the given name and nodes.

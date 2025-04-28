@@ -11,13 +11,12 @@ from typing import (
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 
-import numpy as np
 import pygltflib as gltf
 
-from gltf_builder.holders import _Holder
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
-    AlphaMode, CameraType, ComponentType, ImageType, JsonObject,
+    AlphaMode, CameraType, ComponentType,
+    ExtensionsData, ExtrasData, ImageType, JsonObject,
     MagFilter, MinFilter, PrimitiveMode,
     BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
 )
@@ -42,6 +41,7 @@ if TYPE_CHECKING:
     from gltf_builder.assets import _AssetState
     from gltf_builder.buffers import _BufferState
     from gltf_builder.cameras import _CameraState
+    from gltf_builder.extensions import _ExtensionState
     from gltf_builder.images import _ImageState
     from gltf_builder.materials import _MaterialState
     from gltf_builder.meshes import _MeshState
@@ -59,8 +59,8 @@ LOG = GLTF_LOG.getChild(Path(__file__).stem)
 class Element(_Compilable[_GLTF, _STATE], Protocol):
     def __init__(self,
                  name: str='',
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 index: int=-1,
             ):
         super().__init__(
@@ -85,7 +85,7 @@ class Element(_Compilable[_GLTF, _STATE], Protocol):
         return f'{typ}-{self.name or "?"}'
 
 
-class BBuffer(Element[gltf.Buffer, '_BufferState'], _Scope, Protocol):
+class BBuffer(Element[gltf.Buffer, '_BufferState'], Protocol):
     '''
     Buffer interface.
     '''
@@ -142,8 +142,8 @@ class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
 
     @overload
     def add_primitive(self, primitive: BPrimitive, /, *,
-                      extras: Optional[JsonObject]=None,
-                      extensions: Optional[JsonObject]=None,) -> BPrimitive: ...
+                      extras: Optional[ExtrasData]=None,
+                      extensions: Optional[ExtensionsData]=None,) -> BPrimitive: ...
     @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *points: PointSpec,
@@ -152,16 +152,16 @@ class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
                       TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
                       TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
                       COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                      extras:  Optional[JsonObject]=None,
-                      extensions:  Optional[JsonObject]=None,
+                      extras:  Optional[ExtrasData]=None,
+                      extensions:  Optional[ExtensionsData]=None,
                       **attribs: AttributeDataIterable,
                     ) -> BPrimitive:
         ...
     @overload
     def add_primitive(self, mode: PrimitiveMode, /,
                       *vertices: Vertex,
-                      extras:  Optional[JsonObject]=None,
-                      extensions:  Optional[JsonObject]=None,
+                      extras:  Optional[ExtrasData]=None,
+                      extensions:  Optional[ExtensionsData]=None,
                     ) -> BPrimitive:
         ...
     @abstractmethod
@@ -172,8 +172,8 @@ class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
                       TEXCOORD_0: Optional[Iterable[UvSpec]]=None,
                       TEXCOORD_1: Optional[Iterable[UvSpec]]=None,
                       COLOR_0: Optional[Iterable[ColorSpec]]=None,
-                      extras:  Optional[JsonObject]=None,
-                      extensions:  Optional[JsonObject]=None,
+                      extras:  Optional[ExtrasData]=None,
+                      extensions:  Optional[ExtensionsData]=None,
                       **attribs: AttributeDataIterable|None,
                     ) -> BPrimitive:
         ...
@@ -188,8 +188,8 @@ class BCamera(Element[gltf.Camera, '_CameraState'], Protocol):
     @abstractmethod
     def type(self) -> CameraType: ...
 
-    type_extras: JsonObject
-    type_extensions: JsonObject
+    type_extras: ExtrasData
+    type_extensions: ExtensionsData
 
 
 @runtime_checkable
@@ -224,8 +224,8 @@ class BOrthographicCamera(BCamera, Protocol):
                 ymag: float=1.0,
                 znear: float=0.1,
                 zfar: float=100.0,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
             ):
         super().__init__(
             name=name,
@@ -269,8 +269,8 @@ class BPerspectiveCamera(BCamera, Protocol):
                  znear: float=0.1,
                  zfar: float=100.0,
                  aspectRatio: float|None=None,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                 ):
         super().__init__(
             name=name,
@@ -309,8 +309,8 @@ class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope, P
                 /, *,
                 primitives: Optional[Iterable['BPrimitive']]=None,
                 weights: Optional[Iterable[float]]=None,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
             ) -> 'BMesh':
         '''
         Create a `BMesh` and add it to this `BNode`.
@@ -412,3 +412,15 @@ class BSkin(Element[gltf.Skin, '_SkinState'], Protocol):
     skeleton: BNode
     joints: list[BNode]
 
+class BAsset(Element[gltf.Asset, '_AssetState'], Protocol):
+    _scope_name = ScopeName.ASSET
+    generator: Optional[str] = None
+    version: str = '2.0'
+    minVersion: Optional[str] = None
+
+
+class BExtension(Element[JsonObject, '_ExtensionState'], Protocol):
+    '''
+    Extension for glTF.
+    '''
+    _scope_name = ScopeName.EXTENSION

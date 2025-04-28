@@ -2,18 +2,21 @@
 Definitions for GLTF primitives
 '''
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any, Optional, Self, cast, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn
+from gltf_builder.compiler import (
+    _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn,
+)
 from gltf_builder.core_types import (
-    IndexSize, JsonObject, NPTypes, Phase, PrimitiveMode, BufferViewTarget, ScopeName,
+    ExtensionsData, ExtrasData, IndexSize, NPTypes,
+    Phase, PrimitiveMode, BufferViewTarget, ScopeName,
 )
 from gltf_builder.attribute_types import (
-    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList, Point, PointSpec,
-     point,
+    BTYPE, AttributeData, AttributeDataIterable, AttributeDataList,
+    point, Point, PointSpec,
 )
 from gltf_builder.elements import (
     BAccessor, BPrimitive, BMesh, _Scope, Element,
@@ -50,8 +53,8 @@ class _Primitive(BPrimitive):
     def __init__(self,
                  mode: PrimitiveMode,
                  points: Iterable[Point] = (), /, *,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                  mesh: Optional[BMesh]=None,
                  **attribs: AttributeDataIterable|None,
             ):
@@ -76,8 +79,8 @@ class _Primitive(BPrimitive):
 
 
     def clone(self, name: str='', /,
-              extras: Optional[JsonObject]=None,
-              extensions: Optional[JsonObject]=None,
+              extras: Optional[ExtrasData]=None,
+              extensions: Optional[ExtensionsData]=None,
               **kwargs: Any,
             ) -> Self:
         '''
@@ -229,8 +232,8 @@ class _Primitive(BPrimitive):
 def primitive(
     mode: PrimitiveMode,
     points: Iterable[PointSpec] = (), /, *,
-    extras: Optional[JsonObject]=None,
-    extensions: Optional[JsonObject]=None,
+    extras: Optional[ExtrasData]=None,
+    extensions: Optional[ExtensionsData]=None,
     **attribs: AttributeDataIterable|None,
 ) -> _Primitive:
     '''

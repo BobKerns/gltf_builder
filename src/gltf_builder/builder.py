@@ -3,12 +3,10 @@ The initial object that collects the geometry info and compiles it into
 a glTF object.
 '''
 
-import sys
 from collections.abc import Iterable, Mapping
 from typing import Optional
 from pathlib import Path
 import re
-from warnings import warn
 
 import pygltflib as gltf
 
@@ -18,7 +16,7 @@ from gltf_builder.attribute_types import (
     color, point, tangent, uv, vector3,
 )
 from gltf_builder.core_types import (
-     ImageType, IndexSize, JsonObject,
+     ExtensionsData, ExtrasData, ImageType, IndexSize, JsonObject,
      NameMode, NamePolicy,
      ElementType, ComponentType, ScopeName, NameMode,
 )
@@ -48,6 +46,7 @@ DEFAULT_NAME_POLICY: NamePolicy = {
     ScopeName.NODE: NameMode.AUTO,
     ScopeName.MESH: NameMode.AUTO,
     ScopeName.PRIMITIVE: NameMode.AUTO,
+    ScopeName.ASSET: NameMode.MANUAL,
     ScopeName.ACCESSOR: NameMode.NONE,
     ScopeName.ACCESSOR_INDEX: NameMode.NONE,
     ScopeName.BUFFER: NameMode.NONE,
@@ -60,6 +59,10 @@ DEFAULT_NAME_POLICY: NamePolicy = {
     ScopeName.CAMERA: NameMode.AUTO,
     ScopeName.SKIN: NameMode.AUTO,
     ScopeName.SCENE: NameMode.AUTO,
+    ScopeName.ANIMATION: NameMode.AUTO,
+    ScopeName.ANIMATION_SAMPLER: NameMode.AUTO,
+    ScopeName.ANIMATION_CHANNEL: NameMode.AUTO,
+    ScopeName.EXTENSION: NameMode.MANUAL,
 }
 '''
 Default naming mode for each scope.
@@ -129,7 +132,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
     The main object that collects all the geometry info and compiles it into a glTF object.
     '''
     def __init__(self, /,
-                asset: gltf.Asset=BAsset(),
+                asset: Optional[BAsset]=None,
                 cameras: Iterable[BCamera]=(),
                 meshes: Iterable[BMesh]=(),
                 images: Iterable[BImage]=(),
@@ -149,7 +152,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 extensionsRequired: Optional[list[str]]=None,
         ):
         super().__init__(nodes=nodes)
-        
+
         name_policy = name_policy or {}
         self.name_policy = {
             scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
@@ -187,8 +190,8 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 name: str='',
                 primitives: Optional[Iterable[BPrimitive]]=None,
                 weights: Optional[Iterable[float]]=None,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
                 ):
         mesh = _Mesh(name,
                      primitives=primitives or (),
@@ -301,8 +304,8 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 /, *,
                 blob: Optional[bytes]=None,
                 uri: Optional[str|Path]=None,
-                extras: Optional[JsonObject]=None,
-                extensions: Optional[JsonObject]=None,
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
             ) -> BImage:
         '''
         Implementation of `BImage`.
@@ -322,8 +325,8 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                     rotation: Optional[QuaternionSpec]=None,
                     scale: Optional[Vector3Spec]=None,
                     matrix: Optional[Matrix4Spec]=None,
-                    extras: Optional[JsonObject]=None,
-                    extensions: Optional[JsonObject]=None,
+                    extras: Optional[ExtrasData]=None,
+                    extensions: Optional[ExtensionsData]=None,
                 ) -> 'BNode':
         node = super().instantiate(node_or_mesh,
                     name,

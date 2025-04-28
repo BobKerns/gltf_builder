@@ -7,9 +7,12 @@ from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _GLTF, _STATE,  _CompileState, _DoCompileReturn
+from gltf_builder.compiler import (
+    _GLTF, _STATE,  _CompileState, _DoCompileReturn,
+    ExtensionsData, ExtrasData,
+)
 from gltf_builder.core_types import (
-    JsonObject, Phase, ScopeName,
+    Phase, ScopeName,
 )
 from gltf_builder.protocols import _BufferViewKey
 from gltf_builder.elements import (
@@ -70,11 +73,10 @@ class _Buffer(BBuffer):
         return _BufferState
 
     def __init__(self,
-                 gbl: '_GlobalState',
                  name: str='',
                  /,
-                 extras: Optional[JsonObject]=None,
-                 extensions: Optional[JsonObject]=None,
+                 extras: Optional[ExtrasData]=None,
+                 extensions: Optional[ExtensionsData]=None,
                  is_accessor_scope: bool=False,
                  is_view_scope: bool=False,
                  ):
@@ -82,12 +84,6 @@ class _Buffer(BBuffer):
             name=name,
             extras=extras,
             extensions=extensions)
-        _Scope.__init__(self,
-                        gbl=gbl,
-                        buffer=self,
-                        is_accessor_scope=is_accessor_scope,
-                        is_view_scope=is_view_scope,
-                    )
 
     def _do_compile(self,
                     gbl: '_GlobalState',
@@ -139,4 +135,36 @@ class _Buffer(BBuffer):
             case _:
                 _compile_views()
 
+def buffer(name: str='',
+           /,
+           extras: Optional[ExtrasData]=None,
+           extensions: Optional[ExtensionsData]=None,
 
+
+           ) -> BBuffer:
+    '''
+    Create a new buffer.
+
+    Parameters
+    ----------
+    name : str, optional
+        Name of the buffer.
+    extras : dict, optional
+        Extra data to be stored in the buffer.
+    extensions : dict, optional
+        Extensions to be stored in the buffer.
+    is_accessor_scope : bool, optional
+        Whether the buffer is an accessor scope.
+    is_view_scope : bool, optional
+        Whether the buffer is a view scope.
+
+    Returns
+    -------
+    BBuffer
+        The created buffer.
+    '''
+    return _Buffer(
+        name,
+        extras=extras,
+        extensions=extensions,
+    )

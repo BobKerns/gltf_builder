@@ -15,7 +15,6 @@ from gltf_builder import (
 )
 
 
-
 @pytest.mark.parametrize('lower, upper, values, expected', [
     (0, 1, (), ()),
     (0, 1, (0,), (1.0,)),
@@ -41,7 +40,7 @@ def test_distribute_floats(lower, upper, values, expected):
                         )
     assert len(r) == len(values), "Wrong number of values"
     assert sum((v - lower) for v in (r or (upper,))) == approx(upper - lower), "total is wrong"
-    assert r == approx(expected)  
+    assert r == approx(expected)
 
 @pytest.mark.parametrize('lower, upper, values, expected', [
     (0, 255, (), ()),
