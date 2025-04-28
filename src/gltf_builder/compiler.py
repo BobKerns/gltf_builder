@@ -14,7 +14,7 @@ from pathlib import Path
 import pygltflib as gltf
 
 from gltf_builder.core_types import (
-    ExtensionsData, ExtrasData, JsonObject, Phase,
+    ExtensionData, ExtensionsData, ExtrasData, JsonObject, Phase,
     BufferViewTarget, ScopeName
 )
 from gltf_builder.utils import std_repr
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 
-_GLTF = TypeVar('_GLTF', bound=gltf.Property|JsonObject, covariant=True)
+_GLTF = TypeVar('_GLTF', bound=gltf.Property|ExtensionData, covariant=True)
 '''
 Type variable for glTF elements.
 This is used to indicate the type of the gltf element being compiled.

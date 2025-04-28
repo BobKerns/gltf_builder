@@ -11,7 +11,9 @@ import numpy as np
 
 IntScalar: TypeAlias = int|np.int8|np.int16|np.int32|np.uint8|np.uint16
 Scalar: TypeAlias = float|np.float32|IntScalar
-'''A scalar value: int, float, or numpy equivalent.'''
+'''
+A scalar value: int, float, or numpy equivalent.
+'''
 
 
 float01: TypeAlias = float|Literal[0,1]|np.float32
@@ -320,7 +322,9 @@ ExtrasData: TypeAlias = dict[str, JsonData]
 A dictionary of extra data to be stored with the object.
 '''
 
-ExtensionsData: TypeAlias = dict[str, JsonObject]
+ExtensionData: TypeAlias = JsonData
+
+ExtensionsData: TypeAlias = dict[str, ExtensionData]
 '''
 A dictionary of extensions to be stored with the object.
 '''

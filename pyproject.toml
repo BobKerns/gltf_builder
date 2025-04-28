@@ -24,6 +24,10 @@ dependencies = [
     "pygltflib>=1.16.3",
 ]
 
+[project.entry-points.'gltf_builder.extensions']
+
+GLTFB_example = "gltf_builder.extensions:ExamplePlugin"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

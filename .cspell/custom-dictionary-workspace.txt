@@ -24,6 +24,7 @@ DATAURI
 ffeecc
 frombuffer
 fromiter
+GLTFB
 ibytes
 idtype
 instancable

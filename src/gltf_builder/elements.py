@@ -15,7 +15,7 @@ import pygltflib as gltf
 
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
-    AlphaMode, CameraType, ComponentType,
+    AlphaMode, CameraType, ComponentType, ExtensionData,
     ExtensionsData, ExtrasData, ImageType, JsonObject,
     MagFilter, MinFilter, PrimitiveMode,
     BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from gltf_builder.assets import _AssetState
     from gltf_builder.buffers import _BufferState
     from gltf_builder.cameras import _CameraState
-    from gltf_builder.extensions import _ExtensionState
+    from gltf_builder.extensions import _ExtensionState, ExtensionPlugin
     from gltf_builder.images import _ImageState
     from gltf_builder.materials import _MaterialState
     from gltf_builder.meshes import _MeshState
@@ -419,8 +419,19 @@ class BAsset(Element[gltf.Asset, '_AssetState'], Protocol):
     minVersion: Optional[str] = None
 
 
-class BExtension(Element[JsonObject, '_ExtensionState'], Protocol):
+_EXT_PLUGIN = TypeVar('_EXT_PLUGIN', bound='ExtensionPlugin')
+
+_EXT_DATA = TypeVar('_EXT_DATA', bound=ExtensionData)
+
+class BExtension(Element[_EXT_DATA, _STATE], Protocol[_STATE, _EXT_PLUGIN, _EXT_DATA]):
     '''
     Extension for glTF.
     '''
     _scope_name = ScopeName.EXTENSION
+
+    plugin: _EXT_PLUGIN
+    data: _EXT_DATA
+    def __init__(self, plugin: _EXT_PLUGIN, data: _EXT_DATA):
+        super().__init__(plugin.name)
+        self.data = data
+        self.plugin = plugin
