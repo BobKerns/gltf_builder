@@ -4,10 +4,10 @@ Code to handle glTF extensions
 
 from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, entry_points, version
-from typing import Generic, Protocol, TypeAlias, TypeVar, TypedDict, runtime_checkable, TYPE_CHECKING
+from typing import Protocol, TypeVar, TypedDict, runtime_checkable, cast
+from warnings import warn
 
-from gltf_builder.accessors import Phase, cast
-from gltf_builder.attribute_types import Iterable
+from gltf_builder.accessors import Phase
 from gltf_builder.compiler import _CompileState, _Scope, _Collected, _DoCompileReturn
 from gltf_builder.core_types import(
     ExtensionData, JsonObject,
@@ -214,14 +214,13 @@ def load_extensions():
         if ext.name not in EXTENSION_PLUGINS:
             try:
                 plugin_class = ext.load()
-                module = plugin_class.__module__
-                if not module:
-                    raise ValueError(f'Extension plugin {ext.name} has no module')
                 plugin = plugin_class(ext.name, find_version(plugin_class))
             except Exception as e:
-                raise ValueError(f'Failed to load extension plugin {ext.name}') from e
+                warn(f'Failed to load extension plugin {ext.name}: {e}')
+                continue
             if not isinstance(plugin, ExtensionPlugin):
-                raise TypeError(f'Extension plugin {ext.name} is not an instance of ExtensionPlugin')
+                warn(f'Extension plugin {ext.name} is not an instance of ExtensionPlugin')
+                continue
             EXTENSION_PLUGINS[ext.name] = plugin
 
 class ExampleState(_ExtensionState):
