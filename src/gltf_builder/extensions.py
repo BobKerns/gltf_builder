@@ -211,19 +211,18 @@ def load_extensions():
 
     extensions = entry_points(group='gltf_builder.extensions')
     for ext in extensions:
-        if ext.name in EXTENSION_PLUGINS:
-            raise ValueError(f'Extension plugin {ext.name} already loaded')
-        try:
-            plugin_class = ext.load()
-            module = plugin_class.__module__
-            if not module:
-                raise ValueError(f'Extension plugin {ext.name} has no module')
-            plugin = plugin_class(ext.name, find_version(plugin_class))
-        except Exception as e:
-            raise ValueError(f'Failed to load extension plugin {ext.name}') from e
-        if not isinstance(plugin, ExtensionPlugin):
-            raise TypeError(f'Extension plugin {ext.name} is not an instance of ExtensionPlugin')
-        EXTENSION_PLUGINS[ext.name] = plugin
+        if ext.name not in EXTENSION_PLUGINS:
+            try:
+                plugin_class = ext.load()
+                module = plugin_class.__module__
+                if not module:
+                    raise ValueError(f'Extension plugin {ext.name} has no module')
+                plugin = plugin_class(ext.name, find_version(plugin_class))
+            except Exception as e:
+                raise ValueError(f'Failed to load extension plugin {ext.name}') from e
+            if not isinstance(plugin, ExtensionPlugin):
+                raise TypeError(f'Extension plugin {ext.name} is not an instance of ExtensionPlugin')
+            EXTENSION_PLUGINS[ext.name] = plugin
 
 class ExampleState(_ExtensionState):
     '''
