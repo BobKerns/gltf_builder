@@ -3,12 +3,12 @@ Builder representation of a glTF Buffer
 '''
 
 from collections.abc import Iterable
-from typing import Optional, TYPE_CHECKING, cast
+from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _Compilable,  _CompileState, _DoCompileReturn,
+    _GLTF, _STATE, _CompileState, _DoCompileReturn,
     ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import (
@@ -16,13 +16,12 @@ from gltf_builder.core_types import (
 )
 from gltf_builder.protocols import _BufferViewKey
 from gltf_builder.elements import (
-    BBuffer, BBufferView,
-    _Scope, Element,
+    BBuffer, BBufferView, Element,
 )
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
-class _BufferState(_CompileState[gltf.Buffer, _STATE]):
+class _BufferState(_CompileState[gltf.Buffer, _STATE, '_Buffer']):
     '''
     State for the compilation of a buffer.
     '''
@@ -58,7 +57,7 @@ class _BufferState(_CompileState[gltf.Buffer, _STATE]):
                  /,
                  ) -> None:
         self._bytearray = bytearray()
-        super().__init__(cast(_Compilable, buffer), name)
+        super().__init__(buffer, name)
         self._views = {}
 
 
@@ -86,14 +85,13 @@ class _Buffer(BBuffer):
             extensions=extensions)
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _BufferState,
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
         def _compile1(elt: Element[_GLTF, _STATE]):
-            return elt.compile(gbl, scope, phase)
+            return elt.compile(gbl, phase)
         def _compile_views():
             for view in state.views:
                 _compile1(view)
@@ -101,12 +99,12 @@ class _Buffer(BBuffer):
             case Phase.COLLECT:
                 gbl.views.add(*state.views)
                 return (
-                    view.compile(gbl, scope, Phase.COLLECT)
+                    view.compile(gbl, Phase.COLLECT)
                     for view in state.views
                 )
             case Phase.SIZES:
                 bytelen = sum(
-                    view.compile(gbl, scope, Phase.SIZES)
+                    view.compile(gbl, Phase.SIZES)
                     for view in state.views
                 )
                 state._bytearray = state._bytearray.zfill(bytelen)
@@ -114,7 +112,7 @@ class _Buffer(BBuffer):
             case Phase.OFFSETS:
                 offset = 0
                 for view in state.views:
-                    vstate = gbl.state(cast(_Compilable, view))
+                    vstate = gbl.state(view)
                     vstate.byteOffset = offset
                     _compile1(view)
                     offset += len(vstate.memory)

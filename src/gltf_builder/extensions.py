@@ -1,41 +1,89 @@
 '''
-Code to handle glTF extensions
+This module provides the infrastructure for handling glTF extension in the gltf_builder package.
+
+It defines the base classes, protocols, and mechanisms for registering, loading, and compiling glTF extensions.
+Key components include:
+
+- `_ExtensionState`: Base class for extension compilation state.
+- `Extension`: Base implementation for glTF extension logic, including parsing, collecting, and compiling extension data.
+- `ExtensionPlugin`: Protocol for extension plugins, specifying the required interface for plugin discovery and integration.
+- `load_extensions()`: Function to discover and load extension plugins via Python entry points.
+- `extension()`: Factory function to create extension objects from plugin metadata.
+
+Example classes (`ExampleState`, `ExampleJson`, `ExampleExtension`, `ExamplePlugin`)
+demonstrating how to implement a custom extension and plugin. may be found in the
+`gltf_builder.plugins.example` module.
+
+This module enables extensibility of the gltf_builder system by allowing third-party extensions to be integrated via a standardized plugin interface, supporting custom parsing, validation, and compilation phases for glTF extensions.
+
 '''
 
-from contextlib import suppress
-from importlib.metadata import PackageNotFoundError, entry_points, version
-from typing import Protocol, TypeVar, TypedDict, runtime_checkable, cast
-from warnings import warn
+from typing import Generic, Optional, TypeVar, cast
 
 from gltf_builder.accessors import Phase
-from gltf_builder.compiler import _CompileState, _Scope, _Collected, _DoCompileReturn
+from gltf_builder.compiler import _CompileState, _Collected, _DoCompileReturn
 from gltf_builder.core_types import(
-    ExtensionData, JsonObject,
+    ExtensionData, JsonData, ScopeName,
 )
-from gltf_builder.global_state import _GlobalState
-from gltf_builder.elements import (
-    _EXT_DATA, _EXT_PLUGIN, BExtension,
-)
+from gltf_builder.elements import Element
+from gltf_builder.global_state import GlobalState
+from gltf_builder.plugin_loader import Plugin, load_plugins
 
 
-_EXT = TypeVar('_EXT', bound='BExtension', covariant=True)
+_EXT_KEY = TypeVar('_EXT_KEY', bound=str)
+'''
+Type variable for the key of the extension.
+'''
+
+_EXT = TypeVar('_EXT', bound='Extension', covariant=True)
+'''
+Type variable for the class implementing the extension.
+'''
+
+_EXT_PLUGIN = TypeVar('_EXT_PLUGIN', bound='ExtensionPlugin')
+'''
+Type variable for the class implementing the extension plugin.
+'''
+
+_EXT_DATA = TypeVar('_EXT_DATA', bound=ExtensionData, covariant=True)
+'''
+Type variable for the JSON data representation of the extension.
+'''
 
 
-class _ExtensionState(_CompileState[JsonObject, '_ExtensionState']):
-    '''
-    State for the compilation of an extension.
-    '''
-    pass
-
-_EXT_STATE = TypeVar('_EXT_STATE', bound=_ExtensionState)
+_EXT_STATE = TypeVar('_EXT_STATE', bound='ExtensionState')
 '''
 Type variable for the class implementing the state for the extension.
 '''
 
 
-class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
+class ExtensionState(Generic[_EXT, _EXT_DATA], _CompileState[_EXT_DATA, 'ExtensionState', 'Extension']): # type: ignore
     '''
-    Implementation class for `BExtension`.
+    State for the compilation of an extension.
+    '''
+
+    @property
+    def extension(self) -> _EXT:
+        '''
+        Return the extension object that this state is for.
+        '''
+        return cast(_EXT, self.element)
+
+
+    @property
+    def json_data(self) -> _EXT_DATA|None:
+        '''
+        Return the JSON data of the extension.
+        This is used by the compiler to create the extension object.
+
+        For user-supplied extensions, this may be `None`.
+        '''
+        return cast(_EXT_DATA|None, self.element.data)
+
+
+class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, _EXT_STATE]):
+    '''
+    Implementation class for `Extension`.
     '''
 
     @classmethod
@@ -46,7 +94,20 @@ class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
         '''
         ...
 
-    def parse(self, state: _EXT_STATE):
+    _scope_name = ScopeName.EXTENSION
+
+    plugin: _EXT_PLUGIN
+    __data: Optional[_EXT_DATA]
+    @property
+    def data(self) -> _EXT_DATA|None:
+        return self.__data
+
+    def __init__(self, plugin: _EXT_PLUGIN, data: Optional[_EXT_DATA]=None):
+        super().__init__(plugin.name)
+        self.__data = data
+        self.plugin = plugin
+
+    def parse(self, data: JsonData):
         '''
         Load the extension state from the original JSON data.
 
@@ -54,14 +115,14 @@ class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
         '''
         pass
 
-    def unparse(self, state: _EXT_STATE) -> _EXT_DATA:
+    def unparse(self, state: _EXT_STATE, /) -> Optional[_EXT_DATA]:
         '''
         Unparse the extension plugin to its metadata.
         This is used by the compiler to create the JSON data for the extension.
         '''
         return self.data
 
-    def collect(self, gbl: _GlobalState, scope: _Scope, state: _EXT_STATE) -> list[_Collected]:
+    def collect(self, gbl: GlobalState, state: _EXT_STATE) -> list[_Collected]:
         '''
         Collect any additional elements that the extension needs to add
         to the global state.
@@ -78,8 +139,7 @@ class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
         return []
 
     def _do_compile(self,
-                    gbl: _GlobalState,
-                    scope: _Scope,
+                    gbl: GlobalState,
                     phase: Phase,
                     state: _EXT_STATE,
     ) -> _DoCompileReturn[_EXT_DATA]:
@@ -98,7 +158,7 @@ class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
                 # If it needs to keep track of the elements it has added,
                 # it should subclass _ExtensionState and add the elements
                 # to the state.
-                return self.collect(gbl, scope, state)
+                return self.collect(gbl, state)
             case Phase.SIZES|Phase.OFFSETS:
                 # These are used to calculate the size and location of binary
                 # data in the glTF file. If the extension does not need to
@@ -116,35 +176,34 @@ class Extension(BExtension[_EXT_STATE, _EXT_PLUGIN, _EXT_DATA]):
             case _: pass
 
 
-@runtime_checkable
-class ExtensionPlugin(Protocol[_EXT]):
+class ExtensionPlugin(Generic[_EXT], Plugin):
     '''
     Protocol for extension plugins. This is implemented
     by the extension plugins. Plugin processing happens
     in three main phases:
     1. `parse`: The plugin is given the JSON data of the extension
-       and can parse it to create a `BExtension` object.
-    2. `compile`: The `BExtension` object is invoked with each
+       and can parse it to create a `Extension` object.
+    2. `compile`: The `Extension` object is invoked with each
         phase of the compilation process. `_do_compile()` method
         is called with the global state, scope, phase, and state.
     3. `build`: This occurs in the `BUILD` phase of the compilation process.
        The plugin should return the JSON data for the extension.
 
     In most cases, you can implement these phases by overriding the
-    `parse`, `compile`, and `build` methods of the `BExtension` class.
+    `parse`, `compile`, and `build` methods of the `Extension` class.
 
-    NOTE: The `BExtension` instance should be treated as immutable.
-    Any state belongs in the `_ExtensionState` object, which is passed
+    NOTE: The `Extension` instance should be treated as immutable.
+    Any state belongs in the `ExtensionState` object, which is passed
     to the `compile` method. The plugin should subclass this, and
     return the class in the `state_type` method.
 
-    The simplest plugin just return the original JSON data
+    The simplest plugin just returns the original JSON data
     in the `build` phase. If it does nothing else, it indicates that
     the extension is a valid extension that will be interpreted by the
     glTF viewer. Realistically, it should at least perform validation
     of the JSON data in the `parse` phase.
 
-    The caller can create the `BExtension` object programmatically
+    The caller can create the `Extension` object programmatically
     and attach it to the initial data.  This replaces the `parse` phase,
     and the plugin is only invoked in the `compile` and `build` phases.
 
@@ -155,37 +214,16 @@ class ExtensionPlugin(Protocol[_EXT]):
     that it has added to the global state. These elements will be
     '''
 
-    name: str
-    version: str
-
     @classmethod
-    def extension_class(cls) -> type[Extension]:
+    def extension_class(cls) -> type[_EXT]:
         '''
         Return the class implementing the extension.
         This is used by the compiler to create the extension object.
         '''
-        return Extension
+        ...
 
-    def __init__(self, name: str, version: str):
-        '''
-        Initialize the extension plugin with its name and version.
-        The name is used to identify extension in the glTF file.
-        The version is used to indicate the version of the extension.
 
-        These are provided by the loading mechanism from the plugin
-        metadata. The plugin should not change them.
-
-        Parameters
-        ----------
-        name : str
-            Name of the extension.
-        version : str
-            Version of the extension.
-        '''
-        self.name = name
-        self.version = version
-
-EXTENSION_PLUGINS: dict[str, ExtensionPlugin] = {}
+_EXTENSION_PLUGINS: dict[str, ExtensionPlugin] = {}
 '''
 Dictionary of extension plugins, keyed by the name of the extension.
 '''
@@ -194,91 +232,16 @@ def load_extensions():
     '''
     Load the extensions plugins from their metadata.
     '''
-    def find_version(cls: type) -> str:
-        '''
-        Find the package that contains the extension plugin.
-        This is used to access the plugin metadata.
-        '''
-        name = plugin_class.__module__
-        if not name:
-            return '0.0.0'
-        sep = '.'
-        while sep:
-            with suppress(PackageNotFoundError):
-                return version(name)
-            name, sep, _ = name.rpartition('.')
-        return '0.0.0'
+    for plugin in load_plugins('gltf_builder.extensions'):
+        _EXTENSION_PLUGINS[plugin.name] = cast(ExtensionPlugin, plugin)
 
-    extensions = entry_points(group='gltf_builder.extensions')
-    for ext in extensions:
-        if ext.name not in EXTENSION_PLUGINS:
-            try:
-                plugin_class = ext.load()
-                plugin = plugin_class(ext.name, find_version(plugin_class))
-            except Exception as e:
-                warn(f'Failed to load extension plugin {ext.name}: {e}')
-                continue
-            if not isinstance(plugin, ExtensionPlugin):
-                warn(f'Extension plugin {ext.name} is not an instance of ExtensionPlugin')
-                continue
-            EXTENSION_PLUGINS[ext.name] = plugin
-
-
-def extension(name: str, data: ExtensionData) -> BExtension:
+def extension(name: str, data: ExtensionData) -> Extension:
     '''
     Create an extension object from the name and data.
     This is used by the compiler to create the extension object.
     '''
-    if name not in EXTENSION_PLUGINS:
+    if name not in _EXTENSION_PLUGINS:
         name = 'UNKNOWN'
-    plugin = EXTENSION_PLUGINS[name]
+    plugin = _EXTENSION_PLUGINS[name]
     ext_class = plugin.extension_class()
-    return ext_class(name, data)
-
-
-class ExampleState(_ExtensionState):
-    '''
-    Example extension state.
-    '''
-
-    valid: bool=False
-
-class ExampleJson(TypedDict, total=True):
-    valid: bool
-
-
-class ExampleExtension(Extension[ExampleState, 'ExamplePlugin', ExtensionData]):
-    '''
-    Example extension.
-    '''
-
-    def parse(self, state: ExampleState) -> None:
-        '''
-        Parse the JSON data of the extension and return a `BExtension` object.
-        '''
-        # Can't avoid the cast in 3.11's generics.
-        data = cast(ExampleJson, self.data)
-        state.valid = bool(data.get('valid', False))
-
-
-class ExamplePlugin(ExtensionPlugin[ExampleExtension]):
-    '''
-    Example extension plugin. This is identified in the `project.toml`
-    file as an entry-point in the `gltf_builder.extensions` group, e.g.:
-    .. code-block:: ini
-
-        [project.entry-points.'gltf_builder.extensions']
-        GLTFB_example = "gltf_builder.extensions:ExamplePlugin"
-
-    - GLTFB_example is the name of the extension as it appears in the glTF file.
-    - gltf_builder.extensions is the module that contains the plugin.
-    - ExamplePlugin is the class that implements the plugin.
-    '''
-    @classmethod
-    def extension_class(cls) -> type[ExampleExtension]:
-        '''
-        Return the class implementing the extension.
-        This is used by the compiler to create the extension object.
-        '''
-        return ExampleExtension
-
+    return ext_class(plugin, data)

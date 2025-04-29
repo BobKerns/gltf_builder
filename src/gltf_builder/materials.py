@@ -4,17 +4,16 @@ Implementation of the Material class and its related classes for glTF Builder.
 
 from typing import Optional, cast, TYPE_CHECKING
 
-from numpy.random import f
 import pygltflib as gltf
 
-from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn, _ReturnCollect, ExtensionsData, ExtrasData
-from gltf_builder.core_types import AlphaMode, JsonObject, Phase
+from gltf_builder.compiler import _CompileState, _DoCompileReturn, _ReturnCollect, ExtensionsData, ExtrasData
+from gltf_builder.core_types import AlphaMode, Phase
 from gltf_builder.elements import BMaterial, BTexture
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
-class _MaterialState(_CompileState[gltf.Material, '_MaterialState']):
+class _MaterialState(_CompileState[gltf.Material, '_MaterialState', '_Material']):
     '''
     State for the compilation of a material.
     '''
@@ -66,8 +65,7 @@ class _Material(BMaterial):
         self.doubleSided = doubleSided
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _MaterialState) -> _DoCompileReturn[gltf.Material]:
         '''
@@ -86,7 +84,7 @@ class _Material(BMaterial):
                     if t
                 ]
                 for t in textures:
-                    t.compile(gbl, scope, phase)
+                    t.compile(gbl, phase)
                 return cast(_ReturnCollect, textures)
             case Phase.BUILD:
                 def texture_idx(t: BTexture|None) -> int|None:

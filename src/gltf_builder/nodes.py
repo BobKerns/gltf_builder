@@ -17,7 +17,6 @@ from gltf_builder.attribute_types import (
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
 from gltf_builder.elements import (
     BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
-    _Scope,
 )
 from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
@@ -27,7 +26,7 @@ from gltf_builder.protocols import (
 )
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
 class _BNodeContainer(_BNodeContainerProtocol):
@@ -150,7 +149,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         return len(self.children)
 
 
-class _NodeState(_CompileState[gltf.Node, '_NodeState']):
+class _NodeState(_CompileState[gltf.Node, '_NodeState', '_Node']):
     '''
     State for the compilation of a node.
     '''
@@ -213,30 +212,29 @@ class _Node(_BNodeContainer, BNode):
         )
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
-                    state: _CompileState[gltf.Node, '_NodeState'],
+                    state: _NodeState,
                     /):
         match phase:
             case Phase.COLLECT:
                 gbl.nodes.add(self)
                 return (
-                    c.compile(gbl, scope, phase)
+                    c.compile(gbl, phase)
                     for c in (self.mesh, self.camera, *self.children)
                     if c is not None
                 )
             case Phase.SIZES:
                 size = sum(
-                    n.compile(gbl, scope, phase)
+                    n.compile(gbl, phase)
                     for n in self.children
                 )
                 if self.mesh is not None:
-                    size += self.mesh.compile(gbl, scope, phase)
+                    size += self.mesh.compile(gbl, phase)
                 return size
             case Phase.BUILD:
                 if self.mesh is not None:
-                    self.mesh.compile(gbl, scope, phase)
+                    self.mesh.compile(gbl, phase)
                 def idx(c: Element[_GLTF, _STATE]) -> int:
                     return gbl.idx(c)
                 mesh_idx = idx(self.mesh) if self.mesh else None
@@ -253,9 +251,9 @@ class _Node(_BNodeContainer, BNode):
                 )
             case _:
                 if self.mesh is not None:
-                    self.mesh.compile(gbl, scope, phase)
+                    self.mesh.compile(gbl, phase)
                 for child in self.children:
-                    child.compile(gbl, scope, phase)
+                    child.compile(gbl, phase)
 
 
 

@@ -2,7 +2,7 @@
 Functions for creating cameras in glTF format.
 '''
 
-from typing import Any, Literal, Optional, overload
+from typing import Any, Generic, Literal, Optional, TypeVar, overload
 
 import pygltflib as gltf
 
@@ -10,10 +10,11 @@ from gltf_builder.core_types import CameraType, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
 from gltf_builder.protocols import _GlobalBinary
 from gltf_builder.utils import std_repr
-from gltf_builder.compiler import _CompileState, _Scope, ExtensionsData, ExtrasData
+from gltf_builder.compiler import _CompileState, ExtensionsData, ExtrasData
 
+_CAMERA = TypeVar('_CAMERA', bound='_Camera')
 
-class _CameraState(_CompileState[gltf.Camera, '_CameraState']):
+class _CameraState(Generic[_CAMERA], _CompileState[gltf.Camera, '_CameraState', _CAMERA]):
     '''
     State for the compilation of a camera.
     '''
@@ -75,9 +76,8 @@ class _PerspectiveCamera(_Camera, BPerspectiveCamera, BCamera):
 
     def _do_compile(self,
                     builder: _GlobalBinary,
-                    scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Camera, _CameraState],
+                    state: _CompileState[gltf.Camera, _CameraState, '_PerspectiveCamera'],
                     /
                 ):
         match phase:
@@ -141,9 +141,8 @@ class _OrthographicCamera(_Camera, BOrthographicCamera):
 
     def _do_compile(self,
                     builder: _GlobalBinary,
-                    scope: _Scope,
                     phase: Phase,
-                    state: _CompileState[gltf.Camera, _CameraState],
+                    state: _CompileState[gltf.Camera, _CameraState, '_OrthographicCamera'],
                     ):
         match phase:
             case Phase.BUILD:

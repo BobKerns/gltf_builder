@@ -3,43 +3,56 @@ An example extension plugin.
 '''
 
 
-from typing import TypedDict, cast
-from gltf_builder.core_types import ExtensionData
-from gltf_builder.extensions import Extension, _ExtensionState, ExtensionPlugin
+from gltf_builder.core_types import ExtensionData, JsonData
+from gltf_builder.extensions import Extension, ExtensionState, ExtensionPlugin
 
 
-class ExampleState(_ExtensionState):
+class ExampleState(ExtensionState['ExampleExtension', ExtensionData]):
     '''
     Example extension state.
     '''
-
-    valid: bool=False
-
-class ExampleJson(TypedDict, total=True):
-    '''
-    This is the JSON schema for the extension.
-    It is used to parse the extension data.
-    '''
-    valid: bool
+    pass
 
 
-class ExampleExtension(Extension[ExampleState, 'ExamplePlugin', ExtensionData]):
+class ExampleExtension(Extension[ExtensionData, ExampleState, 'ExamplePlugin']):
     '''
     Example extension.
     '''
+    @classmethod
+    def state_type(cls) -> type[ExampleState]:
+        '''
+        Return the type of the state for the extension.
+        This is used by the compiler to create the state for the extension.
 
-    def parse(self, state: ExampleState) -> None:
+        It must be a subclass of `ExtensionState`.
         '''
-        Parse the JSON data of the extension and return a `BExtension` object.
+        return ExampleState
+
+
+    valid: bool=False
+    def parse(self, data: JsonData) -> None:
         '''
-        # Can't avoid the cast in 3.11's generics.
-        data = cast(ExampleJson, self.data)
-        state.valid = bool(data.get('valid', False))
+        Parse the JSON data of the extension and initialize this object.
+        '''
+        if not isinstance(data, dict):
+            raise TypeError(f'Invalid data for extension {self.name}: {data}')
+        self.valid = bool(data.get('valid', False))
+
+    def unparse(self, state: ExtensionState, /) -> ExtensionData:
+        '''
+        Unparse the extension plugin to its metadata.
+        This is used by the compiler to create the JSON data for the extension.
+        '''
+        return {
+            'valid': self.valid,
+        }
 
 
 class ExamplePlugin(ExtensionPlugin[ExampleExtension]):
     '''
-    Example extension plugin. This is identified in the `project.toml`
+    Example extension plugin.
+
+    This is identified in the `project.toml`
     file as an entry-point in the `gltf_builder.extensions` group, e.g.:
     .. code-block:: ini
 

@@ -9,17 +9,17 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 
-from gltf_builder.compiler import _Scope, _DoCompileReturn, _CompileState
+from gltf_builder.compiler import _DoCompileReturn, _CompileState
 from gltf_builder.core_types import (
-    BufferViewTarget, ExtensionsData, ExtrasData, ImageType, JsonObject, Phase, ScopeName
+    BufferViewTarget, ExtensionsData, ExtrasData, ImageType, Phase, ScopeName
 )
 from gltf_builder.elements import BBufferView, BImage
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
-class _ImageState(_CompileState[gltf.Image, '_ImageState']):
+class _ImageState(_CompileState[gltf.Image, '_ImageState', '_Image']):
     '''
     State for the compilation of an image.
     '''
@@ -79,8 +79,7 @@ class _Image(BImage):
         self.imageType = imageType
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _ImageState,
                     /) -> _DoCompileReturn[gltf.Image]:
@@ -89,11 +88,11 @@ class _Image(BImage):
                 gbl.images.add(self)
                 if self.blob is not None:
                     name=gbl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
-                    state.view = scope._get_view(gbl.buffer,
+                    state.view = gbl._get_view(gbl.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,
                     )
-                    return [state.view.compile(gbl, scope, phase,)]
+                    return [state.view.compile(gbl, phase,)]
             case Phase.SIZES:
                 return len(self.blob) if self.blob is not None else 0
             case Phase.OFFSETS:
@@ -110,7 +109,7 @@ class _Image(BImage):
                     assert memory is not None
                     assert blob is not None
                     memory[:] = blob
-                    self.view.compile(gbl, scope, Phase.BUILD)
+                    self.view.compile(gbl, Phase.BUILD)
                 img = gltf.Image(
                         name=self.name,
                         #pygltflib is sloppy about types

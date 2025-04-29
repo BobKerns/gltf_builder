@@ -21,8 +21,11 @@ from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey
-    from gltf_builder.elements import BBufferView, BBuffer, BExtension
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.elements import (
+        Element, BBuffer, BBufferView,
+    )
+    from gltf_builder.extensions import Extension
+    from gltf_builder.global_state import GlobalState
 
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
@@ -46,7 +49,7 @@ _ReturnSizes: TypeAlias = int|None
 _ReturnOffsets: TypeAlias = int|None
 _ReturnBuild: TypeAlias = _GLTF|None
 _ReturnView: TypeAlias = None
-_ReturnExtensions: TypeAlias = set[str]|None
+_ReturnExtensions: TypeAlias = set[Extension]|None
 _DoCompileReturn: TypeAlias = (
     _ReturnCollect|
     _ReturnSizes|
@@ -122,18 +125,18 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
             return False
         return bool(self._len)
 
+_ELEMENT = TypeVar('_ELEMENT', bound='Element')
 
-
-class _CompileState(Generic[_GLTF, _STATE], # type: ignore[misc]
+class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], # type: ignore
                     _BaseCompileState[_GLTF, '_CompileState[_GLTF, _STATE]']):
     '''
     State for compiling an element.
     '''
-    element: '_Compilable[_GLTF, _CompileState[_GLTF, _STATE]]' # type: ignore[misc]
-    extension_objects: list['BExtension']
+    element: _ELEMENT
+    extension_objects: set['Extension']
 
     def __init__(self,
-                 element: '_Compilable[_GLTF, _CompileState[_GLTF, _STATE]]',
+                 element: _ELEMENT,
                  name: str,
                 byteOffset: int|None=0,
                 ) -> None:
@@ -141,8 +144,8 @@ class _CompileState(Generic[_GLTF, _STATE], # type: ignore[misc]
             name=name,
             byteOffset=byteOffset,
         )
-        self.element = cast(_Compilable, element)
-        self.extension_objects = list(element.extension_objects)
+        self.element = element
+        self.extension_objects = set(element.extension_objects)
 
     @property
     def phase(self) -> Phase|None:
@@ -160,14 +163,15 @@ class _CompileState(Generic[_GLTF, _STATE], # type: ignore[misc]
             'phase',
         ))
 
-class _Compilable(Generic[_GLTF, _STATE], Protocol):
+
+class _Compilable(Protocol[_GLTF, _STATE]): # type: ignore[misc]
     _scope_name: ScopeName
 
     extensions: ExtensionsData
     '''
     The JSON extension data supplied for the element.
     '''
-    extension_objects: list['BExtension']
+    extension_objects: set['Extension']
     '''
     A list of supplied extension instances to be compiled
     into this element.
@@ -190,12 +194,12 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
                  name: str='', /,
                  extras: Optional[ExtrasData]=None,
                  extensions: Optional[ExtensionsData]=None,
-                 extension_objects: Optional[Iterable['BExtension']]=None,
+                 extension_objects: Optional[Iterable['Extension']]=None,
                 ):
         self.extensions = dict(extensions) if extensions else {}
         self.extras = dict(extras) if extras else {}
         self.name = name
-        self.extension_objects = list(extension_objects or ())
+        self.extension_objects = set(extension_objects or ())
 
     def _clone_attributes(self) -> dict[str, Any]:
         '''
@@ -224,36 +228,31 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
 
     @overload
     def compile(self,
-                gbl: '_GlobalState',
-                scope: '_Scope',
+                gbl: 'GlobalState',
                 phase: Literal[Phase.COLLECT],
                 /
                 ) -> _Collected: ...
     @overload
     def compile(self,
-                gbl: '_GlobalState',
-                scope: '_Scope',
+                gbl: 'GlobalState',
                 phase: Literal[Phase.SIZES],
                 /
             ) -> int: ...
     @overload
     def compile(self,
-                gbl: '_GlobalState',
-                scope: '_Scope',
+                gbl: 'GlobalState',
                 phase: Literal[Phase.OFFSETS],
                 /
             ) -> int: ...
     @overload
     def compile(self,
-                gbl: '_GlobalState',
-                scope: '_Scope',
+                gbl: 'GlobalState',
                 phase: Literal[Phase.BUILD],
                 /
                 ) -> _GLTF: ...
     @overload
     def compile(self,
-                gbl: '_GlobalState',
-                scope: '_Scope',
+                gbl: 'GlobalState',
                 phase: Literal[
                         Phase.VIEWS,
                         Phase.ENUMERATE,
@@ -266,12 +265,11 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
                 /
             ) -> None: ...
     def compile(self,
-                gbl: '_GlobalState',
-                scope: '_Scope',
+                gbl: 'GlobalState',
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        state = gbl.state(cast(_Compilable, self))
+        state = gbl.state(cast(Element[_GLTF, _STATE], self))
         if phase in state.phases:
             match phase:
                 case Phase.COLLECT:
@@ -288,20 +286,21 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
             LOG.debug('Compiling %s in phase %s', self, phase)
 
             def _do_compile():
-                return self._do_compile(gbl, scope, phase, state)
+                return self._do_compile(gbl, phase, state)
             state.phases.append(phase)
             match phase:
                 case Phase.COLLECT:
-                    def e_collect(ext: 'BExtension') -> _Collected:
-                        return ext.compile(gbl, scope, Phase.COLLECT)
+                    def e_collect(ext: 'Extension'):
+                        return ext.compile(gbl, Phase.COLLECT)
 
-                    ext_added = {
-                        cast(BExtension, e)
-                        for ext in state.extension_objects
+                    gbl.extension_objects.update(
+                        gbl.state(cast(Extension, e))
+                        for group in (self.extension_objects,
+                                      state.extension_objects)
+                        for ext in group
                         for e in e_collect(ext)
                         if e is not None
-                    } | set(self.extension_objects)
-                    gbl.extension_objects |= ext_added
+                    )
                     state.name = gbl._gen_name(self)
                     items = cast(_ReturnCollect, (_do_compile() or ()))
                     return (self, tuple(items or ()),)
@@ -336,8 +335,7 @@ class _Compilable(Generic[_GLTF, _STATE], Protocol):
 
     @abstractmethod
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: '_Scope',
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _STATE,
                     /
@@ -363,13 +361,13 @@ class _Scope(Protocol):
     def target_buffer(self) -> 'BBuffer':
         return self.__target_buffer
 
-    __global: '_GlobalState'
+    __global: 'GlobalState'
     @property
-    def gbl(self) -> '_GlobalState':
+    def gbl(self) -> 'GlobalState':
         return self.__global
 
     def __init__(self,
-                gbl: '_GlobalState',
+                gbl: 'GlobalState',
                 buffer: 'BBuffer',
                 is_accessor_scope: bool=False,
                 is_view_scope: bool=False,

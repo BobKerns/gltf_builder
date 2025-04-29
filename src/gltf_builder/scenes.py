@@ -8,16 +8,16 @@ from typing import Any, Optional, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _Scope, _CompileState, ExtensionsData, ExtrasData,
+    _CompileState, ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import Phase
 from gltf_builder.elements import BNode, BScene
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
-class _SceneState(_CompileState[gltf.Scene, '_SceneState']):
+class _SceneState(_CompileState[gltf.Scene, '_SceneState', '_Scene']):
     '''
     State for the compilation of a scene.
     '''
@@ -51,16 +51,15 @@ class _Scene(BScene):
         )
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
-                    state: _CompileState[gltf.Scene, _SceneState],
+                    state:_SceneState,
                     /):
         match phase:
             case Phase.COLLECT:
                 for n in self.nodes:
                     gbl.nodes.add(n)
-                return [n.compile(gbl, scope, phase) for n in self.nodes]
+                return [n.compile(gbl, phase) for n in self.nodes]
             case Phase.BUILD:
                 return gltf.Scene(
                     nodes=[gbl.idx(n) for n in self.nodes],
@@ -69,7 +68,7 @@ class _Scene(BScene):
                 )
             case _:
                 for n in self.nodes:
-                    n.compile(gbl, scope, phase)
+                    n.compile(gbl, phase)
 
     def __repr__(self):
         return std_repr(self, (

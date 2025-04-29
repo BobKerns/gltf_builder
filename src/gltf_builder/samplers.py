@@ -6,15 +6,15 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _Scope, _CompileState
+from gltf_builder.compiler import _CompileState
 from gltf_builder.core_types import MagFilter, MinFilter, Phase, WrapMode
 from gltf_builder.elements import BSampler
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
-class _SamplerState(_CompileState[gltf.Sampler, '_SamplerState']):
+class _SamplerState(_CompileState[gltf.Sampler, '_SamplerState', '_Sampler']):
     '''
     State for the compilation of a sampler.
     '''
@@ -56,10 +56,9 @@ class _Sampler(BSampler):
         )
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
-                    state: _CompileState[gltf.Sampler, _SamplerState],
+                    state: _SamplerState,
                     /):
         match phase:
             case Phase.BUILD:

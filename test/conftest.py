@@ -19,6 +19,7 @@ from gltf_builder import Builder
 from gltf_builder.compiler import ExtensionsData, ExtrasData
 from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy
 from gltf_builder.elements import GLTF_LOG
+from gltf_builder.extensions import load_extensions, _EXTENSION_PLUGINS
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -389,3 +390,24 @@ def validate_gltf(file_path: Path,
 
 TEST_EXTRAS: ExtrasData={"EXTRA": "DATA"}
 TEST_EXTENSIONS: ExtensionsData={"TEST_extension": {"EXTRA": "DATA"}}
+
+@pytest.fixture
+def plugins():
+    '''
+    Clears, loads, and returns a map of available extension plugins.
+    It then clears them again after the test.
+    '''
+    _EXTENSION_PLUGINS.clear()
+    load_extensions()
+    yield _EXTENSION_PLUGINS
+    _EXTENSION_PLUGINS.clear()
+
+
+@pytest.fixture
+def no_plugins():
+    '''
+    Clears the extension plugins.
+    '''
+    _EXTENSION_PLUGINS.clear()
+    yield _EXTENSION_PLUGINS
+    _EXTENSION_PLUGINS.clear()

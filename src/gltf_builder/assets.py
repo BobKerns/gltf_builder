@@ -11,8 +11,8 @@ from gltf_builder.compiler import _CompileState, Phase
 from gltf_builder.core_types import ExtensionsData, ExtrasData
 from gltf_builder.elements import BAsset
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
-    from gltf_builder.protocols import _Scope
+    from gltf_builder.global_state import GlobalState
+
 
 __version__  = version('gltf-builder')
 
@@ -22,7 +22,7 @@ The default value for the `generator` field in the `Asset`.
 '''
 
 
-class _AssetState(_CompileState[gltf.Asset, '_AssetState']):
+class _AssetState(_CompileState[gltf.Asset, '_AssetState', '_Asset']):
     '''
     State for the compilation of an asset.
     '''
@@ -66,8 +66,7 @@ class _Asset(BAsset):
         self.minVersion = minVersion
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: '_Scope',
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _AssetState,
                     /):

@@ -2,9 +2,9 @@
 global compilation state
 '''
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 import logging
-from typing import Optional, TYPE_CHECKING, cast
+from typing import Optional, TYPE_CHECKING, Self, cast
 from itertools import count
 from datetime import datetime
 import sys
@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
     _GLTF, _STATE, _Compilable, _CompileState,
-    _Collected,
+    _Collected, Extension,
 )
 from gltf_builder.core_types import (
     BufferViewTarget, ComponentType, ElementType, IndexSize, JsonObject,
@@ -37,7 +37,9 @@ if TYPE_CHECKING:
 
 LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 
-class _GlobalState(_BNodeContainer, _GlobalBinary):
+_imported: bool = False
+
+class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'GlobalState']):
     _scope_name: ScopeName = ScopeName.BUILDER
 
     _id_counters: dict[str, count]
@@ -50,18 +52,22 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         return self.__builder
 
 
-    def state(self, elt: _Compilable[_GLTF, _STATE]) -> _STATE:
+    def state(self, elt: Element[_GLTF, _STATE]) -> _STATE:
         '''
         Get the state for the given element.
         '''
-
+        global ExtensionState, _imported
+        if not _imported:
+            from gltf_builder.extensions import ExtensionState
+            self.__imported = True
         _key = id(elt)
         state = cast(_STATE, self._states.get(_key, None))
         if state is None:
             state_type = elt.state_type()
-            state = state_type(cast(_Compilable, elt), self._gen_name(elt))
+            state = state_type(elt, self._gen_name(elt))
+            if isinstance(state, ExtensionState):
+                self.extension_objects.add(state.extension)
             self._states[_key] = state
-            state.extension_objects.extend(elt.extension_objects)
         return state
 
     @property
@@ -208,7 +214,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
                 target=target,
             )
 
-    def compile(self) -> gltf.GLTF2:
+    def build(self) -> gltf.GLTF2:
         '''
         Compile the glTF document.
         '''
@@ -259,7 +265,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
 
         def build_list(elt: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
             return [
-                v.compile(self, self, Phase.BUILD)
+                v.compile(self, Phase.BUILD)
                 for v in elt
             ]
         nodes = build_list(self.nodes)
@@ -272,11 +278,11 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         images = build_list(self.images)
         accessors = build_list(a for a in self.accessors if a.count > 0)
         bufferViews = build_list(self.__ordered_views)
-        _asset = self.asset.compile(self, self, Phase.BUILD)
+        _asset = self.asset.compile(self, Phase.BUILD)
         def check_buffer(b: BBuffer|None) -> bool:
             if b is None:
                 return False
-            s = self.state(cast(_Compilable, b))
+            s = self.state(b)
             return len(s.blob) > 0
         buffers = build_list(
             b
@@ -288,7 +294,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
         if self.scene is None:
             scene_info = {}
         else:
-            scene_state = self.state(cast(_Compilable, self.scene))
+            scene_state = self.state(self.scene)
             scene_info = dict(scene=scene_state.index)
         g = gltf.GLTF2(
             asset=_asset,
@@ -312,7 +318,7 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
             **scene_info,
         )
         if len(self.buffers) == 1 :
-            state = self.state(cast(_Compilable, self.buffers[0]))
+            state = self.state(self.buffers[0])
             data = state.blob
         else:
             raise ValueError("Only one buffer is supported by pygltflib.")
@@ -321,11 +327,11 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
 
     def do_compile(self, phase: Phase):
         def _do_compile(n):
-            return n.compile(self, self, phase)
+            return n.compile(self, phase)
         def _do_compile_n(*n: Iterable[Element]):
             for g in n:
                 for e in g:
-                    e.compile(self, self, phase)
+                    e.compile(self, phase)
 
         match phase:
             case Phase.COLLECT:
@@ -409,6 +415,26 @@ class _GlobalState(_BNodeContainer, _GlobalBinary):
                     self.buffers,
                 )
 
+    def compile_extensions(self, contin: Callable[[Element], set[Extension]|None]):
+        def _do_compile(elt: Element[_GLTF, _STATE]) -> set[Extension]|None:
+            return elt.compile(self, Phase.EXTENSIONS)
+        return {
+            s
+            for elt in self._elements()
+            for s in cast(set[Extension]|None, _do_compile(elt)) or ()
+        }
+
+    def _do_compile(self, gbl: Self, phase: Phase, state: Self):
+        '''
+        Compile the given element.
+        '''
+        match phase:
+            case Phase.EXTENSIONS:
+                def do_extensions(elt: Element[_GLTF, _STATE]) -> set[Extension]|None:
+                    return elt.compile(self, Phase.EXTENSIONS)
+                return self.compile_extensions(do_extensions)
+            case _: pass
+        return None
 
     def _elements(self) -> Iterable[Element]:
         '''

@@ -19,16 +19,15 @@ from gltf_builder.attribute_types import (
     point, Point, PointSpec,
 )
 from gltf_builder.elements import (
-    BAccessor, BPrimitive, BMesh, _Scope, Element,
+    BAccessor, BPrimitive, BMesh, Element,
 )
 from gltf_builder.accessors import _Accessor
 from gltf_builder.utils import decode_dtype
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
-    from gltf_builder.compiler import _Compilable
+    from gltf_builder.global_state import GlobalState
 
 
-class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState']):
+class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState', '_Primitive']):
     '''
     State for the compilation of a primitive.
     '''
@@ -39,7 +38,7 @@ class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState']):
                  name: str='',
                  /,
                 ) -> None:
-        super().__init__(cast('_Compilable', primitive), name)
+        super().__init__(primitive, name)
         self.accessors = {}
 
 class _Primitive(BPrimitive):
@@ -97,14 +96,13 @@ class _Primitive(BPrimitive):
 
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _PrimitiveState,
                     /
                 ) -> _DoCompileReturn[gltf.Primitive]:
         def _compile(elt: Element[_GLTF, _STATE]):
-            return elt.compile(gbl, scope, phase)
+            return elt.compile(gbl, phase)
 
         mesh = self.mesh
         assert mesh is not None
@@ -126,7 +124,7 @@ class _Primitive(BPrimitive):
                                  btype=attr_type.type,
                                  dtype=dtype,
                                  name=aname)
-            astate = gbl.state(cast('_Compilable', accessor))
+            astate = gbl.state(accessor)
             astate.add_data(data)
             _compile(accessor)
             return accessor
@@ -162,7 +160,7 @@ class _Primitive(BPrimitive):
                         name=name,
                         target=BufferViewTarget.ELEMENT_ARRAY_BUFFER
                     )
-                    istate = gbl.state(cast('_Compilable', state.indices_accessor))
+                    istate = gbl.state(state.indices_accessor)
                     istate.add_data(indices)
             case Phase.COLLECT:
                 mesh.name = mesh.name or gbl._gen_name(mesh)
@@ -173,12 +171,12 @@ class _Primitive(BPrimitive):
                 accessors: list[tuple[BAccessor[NPTypes,
                                                 AttributeData]
                                      |BAccessor[NPTypes, int], list[_Collected]]] = [
-                    (a, [a.compile(gbl, scope, phase)])
+                    (a, [a.compile(gbl, phase)])
                     for a in state.accessors.values()
                 ]
                 ia = state.indices_accessor
                 if ia:
-                    accessors.append((ia, [ia.compile(gbl, scope, phase)]))
+                    accessors.append((ia, [ia.compile(gbl, phase)]))
                 return accessors
             case phase.SIZES:
                 size = sum(
@@ -207,9 +205,9 @@ class _Primitive(BPrimitive):
                 )
             case _:
                 for acc in state.accessors.values():
-                    acc.compile(gbl, scope, phase)
+                    acc.compile(gbl, phase)
                 if state.indices_accessor:
-                    state.indices_accessor.compile(gbl, scope, phase)
+                    state.indices_accessor.compile(gbl, phase)
                 return None
 
     def __repr__(self):

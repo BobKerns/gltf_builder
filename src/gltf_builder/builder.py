@@ -21,7 +21,7 @@ from gltf_builder.core_types import (
      ElementType, ComponentType, ScopeName,
 )
 from gltf_builder.extensions import load_extensions
-from gltf_builder.global_state import _GlobalState
+from gltf_builder.global_state import GlobalState
 from gltf_builder.holders import _Holder
 from gltf_builder.buffers import _Buffer
 from gltf_builder.matrix import Matrix4Spec
@@ -221,8 +221,8 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         })
         # Add all the child nodes.
         self.nodes.add(*(n for n in nodes if not n.root))
-        global_state = _GlobalState(self)
-        return global_state.compile()
+        global_state = GlobalState(self)
+        return global_state.build()
 
     def define_attrib(self,
                       name: str,

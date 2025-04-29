@@ -7,15 +7,15 @@ from typing import Any, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _Scope, _CompileState
+from gltf_builder.compiler import _CompileState
 from gltf_builder.core_types import Phase
 from gltf_builder.elements import BImage, BSampler, BTexture
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
-class _TextureState(_CompileState[gltf.Texture, '_TextureState']):
+class _TextureState(_CompileState[gltf.Texture, '_TextureState', '_Texture']):
     '''
     State for the compilation of a texture.
     '''
@@ -53,15 +53,14 @@ class _Texture(BTexture):
 
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
-                    state: _CompileState[gltf.Texture, _TextureState],
+                    state: _TextureState,
                     /):
         match phase:
             case Phase.COLLECT:
                 return (
-                    s.compile(gbl, scope, phase)
+                    s.compile(gbl, phase)
                     for s in (
                         self.sampler,
                         self.source,

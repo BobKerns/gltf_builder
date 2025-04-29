@@ -18,22 +18,22 @@ from gltf_builder.attribute_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, NP, BBufferView
 )
-from gltf_builder.compiler import _Compilable, _CompileState, _DoCompileReturn, _Scope
+from gltf_builder.compiler import _Compilable, _CompileState, _DoCompileReturn
 from gltf_builder.utils import (
     decode_dtype, decode_stride, decode_type, std_repr,
 )
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
-class _AccessorState(_CompileState[gltf.Accessor, '_AccessorState']):
+class _AccessorState(_CompileState[gltf.Accessor, '_AccessorState', '_Accessor']):
     '''
     State for the compilation of an accessor.
     '''
-    view: Optional[BBufferView] = None
+    view: Optional['BBufferView'] = None
     memory: memoryview
     data: list[AttributeData]
 
@@ -42,7 +42,7 @@ class _AccessorState(_CompileState[gltf.Accessor, '_AccessorState']):
                  name: str='',
                  /,
                  ) -> None:
-        super().__init__(cast(_Compilable, accessor), name,
+        super().__init__(accessor, name,
                          byteOffset=None,
                          )
         self.data = []
@@ -112,8 +112,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.target = target
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _AccessorState,
                     /
@@ -148,7 +147,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 return ldata * self.componentSize
             case Phase.OFFSETS:
                 assert state.view is not None
-                state.view.compile(gbl, scope, phase)
+                state.view.compile(gbl, phase)
                 v_state = gbl.state(state.view)
                 start = state.byteOffset
                 end = state.byteOffset + len(state)

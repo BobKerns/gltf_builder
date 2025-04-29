@@ -7,16 +7,16 @@ from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
-from gltf_builder.compiler import _CompileState, _Scope, _DoCompileReturn
+from gltf_builder.compiler import _CompileState, _DoCompileReturn
 from gltf_builder.core_types import ExtensionsData, ExtrasData, Phase
 from gltf_builder.elements import BNode, BSkin
 from gltf_builder.matrix import Matrix4
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
-    from gltf_builder.global_state import _GlobalState
+    from gltf_builder.global_state import GlobalState
 
 
-class _SkinState(_CompileState[gltf.Skin, '_SkinState']):
+class _SkinState(_CompileState[gltf.Skin, '_SkinState', '_Skin']):
     '''
     State for the compilation of a skin.
     '''
@@ -47,8 +47,7 @@ class _Skin(BSkin):
         self.inverseBindMatrices = inverseBindMatrices
 
     def _do_compile(self,
-                    gbl: '_GlobalState',
-                    scope: _Scope,
+                    gbl: 'GlobalState',
                     phase: Phase,
                     state: _SkinState,
                     /) -> _DoCompileReturn[gltf.Skin]:
@@ -57,8 +56,8 @@ class _Skin(BSkin):
                 gbl.nodes.add(self.skeleton)
                 for j in self.joints:
                     gbl.nodes.add(j)
-                return [self.skeleton.compile(gbl, scope, phase)] + \
-                       [j.compile(gbl, scope, phase) for j in self.joints]
+                return [self.skeleton.compile(gbl, phase)] + \
+                       [j.compile(gbl, phase) for j in self.joints]
             case Phase.BUILD:
                 return gltf.Skin(
                     name=self.name,

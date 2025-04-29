@@ -28,8 +28,10 @@ if TYPE_CHECKING:
     from gltf_builder.elements import(
         BNode, BMesh, BBuffer, BBufferView, BAccessor, BImage,
         BSampler, BTexture, BScene, BSkin, BMaterial, BCamera,
-        BAsset, BExtension,
+        BAsset, Element,
     )
+    from gltf_builder.extensions import Extension
+
 
 class _BufferViewKey(NamedTuple):
     buffer: 'BBuffer'
@@ -191,7 +193,7 @@ class _GlobalConfiguration(Protocol):
     '''
     The extensions required to load this file.
     '''
-    extension_objects: set['BExtension']
+    extension_objects: set['Extension']
 
     @property
     @abstractmethod
@@ -244,8 +246,7 @@ class _GlobalConfiguration(Protocol):
         ...
 
 
-@runtime_checkable
-class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Protocol):
+class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope):
     '''
     Abstract class for a Builder.  This exists to avoid circular dependencies.
     '''
@@ -335,13 +336,13 @@ class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope, Proto
         ...
 
     @abstractmethod
-    def state(self, elt: _Compilable[_GLTF, _STATE]) -> _STATE:
+    def state(self, elt: Element[_GLTF, _STATE]) -> _STATE:
         '''
         Get the state for the given element.
         '''
         ...
 
-    def idx(self, elt: _Compilable[_GLTF, _STATE]) -> int:
+    def idx(self, elt: Element[_GLTF, _STATE]) -> int:
         '''
         Get the index of the given element.
         '''

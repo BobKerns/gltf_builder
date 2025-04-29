@@ -21,6 +21,7 @@ bytelen
 CALMULLROMSPLINE
 cnst
 conftest
+contin
 CUBICSPLINE
 DATAURI
 ffeecc
@@ -33,6 +34,8 @@ idtype
 IMAGEJPEG
 IMAGEPNG
 instancable
+ipykernel
+ipython
 ivalues
 jtype
 Khronos
@@ -59,6 +62,7 @@ sizedf
 skel
 skipkeys
 slerp
+Sysiphean
 Tait
 tanminus
 tanplus

@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 @runtime_checkable
-class Element(_Compilable[_GLTF, _STATE], Protocol):
+class Element(_Compilable[_GLTF, _STATE], Protocol[_GLTF, _STATE]):
     '''
     A fundamental element of a glTF model.
     '''
@@ -71,6 +71,7 @@ class Element(_Compilable[_GLTF, _STATE], Protocol):
             name,
             extras=extras,
             extensions=extensions,
+            extension_objects=None,
         )
 
     def __hash__(self):
@@ -81,7 +82,7 @@ class Element(_Compilable[_GLTF, _STATE], Protocol):
 
     def __repr__(self):
         return std_repr(self, (
-            'name'
+            'name',
         ), id=id(self))
 
     def __str__(self):
@@ -422,20 +423,3 @@ class BAsset(Element[gltf.Asset, '_AssetState'], Protocol):
     version: str = '2.0'
     minVersion: Optional[str] = None
 
-
-_EXT_PLUGIN = TypeVar('_EXT_PLUGIN', bound='ExtensionPlugin')
-
-_EXT_DATA = TypeVar('_EXT_DATA', bound=ExtensionData)
-
-class BExtension(Element[_EXT_DATA, _STATE], Protocol[_STATE, _EXT_PLUGIN, _EXT_DATA]):
-    '''
-    Extension for glTF.
-    '''
-    _scope_name = ScopeName.EXTENSION
-
-    plugin: _EXT_PLUGIN
-    data: _EXT_DATA
-    def __init__(self, plugin: _EXT_PLUGIN, data: _EXT_DATA):
-        super().__init__(plugin.name)
-        self.data = data
-        self.plugin = plugin

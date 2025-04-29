@@ -8,7 +8,7 @@ import json
 import mimetypes
 import struct
 import warnings
-from dataclasses import _is_dataclass_instance, dataclass, field, fields
+from dataclasses import _is_dataclass_instance, dataclass, field, fields # type: ignore
 from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
@@ -170,17 +170,17 @@ class Asset(Property):
 class Attributes:
     def __init__(self, POSITION=..., NORMAL=..., TANGENT=..., TEXCOORD_0=..., TEXCOORD_1=..., COLOR_0: int = ..., JOINTS_0: int = ..., WEIGHTS_0=..., *args, **kwargs) -> None:
         ...
-    
+
     def __repr__(self): # -> str:
         ...
-    
+
     def to_json(self, *args, **kwargs): # -> str:
         ...
-    
+
     @staticmethod
     def from_json(): # -> None:
         ...
-    
+
 
 
 @dataclass_json
@@ -450,13 +450,13 @@ class GLTF2(Property):
                 (bytes): binary data
         """
         ...
-    
+
     def set_binary_blob(self, blob): # -> None:
         ...
-    
+
     def destroy_binary_blob(self): # -> None:
         ...
-    
+
     def set_min_alignment(self, min_alignment: Optional[int]) -> None:
         """Set the minimum alignment for glb chunks.
 
@@ -464,7 +464,7 @@ class GLTF2(Property):
         Only power-of-two alignments are supported.
         """
         ...
-    
+
     def required_alignment(self) -> int:
         """
         Get the required alignment for glb chunks.
@@ -476,20 +476,20 @@ class GLTF2(Property):
             required_alignment (int)
         """
         ...
-    
+
     def load_file_uri(self, uri): # -> bytes:
         """
         Loads a file pointed to by a uri
         """
         ...
-    
+
     @staticmethod
     def decode_data_uri(uri): # -> bytes:
         """
         Decodes the binary portion of a data uri.
         """
         ...
-    
+
     def identify_uri(self, uri): # -> Literal[BufferFormat.BINARYBLOB, BufferFormat.DATAURI, BufferFormat.BINFILE] | None:
         """
         Identify the format of the requested buffer. File, data or binary blob.
@@ -498,7 +498,7 @@ class GLTF2(Property):
             buffer_type (str)
         """
         ...
-    
+
     def get_data_from_buffer_uri(self, uri): # -> bytes | Any | None:
         """
         No matter how the buffer data is stored (the uri may be a long string, a file name or imply
@@ -506,31 +506,31 @@ class GLTF2(Property):
         blob for manipulation.
         """
         ...
-    
+
     def remove_bufferView(self, buffer_view_id): # -> BufferView:
         """
         Remove a bufferView and update all the bufferView pointers in the GLTF object
         """
         ...
-    
+
     def remove_data_from_buffer(self, byteOffset, byteLength): # -> None:
         ...
-    
+
     def export_datauri_as_image_file(self, data_uri, name, destination, override=..., index=...): # -> str | None:
         """ convert data uri to image file
             If destination is full path and file name, use that.
             If destination is just a directory, use the name of the data_uri
         """
         ...
-    
+
     def export_fileuri_as_image_file(self, file_uri, destination, override=...): # -> None:
         """ Export file uri as another image file (ie copy out of GLTF into own location) """
         ...
-    
+
     def export_image(self, image_index, destination=..., override=...): # -> str | None:
         """ Directly export an image to a file without affecting GLTF """
         ...
-    
+
     def export_image_to_file(self, image_index, destination_path=..., override=...): # -> str | None:
         """
         Used primarily by convert_images. To export images consider using GLTF2.export_image
@@ -540,7 +540,7 @@ class GLTF2(Property):
         override (bool): Only save image if it does not already exist
         """
         ...
-    
+
     def convert_images(self, image_format, path=..., override=...): # -> None:
         """
         GLTF files can store the image data in three different formats: In the buffers, as a data
@@ -552,7 +552,7 @@ class GLTF2(Property):
 
         """
         ...
-    
+
     def convert_buffers(self, buffer_format, override=...): # -> None:
         """
         GLTF files can store the buffer data in three different formats: As a binary blob ready for glb, as a data
@@ -562,66 +562,66 @@ class GLTF2(Property):
         override (bool): Override a bin file if it already exists and is about to be replaced
         """
         ...
-    
+
     def to_json(self, *, skipkeys: bool = ..., ensure_ascii: bool = ..., check_circular: bool = ..., allow_nan: bool = ..., indent: Optional[Union[int, str]] = ..., separators: Tuple[str, str] = ..., default: Callable = ..., sort_keys: bool = ..., **kw) -> str:
         """
         to_json and from_json from dataclasses_json
         courtesy https://github.com/lidatong/dataclasses-json
         """
         ...
-    
+
     @classmethod
     def from_json(cls: Type[GLTF2], s: str, *, parse_float=..., parse_int=..., parse_constant=..., infer_missing=..., **kw) -> GLTF2:
         ...
-    
+
     def gltf_to_json(self, separators=..., indent=...) -> str:
         ...
-    
+
     @staticmethod
     def get_bin_name_from_path(path: Path): # -> str:
         """ remove an extension and path and return a bin filename (sans path) """
         ...
-    
+
     def save_json(self, fname): # -> Literal[True]:
         ...
-    
+
     def buffers_to_binary_blob(self): # -> bytearray:
         """ Flatten all buffers into a single buffer """
         ...
-    
+
     def save_to_bytes(self): # -> list[Any]:
         ...
-    
+
     def save_binary(self, fname): # -> bool:
         ...
-    
+
     def save(self, fname, asset=...): # -> bool:
         ...
-    
+
     @classmethod
     def gltf_from_json(cls, json_data): # -> GLTF2:
         ...
-    
+
     @classmethod
     def load_json(cls, fname): # -> GLTF2:
         ...
-    
+
     @classmethod
     def load_from_bytes(cls, data): # -> GLTF2 | None:
         ...
-    
+
     @classmethod
     def load_binary(cls, fname): # -> GLTF2 | None:
         ...
-    
+
     @classmethod
     def load_binary_from_file_object(cls, f): # -> GLTF2 | None:
         ...
-    
+
     @classmethod
     def load(cls, fname): # -> GLTF2 | None:
         ...
-    
+
 
 
 def main(): # -> None:

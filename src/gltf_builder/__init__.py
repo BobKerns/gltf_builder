@@ -55,6 +55,11 @@ from gltf_builder.matrix import (
 from gltf_builder.quaternions import (
     QuaternionSpec, Quaternion, quaternion,
 )
+from gltf_builder.extensions import (
+    extension, load_extensions,
+    ExtensionData, Extension, ExtensionState, ExtensionPlugin,
+    _EXT, _EXT_DATA, _EXT_STATE, _EXT_PLUGIN,
+)
 
 __all__ = [
     'AlphaMode',
@@ -95,6 +100,11 @@ __all__ = [
     'ElementType',
     'EPSILON',
     'EPSILON2',
+    'extension',
+    'Extension',
+    'ExtensionData',
+    'ExtensionPlugin',
+    'ExtensionState',
     'get_geometry',
     'IDENTITY2',
     'IDENTITY3',
@@ -110,6 +120,7 @@ __all__ = [
     'JsonAtomic',
     'JsonData',
     'JsonObject',
+    'load_extensions',
     'MagFilter',
     'map_range',
     'material',
@@ -184,4 +195,9 @@ __all__ = [
     'WeightSpec',
     'WrapMode',
     '__version__',
+    '_EXT',
+    '_EXT_DATA',
+    '_EXT_PLUGIN',
+    '_EXT_STATE',
+
 ]
