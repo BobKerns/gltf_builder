@@ -6,7 +6,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from logging import DEBUG
 from typing import (
-    Literal, Optional, Self, TypeAlias, TypeVar, Protocol, Generic,
+    Literal, Optional, Self, TypeAlias, TypeVar, Generic,
     Any, cast, overload, TYPE_CHECKING
 )
 from pathlib import Path
@@ -55,12 +55,12 @@ _SLOTS: tuple[str, ...] = tuple(
         (
             'name',
             '_index',
-            '_byteOffset',
-            '_len',
             'phase',
             'element',
             'extension_objects',
-            '__dict__',
+            'compiled',
+            'collected',
+            #'__dict__',
         )
     )
     for s in ss
@@ -92,15 +92,76 @@ This is used to indicate the type of the compile state.
 _ELEMENT = TypeVar('_ELEMENT', bound='Element')
 
 
-class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
+_STATEX = TypeVar('_STATEX', bound='_CompileState')
+class _Scope:
     '''
-    Base state for compiling an element.
+    Scope for allocating `BBufferView` and `BAccessor` objects.
 
-    Separate from `_CompileState` to allow for more generic use.
+    Scopes include meshes, nodes, and buffers, with meshes at the top
+    and buffers at the bottom. Between, the nodes have their own hierarchy,
+    so a parent node can have a view scope, but a child node can have an
+    accessor scope. This allows control over sharing of vertices, accessors,
+    and views. Vertex sharing follows the same scope as accessors, while
+    views can follow the same scope as the accessors they contain, or any
+    scope above them.
+    '''
+    __slots__ = (
+        '__views', '__target_buffer', '__global',
+    )
+    __views: dict['_BufferViewKey', 'BBufferView']
+
+    __target_buffer: 'BBuffer'
+    @property
+    def target_buffer(self) -> 'BBuffer':
+        return self.__target_buffer
+
+    __global: 'GlobalState'
+    @property
+    def globl(self) -> 'GlobalState':
+        return self.__global
+
+    def __init__(self,
+                globl: 'GlobalState',
+                buffer: 'BBuffer',
+                is_accessor_scope: bool=False,
+                is_view_scope: bool=False,
+            ):
+        self.__global = globl
+        self.__target_buffer = buffer
+        self.__views = {}
+
+
+    def _get_view(self,
+                buffer: 'BBuffer',
+                target: BufferViewTarget,
+                byteStride: int=0,
+                name: str='',
+                extras: Optional[ExtrasData]=None,
+                extensions: Optional[ExtensionsData]=None,
+            ) -> 'BBufferView':
+        from gltf_builder.protocols import _BufferViewKey
+        key = _BufferViewKey(buffer, target, byteStride, name)
+        view = self.__views.get(key, None)
+        if view is None:
+            from gltf_builder.views import _BufferView
+            view = _BufferView(
+                buffer, name,
+                target=target,
+                byteStride=byteStride,
+                extras=extras,
+                extensions=extensions,
+            )
+            self.__views[key] = view
+        return view
+
+class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[misc]
+    '''
+    State for compiling an element.
     '''
     __slots__ = _SLOTS
     name: str
     _index: int|None
+    phase: Phase
     @property
     def index(self) -> int:
         if self._index is None:
@@ -112,6 +173,45 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
             self._index = index
         elif self._index != index:
             raise ValueError(f'Index already set, old={self._index}, new={index}')
+
+    phases: list[Phase]
+    compiled: _GLTF|None
+    collected: _Collected|None
+
+    element: _ELEMENT
+    extension_objects: set['Extension']
+
+    def __init__(self,
+                 element: _ELEMENT,
+                 name: str,
+                byteOffset: int|None=0,
+                ) -> None:
+        self.name = name
+        self.phases = []
+        self.compiled = None
+        self.collected = None
+        self._byteOffset = byteOffset
+        self._index = None
+        self._len = None
+        self.element = element
+        self.extension_objects = set(element.extension_objects)
+
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            ('index', self._index),
+            ('byteOffset', self._byteOffset, "offset"),
+            ('len', self._len),
+            'phase',
+        ))
+
+
+
+class _CompileStateBinary(Generic[_GLTF, _STATEX, _ELEMENT],
+                          _CompileState[_GLTF, _STATEX, _ELEMENT]):
+    __slots__ = (
+        '_len', '_byteOffset',
+    )
     _len: int|None
     _byteOffset: int|None
     @property
@@ -127,22 +227,6 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
         elif self._byteOffset != offset:
             raise ValueError(f'Byte offset already set, old={self._byteOffset}, new={offset}')
 
-    phases: list[Phase]
-    compiled: _GLTF|None
-    collected: _Collected|None
-
-    def __init__(self,
-                 name: str,
-                 byteOffset: int|None=0
-                ) -> None:
-        self.name = name
-        self.phases = []
-        self.compiled = None
-        self.collected = None
-        self._byteOffset = byteOffset
-        self._index = None
-        self._len = None
-
     def __len__(self) -> int:
         if self._len is None:
             raise ValueError(f'Length not set for {self}')
@@ -153,45 +237,7 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
             return False
         return bool(self._len)
 
-
-class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], # type: ignore
-                    _BaseCompileState[_GLTF, '_CompileState[_GLTF, _STATE]']):
-    '''
-    State for compiling an element.
-    '''
-    element: _ELEMENT
-    extension_objects: set['Extension']
-
-    def __init__(self,
-                 element: _ELEMENT,
-                 name: str,
-                byteOffset: int|None=0,
-                ) -> None:
-        super().__init__(
-            name=name,
-            byteOffset=byteOffset,
-        )
-        self.element = element
-        self.extension_objects = set(element.extension_objects)
-
-    @property
-    def phase(self) -> Phase|None:
-        '''
-        The last phase of the compilation reached.
-        '''
-        return self.phases[-1] if self.phases else None
-
-    def __repr__(self):
-        return std_repr(self, (
-            'name',
-            ('index', self._index),
-            ('byteOffset', self._byteOffset, "offset"),
-            ('len', self._len),
-            'phase',
-        ))
-
-
-class _Compilable(Generic[_GLTF, _STATE]): # type: ignore[misc]
+class _Compilable(Generic[_GLTF, _STATE]):
     __slots__ = (
         'name', 'extensions', 'extras', 'extension_objects',
     )
@@ -298,14 +344,16 @@ class _Compilable(Generic[_GLTF, _STATE]): # type: ignore[misc]
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        state = cast(_STATE, gbl.state(cast('Element', self)))
+        state = cast(_STATE, globl.state(cast('Element', self)))
         if phase in state.phases:
             match phase:
                 case Phase.COLLECT:
                     return state.collected
                 case Phase.SIZES:
+                    assert isinstance(state, _CompileStateBinary)
                     return len(state)
                 case Phase.OFFSETS:
+                    assert isinstance(state, _CompileStateBinary)
                     return state.byteOffset
                 case Phase.BUILD:
                     return cast(_GLTF, state.compiled)
@@ -334,12 +382,14 @@ class _Compilable(Generic[_GLTF, _STATE]): # type: ignore[misc]
                     items = cast(_ReturnCollect, (_do_compile() or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
+                    assert isinstance(state, _CompileStateBinary)
                     bytelen = cast(_ReturnSizes, _do_compile() or 0)
                     assert bytelen is not None
                     state._len = bytelen
                     LOG.debug('%s has length %s', self, state._len)
                     return bytelen
                 case Phase.OFFSETS:
+                    assert isinstance(state, _CompileStateBinary)
                     _do_compile()
                     if state.byteOffset >= 0:
                         if LOG.isEnabledFor(DEBUG):
@@ -371,60 +421,16 @@ class _Compilable(Generic[_GLTF, _STATE]): # type: ignore[misc]
                 ) -> _DoCompileReturn[_GLTF]: ...
 
 
-class _Scope(Protocol):
-    '''
-    Scope for allocating `BBufferView` and `BAccessor` objects.
+    def compile_extensions(self,
+                        globl: 'GlobalState',
+                        phase: Phase,
+                        state: _STATE,
+                        /
+                    ) -> set[str]|None:
+        '''
+        Compile the extensions for the element.
+        '''
+        if phase == Phase.EXTENSIONS:
+            return self.compile(globl, phase)
+        return None
 
-    Scopes include meshes, nodes, and buffers, with meshes at the top
-    and buffers at the bottom. Between, the nodes have their own hierarchy,
-    so a parent node can have a view scope, but a child node can have an
-    accessor scope. This allows control over sharing of vertices, accessors,
-    and views. Vertex sharing follows the same scope as accessors, while
-    views can follow the same scope as the accessors they contain, or any
-    scope above them.
-    '''
-    __views: dict['_BufferViewKey', 'BBufferView']
-
-    __target_buffer: 'BBuffer'
-    @property
-    def target_buffer(self) -> 'BBuffer':
-        return self.__target_buffer
-
-    __global: 'GlobalState'
-    @property
-    def gbl(self) -> 'GlobalState':
-        return self.__global
-
-    def __init__(self,
-                gbl: 'GlobalState',
-                buffer: 'BBuffer',
-                is_accessor_scope: bool=False,
-                is_view_scope: bool=False,
-            ):
-        self.__global = gbl
-        self.__target_buffer = buffer
-        self.__views = {}
-
-
-    def _get_view(self,
-                buffer: 'BBuffer',
-                target: BufferViewTarget,
-                byteStride: int=0,
-                name: str='',
-                extras: Optional[ExtrasData]=None,
-                extensions: Optional[ExtensionsData]=None,
-            ) -> 'BBufferView':
-        from gltf_builder.protocols import _BufferViewKey
-        key = _BufferViewKey(buffer, target, byteStride, name)
-        view = self.__views.get(key, None)
-        if view is None:
-            from gltf_builder.views import _BufferView
-            view = _BufferView(
-                buffer, name,
-                target=target,
-                byteStride=byteStride,
-                extras=extras,
-                extensions=extensions,
-            )
-            self.__views[key] = view
-        return view

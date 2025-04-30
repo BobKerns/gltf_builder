@@ -8,7 +8,7 @@ from typing import Optional, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _CompileState, _DoCompileReturn,
+    _GLTF, _STATE, _CompileStateBinary, _DoCompileReturn,
     ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import (
@@ -21,7 +21,7 @@ from gltf_builder.elements import (
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
-class _BufferState(_CompileState[gltf.Buffer, _STATE, '_Buffer']):
+class _BufferState(_CompileStateBinary[gltf.Buffer, _STATE, '_Buffer']):
     '''
     State for the compilation of a buffer.
     '''

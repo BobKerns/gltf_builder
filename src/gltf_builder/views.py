@@ -6,6 +6,7 @@ from typing import Optional, TYPE_CHECKING
 
 import pygltflib as gltf
 
+from gltf_builder.accessors import _AccessorState
 from gltf_builder.attribute_types import AttributeData
 from gltf_builder.core_types import (
     BufferViewTarget, ExtensionsData, ExtrasData, NPTypes, Phase,
@@ -13,14 +14,14 @@ from gltf_builder.core_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView,
 )
-from gltf_builder.compiler import _CompileState
+from gltf_builder.compiler import _CompileStateBinary
 from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
 
-class _BufferViewState(_CompileState[gltf.BufferView, '_BufferViewState', '_BufferView']):
+class _BufferViewState(_CompileStateBinary[gltf.BufferView, '_BufferViewState', '_BufferView']):
     '''
     State for the compilation of a buffer view.
     '''
@@ -104,7 +105,7 @@ class _BufferView(BBufferView):
                 state.memory = buf_memview[state.byteOffset:end]
                 offset = 0
                 for acc in state.accessors:
-                    astate = gbl.state(acc)
+                    assert isinstance(astate, _AccessorState )
                     astate.byteOffset = offset
                     a_state = gbl.state(acc)
                     offset +=  len(a_state)

@@ -8,7 +8,7 @@ from typing import Any, Optional, Self, cast, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _Collected, _CompileState, _DoCompileReturn,
+    _GLTF, _STATE, _Collected, _CompileStateBinary, _DoCompileReturn,
 )
 from gltf_builder.core_types import (
     ExtensionsData, ExtrasData, IndexSize, NPTypes,
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
 
-class _PrimitiveState(_CompileState[gltf.Primitive, '_PrimitiveState', '_Primitive']):
+class _PrimitiveState(_CompileStateBinary[gltf.Primitive, '_PrimitiveState', '_Primitive']):
     '''
     State for the compilation of a primitive.
     '''
@@ -106,7 +106,7 @@ class _Primitive(BPrimitive):
 
         mesh = self.mesh
         assert mesh is not None
-        buffer = gbl.buffers[0]
+        buffer = gbl.buffer
         def compile_attrib(name: str,
                            data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, AttributeData]:
@@ -211,16 +211,11 @@ class _Primitive(BPrimitive):
                 return None
 
     def __repr__(self):
-        builder = self.mesh.gbl if self.mesh else None
-        if builder and builder._get_index_size(len(self.points)) > 0:
-            indexed = 'indexed '
-        else:
-            indexed = ''
         if self.mesh:
             idx = self.mesh.primitives.index(self)
-            return f'<{self.mode.name} {indexed}{self.mesh}[{idx}] points={len(self.points)}>'
+            return f'<{self.mode.name} {self.mesh}[{idx}] points={len(self.points)}>'
 
-        return f'<{self.mode.name} {indexed} points={len(self.points)}>'
+        return f'<{self.mode.name} points={len(self.points)}>'
 
     def __str__(self):
         if self.mesh is None:

@@ -17,8 +17,8 @@ from gltf_builder.assets import _Asset, __version__
 from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _Compilable, _CompileState,
-    _Collected, Extension,
+    _GLTF, _STATE, _Compilable, _CompileState, _CompileStateBinary,
+    _Collected, _DoCompileReturn, _Scope,
 )
 from gltf_builder.core_types import (
     BufferViewTarget, ComponentType, ElementType, IndexSize, JsonObject,
@@ -27,19 +27,21 @@ from gltf_builder.core_types import (
 from gltf_builder.elements import BAccessor, BBuffer, BBufferView, Element
 from gltf_builder.holders import _Holder
 from gltf_builder.nodes import _BNodeContainer
-from gltf_builder.protocols import  _GlobalBinary, _Scope, AttributeType
+from gltf_builder.protocols import  _GlobalBinary, AttributeType
 from gltf_builder.scenes import scene
 from gltf_builder.utils import USER, USERNAME, decode_dtype, std_repr
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.builder import Builder
+    from gltf_builder.extensions import Extension
+    #from gltf_builder.treewalker import TreeWalker
 
 
 LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 
 _imported: bool = False
 
-class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'GlobalState']):
+class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
     _scope_name: ScopeName = ScopeName.BUILDER
 
     _id_counters: dict[str, count]
@@ -94,19 +96,20 @@ class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'Globa
     Global state for the compilation of a glTF document.
     '''
     def __init__(self, builder: 'Builder') -> None:
-        super().__init__(builder.nodes)
+        super().__init__(builder, 'GLOBAL')
+        buffer = _Buffer('main')
+        _Scope.__init__(self, self, buffer)
         self.buffers = _Holder(BBuffer)
         self.views = _Holder(BBufferView)
         self.accessors = _Holder(BAccessor)
-        buffer = _Buffer('main')
         self.buffers.add(buffer)
-        _Scope.__init__(self, self, buffer)
         self.__builder = builder
         self.asset = builder.asset
         self.meshes = builder.meshes
         self.cameras = builder.cameras
         self.images = builder.images
         self.materials = builder.materials
+        self.nodes = builder.nodes
         self.samplers = builder.samplers
         self.scenes = builder.scenes
         self.skins = builder.skins
@@ -118,7 +121,9 @@ class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'Globa
         self.extensionsRequired = list(builder.extensionsRequired or ())
         self._id_counters = {}
         self._states = {}
+        self._states[id(builder)] = self
         self.extension_objects = set()
+        self.returns = {}
 
     def _get_index_size(self, max_value):
         return self.builder._get_index_size(max_value)
@@ -382,9 +387,9 @@ class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'Globa
                 assign_index(self.textures)
                 assign_index(self.nodes)
             case Phase.SIZES:
-                _do_compile_n(self.nodes, self.accessors, self.views, self.buffers)
+                _do_compile_n(self.accessors, self.views, self.buffers)
             case Phase.OFFSETS:
-                _do_compile_n(self.buffers, self.views, self.accessors, self.nodes)
+                _do_compile_n(self.buffers, self.views, self.accessors)
             case Phase.EXTENSIONS:
                 actual = {
                             s
@@ -415,7 +420,8 @@ class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'Globa
                     self.buffers,
                 )
 
-    def compile_extensions(self, contin: Callable[[Element], set[Extension]|None]):
+    # Currently a placeholder.
+    def compile_extensions_(self, contin: Callable[[Element], set['Extension']|None]):
         def _do_compile(elt: Element[_GLTF, _STATE]) -> set[Extension]|None:
             return elt.compile(self, Phase.EXTENSIONS)
         return {
@@ -432,7 +438,7 @@ class GlobalState(_BNodeContainer, _GlobalBinary, _Compilable[gltf.GLTF2, 'Globa
             case Phase.EXTENSIONS:
                 def do_extensions(elt: Element[_GLTF, _STATE]) -> set[Extension]|None:
                     return elt.compile(self, Phase.EXTENSIONS)
-                return self.compile_extensions(do_extensions)
+                return self.compile_extensions_(do_extensions)
             case _: pass
         return None
 

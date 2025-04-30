@@ -29,7 +29,6 @@ from gltf_builder.attribute_types import (
 from gltf_builder.matrix import Matrix4
 from gltf_builder.compiler import (
     _STATE, _Compilable, _GLTF,
-    _Scope
 )
 from gltf_builder.protocols import _BNodeContainerProtocol
 from gltf_builder.log import GLTF_LOG
@@ -140,7 +139,7 @@ class BPrimitive(Element[gltf.Primitive, '_PrimitiveState']):
     mesh: Optional['BMesh']
 
 
-class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope):
+class BMesh(Element[gltf.Mesh, '_MeshState']):
     _scope_name = ScopeName.MESH
     primitives: list[BPrimitive]
     weights: list[float]
@@ -286,7 +285,7 @@ class BPerspectiveCamera(BCamera):
         self.aspectRatio = aspectRatio
 
 
-class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope):
+class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol):
     _scope_name = ScopeName.NODE
     mesh: BMesh|None
     root: bool

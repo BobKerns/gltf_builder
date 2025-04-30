@@ -11,7 +11,7 @@ from collections.abc import Callable, Iterable
 import math
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _Compilable, _CompileState, _Scope,
+    _GLTF, _STATE, _Compilable, _CompileState,
 )
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
@@ -157,13 +157,13 @@ class _GlobalConfiguration(Protocol):
     '''
     The materials in the glTF file.
     '''
+    nodes: _Holder['BNode']
+    '''
+    The nodes in the glTF file.
+    '''
     samplers: _Holder['BSampler']
     '''
     The samplers in the glTF file.
-    '''
-    textures: _Holder['BTexture']
-    '''
-    The textures in the glTF file.
     '''
     scenes: _Holder['BScene']
     '''
@@ -176,6 +176,10 @@ class _GlobalConfiguration(Protocol):
     scene: Optional['BScene']
     '''
     The initial scene.
+    '''
+    textures: _Holder['BTexture']
+    '''
+    The textures in the glTF file.
     '''
     extras: dict[str, Any]
     '''
@@ -246,7 +250,7 @@ class _GlobalConfiguration(Protocol):
         ...
 
 
-class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope):
+class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol):
     '''
     Abstract class for a Builder.  This exists to avoid circular dependencies.
     '''

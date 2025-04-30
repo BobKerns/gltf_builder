@@ -2,7 +2,7 @@
 Functions for creating cameras in glTF format.
 '''
 
-from typing import Any, Generic, Literal, Optional, TypeVar, overload
+from typing import Any, Literal, Optional, TypeVar, overload
 
 import pygltflib as gltf
 
@@ -14,7 +14,7 @@ from gltf_builder.compiler import _CompileState, ExtensionsData, ExtrasData
 
 _CAMERA = TypeVar('_CAMERA', bound='_Camera')
 
-class _CameraState(Generic[_CAMERA], _CompileState[gltf.Camera, '_CameraState', _CAMERA]):
+class _CameraState(_CompileState[gltf.Camera, '_CameraState', _CAMERA]):
     '''
     State for the compilation of a camera.
     '''
