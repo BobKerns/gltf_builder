@@ -43,13 +43,36 @@ _Collected: TypeAlias = tuple[
     Sequence['_Collected'],
 ]
 
+_UNIMPLEMENTED_PHASES = (
+    Phase.VERTICES,
+)
+
+
+_SLOTS: tuple[str, ...] = tuple(
+    str(s)
+    for ss in (
+        Phase._member_names_,
+        (
+            'name',
+            '_index',
+            'byteOffset',
+            '_len',
+            'phase',
+            'element',
+            'extension_objects',
+            '__dict__',
+        )
+    )
+    for s in ss
+)
+
 
 _ReturnCollect: TypeAlias = Iterable[_Collected]|None
 _ReturnSizes: TypeAlias = int|None
 _ReturnOffsets: TypeAlias = int|None
 _ReturnBuild: TypeAlias = _GLTF|None
 _ReturnView: TypeAlias = None
-_ReturnExtensions: TypeAlias = set[Extension]|None
+_ReturnExtensions: TypeAlias = set['Extension']|None
 _DoCompileReturn: TypeAlias = (
     _ReturnCollect|
     _ReturnSizes|
@@ -72,6 +95,7 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
 
     Separate from `_CompileState` to allow for more generic use.
     '''
+    __slots__ = _SLOTS
     name: str
     _index: int|None = None
     @property
@@ -269,7 +293,7 @@ class _Compilable(Protocol[_GLTF, _STATE]): # type: ignore[misc]
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        state = gbl.state(cast(Element[_GLTF, _STATE], self))
+        state = gbl.state(cast('Element[_GLTF, _STATE]', self))
         if phase in state.phases:
             match phase:
                 case Phase.COLLECT:

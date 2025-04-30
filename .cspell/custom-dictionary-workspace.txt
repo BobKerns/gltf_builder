@@ -72,6 +72,7 @@ Thresholding
 tlen
 tname
 tobytes
+treewalker
 tupleobj
 vargs
 viter
