@@ -55,7 +55,7 @@ _SLOTS: tuple[str, ...] = tuple(
         (
             'name',
             '_index',
-            'byteOffset',
+            '_byteOffset',
             '_len',
             'phase',
             'element',
@@ -89,6 +89,9 @@ Type variable for the compile state.
 This is used to indicate the type of the compile state.
 '''
 
+_ELEMENT = TypeVar('_ELEMENT', bound='Element')
+
+
 class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
     '''
     Base state for compiling an element.
@@ -97,7 +100,7 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
     '''
     __slots__ = _SLOTS
     name: str
-    _index: int|None = None
+    _index: int|None
     @property
     def index(self) -> int:
         if self._index is None:
@@ -109,9 +112,8 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
             self._index = index
         elif self._index != index:
             raise ValueError(f'Index already set, old={self._index}, new={index}')
-    _len: int|None = None
-
-    _byteOffset: int|None = 0
+    _len: int|None
+    _byteOffset: int|None
     @property
     def byteOffset(self) -> int:
         if self._byteOffset is None:
@@ -138,6 +140,8 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
         self.compiled = None
         self.collected = None
         self._byteOffset = byteOffset
+        self._index = None
+        self._len = None
 
     def __len__(self) -> int:
         if self._len is None:
@@ -149,7 +153,6 @@ class _BaseCompileState(Generic[_GLTF, _STATE]): # type: ignore[misc]
             return False
         return bool(self._len)
 
-_ELEMENT = TypeVar('_ELEMENT', bound='Element')
 
 class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], # type: ignore
                     _BaseCompileState[_GLTF, '_CompileState[_GLTF, _STATE]']):
@@ -188,7 +191,10 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], # type: ignore
         ))
 
 
-class _Compilable(Protocol[_GLTF, _STATE]): # type: ignore[misc]
+class _Compilable(Generic[_GLTF, _STATE]): # type: ignore[misc]
+    __slots__ = (
+        'name', 'extensions', 'extras', 'extension_objects',
+    )
     _scope_name: ScopeName
 
     extensions: ExtensionsData
@@ -204,8 +210,7 @@ class _Compilable(Protocol[_GLTF, _STATE]): # type: ignore[misc]
     at a higher level than supplying the JSON data.
     '''
     extras: ExtrasData
-    _collected: _Collected|None = None
-    name: str = ''
+    name: str
 
     @classmethod
     def state_type(cls) -> type[_STATE]:
@@ -293,7 +298,7 @@ class _Compilable(Protocol[_GLTF, _STATE]): # type: ignore[misc]
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        state = gbl.state(cast('Element[_GLTF, _STATE]', self))
+        state = cast(_STATE, gbl.state(cast('Element', self)))
         if phase in state.phases:
             match phase:
                 case Phase.COLLECT:

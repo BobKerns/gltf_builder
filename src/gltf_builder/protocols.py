@@ -336,13 +336,13 @@ class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol, _Scope):
         ...
 
     @abstractmethod
-    def state(self, elt: Element[_GLTF, _STATE]) -> _STATE:
+    def state(self, elt: 'Element[_GLTF, _STATE]') -> _STATE:
         '''
         Get the state for the given element.
         '''
         ...
 
-    def idx(self, elt: Element[_GLTF, _STATE]) -> int:
+    def idx(self, elt: 'Element[_GLTF, _STATE]') -> int:
         '''
         Get the index of the given element.
         '''

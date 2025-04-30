@@ -5,7 +5,7 @@ in the glTF. This also holds the name, defaulting it by the index.
 
 from pathlib import Path
 from typing import (
-    Generic, Protocol, Optional, Any, TypeVar, overload, runtime_checkable,
+    Generic, Optional, Any, TypeVar, overload,
     TYPE_CHECKING,
 )
 from abc import abstractmethod
@@ -15,7 +15,7 @@ import pygltflib as gltf
 
 from gltf_builder.quaternions import Quaternion
 from gltf_builder.core_types import (
-    AlphaMode, CameraType, ComponentType, ExtensionData,
+    AlphaMode, CameraType, ComponentType,
     ExtensionsData, ExtrasData, ImageType,
     MagFilter, MinFilter, PrimitiveMode,
     BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
@@ -55,8 +55,9 @@ if TYPE_CHECKING:
 
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
-@runtime_checkable
-class Element(_Compilable[_GLTF, _STATE], Protocol[_GLTF, _STATE]):
+
+
+class Element(_Compilable[_GLTF, _STATE]):
     '''
     A fundamental element of a glTF model.
     '''
@@ -90,14 +91,14 @@ class Element(_Compilable[_GLTF, _STATE], Protocol[_GLTF, _STATE]):
         return f'{typ}-{self.name or "?"}'
 
 
-class BBuffer(Element[gltf.Buffer, '_BufferState'], Protocol):
+class BBuffer(Element[gltf.Buffer, '_BufferState']):
     '''
     Buffer interface.
     '''
     _scope_name = ScopeName.BUFFER
 
 
-class BBufferView(Element[gltf.BufferView, '_BufferViewState'], Protocol):
+class BBufferView(Element[gltf.BufferView, '_BufferViewState']):
     _scope_name = ScopeName.BUFFER_VIEW
     buffer: BBuffer
     target: BufferViewTarget
@@ -106,8 +107,8 @@ class BBufferView(Element[gltf.BufferView, '_BufferViewState'], Protocol):
 NP = TypeVar('NP', bound=NPTypes)
 NUM = TypeVar('NUM', bound=float|int, covariant=True)
 
-@runtime_checkable
-class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, BTYPE_co]):
+
+class BAccessor(Element[gltf.Accessor, '_AccessorState'], Generic[NP, BTYPE_co]):
     _scope_name = ScopeName.ACCESSOR
     count: int
     elementType: ElementType
@@ -126,8 +127,8 @@ class BAccessor(Element[gltf.Accessor, '_AccessorState'], Protocol, Generic[NP, 
     bufferType: str = 'f'
     '''The buffer type char for `memoryview.cast()`.'''
 
-@runtime_checkable
-class BPrimitive(Element[gltf.Primitive, '_PrimitiveState'], Protocol):
+
+class BPrimitive(Element[gltf.Primitive, '_PrimitiveState']):
     '''
     Base class for primitives
     '''
@@ -139,8 +140,7 @@ class BPrimitive(Element[gltf.Primitive, '_PrimitiveState'], Protocol):
     mesh: Optional['BMesh']
 
 
-@runtime_checkable
-class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
+class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope):
     _scope_name = ScopeName.MESH
     primitives: list[BPrimitive]
     weights: list[float]
@@ -183,8 +183,8 @@ class BMesh(Element[gltf.Mesh, '_MeshState'], _Scope, Protocol):
                     ) -> BPrimitive:
         ...
 
-@runtime_checkable
-class BCamera(Element[gltf.Camera, '_CameraState'], Protocol):
+
+class BCamera(Element[gltf.Camera, '_CameraState']):
     '''
     Camera for glTF.
     '''
@@ -197,8 +197,7 @@ class BCamera(Element[gltf.Camera, '_CameraState'], Protocol):
     type_extensions: ExtensionsData
 
 
-@runtime_checkable
-class BOrthographicCamera(BCamera, Protocol):
+class BOrthographicCamera(BCamera):
     '''
     Orthographic camera for glTF.
     '''
@@ -243,8 +242,7 @@ class BOrthographicCamera(BCamera, Protocol):
         self.zfar = zfar
 
 
-@runtime_checkable
-class BPerspectiveCamera(BCamera, Protocol):
+class BPerspectiveCamera(BCamera):
     '''
     Perspective camera for glTF.
     '''
@@ -288,8 +286,7 @@ class BPerspectiveCamera(BCamera, Protocol):
         self.aspectRatio = aspectRatio
 
 
-@runtime_checkable
-class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope, Protocol):
+class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope):
     _scope_name = ScopeName.NODE
     mesh: BMesh|None
     root: bool
@@ -340,8 +337,7 @@ class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol, _Scope, P
         ...
 
 
-@runtime_checkable
-class BImage(Element[gltf.Image, '_ImageState'], Protocol):
+class BImage(Element[gltf.Image, '_ImageState']):
     '''
     Image for glTF.
     '''
@@ -362,8 +358,8 @@ class BImage(Element[gltf.Image, '_ImageState'], Protocol):
             case ImageType.PNG:
                 return 'image/png'
 
-@runtime_checkable
-class BSampler(Element[gltf.Sampler, '_SamplerState'], Protocol):
+
+class BSampler(Element[gltf.Sampler, '_SamplerState']):
     '''
     Texture samplers for glTF.
     '''
@@ -373,8 +369,8 @@ class BSampler(Element[gltf.Sampler, '_SamplerState'], Protocol):
     wrapS: Optional[WrapMode]
     wrapT: Optional[WrapMode]
 
-@runtime_checkable
-class BTexture(Element[gltf.Texture, '_TextureState'], Protocol):
+
+class BTexture(Element[gltf.Texture, '_TextureState']):
     '''
     Texture for glTF.
     '''
@@ -382,8 +378,8 @@ class BTexture(Element[gltf.Texture, '_TextureState'], Protocol):
     sampler: BSampler
     source: BImage
 
-@runtime_checkable
-class BMaterial(Element[gltf.Material, '_MaterialState'], Protocol):
+
+class BMaterial(Element[gltf.Material, '_MaterialState']):
     '''
     Material for glTF.
     '''
@@ -401,14 +397,16 @@ class BMaterial(Element[gltf.Material, '_MaterialState'], Protocol):
     alphaCutoff: Optional[float]
     doubleSided: bool
 
-class BScene(Element[gltf.Scene, '_SceneState'], Protocol):
+
+class BScene(Element[gltf.Scene, '_SceneState']):
     '''
     Scene for glTF.
     '''
     _scope_name = ScopeName.SCENE
     nodes: list[BNode]
 
-class BSkin(Element[gltf.Skin, '_SkinState'], Protocol):
+
+class BSkin(Element[gltf.Skin, '_SkinState']):
     '''
     Skin for a glTF model.
     '''
@@ -417,7 +415,8 @@ class BSkin(Element[gltf.Skin, '_SkinState'], Protocol):
     skeleton: BNode
     joints: list[BNode]
 
-class BAsset(Element[gltf.Asset, '_AssetState'], Protocol):
+
+class BAsset(Element[gltf.Asset, '_AssetState']):
     _scope_name = ScopeName.ASSET
     generator: Optional[str] = None
     version: str = '2.0'
