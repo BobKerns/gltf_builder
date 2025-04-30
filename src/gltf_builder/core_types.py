@@ -47,6 +47,10 @@ class Phase(StrEnum):
     '''
     Enum for the phases of the compile process. Not all are implemented.
     '''
+    EXTENSIONS = 'extensions'
+    '''
+    Collect the set of used extensions for the glTF file.
+    '''
     PRIMITIVES = 'primitives'
     '''
     Process the data for the primitives for the glTF file.
@@ -79,10 +83,6 @@ class Phase(StrEnum):
     VIEWS = 'views'
     '''
     Initialize buffer views to receive data
-    '''
-    EXTENSIONS = 'extensions'
-    '''
-    Collect the set of used extensions for the glTF file.
     '''
     BUILD = 'build'
     '''

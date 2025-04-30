@@ -32,6 +32,7 @@ globl
 GLTFB
 ibytes
 idtype
+iflen
 IMAGEJPEG
 IMAGEPNG
 instancable

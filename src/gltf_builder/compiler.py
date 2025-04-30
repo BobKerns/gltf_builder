@@ -4,6 +4,7 @@ Compilation interface for the glTF builder.
 
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
+from enum import StrEnum
 from logging import DEBUG
 from typing import (
     Literal, Optional, Self, TypeAlias, TypeVar, Generic,
@@ -55,11 +56,8 @@ _SLOTS: tuple[str, ...] = tuple(
         (
             'name',
             '_index',
-            'phase',
             'element',
             'extension_objects',
-            'compiled',
-            'collected',
             #'__dict__',
         )
     )
@@ -154,6 +152,23 @@ class _Scope:
             self.__views[key] = view
         return view
 
+class Progress(StrEnum):
+    '''
+    Progress of the compilation.
+    '''
+    NONE = 'none'
+    '''
+    Indicates that a compilation phase has not yet started.
+    '''
+    IN_PROGRESS = 'in_progress'
+    '''
+    Indicates that a compilation phase is in progress but not yet complete.
+    '''
+    DONE = 'done'
+    '''
+    Indicates that a compilation phase is complete.
+    '''
+
 class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[misc]
     '''
     State for compiling an element.
@@ -162,6 +177,47 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
     name: str
     _index: int|None
     phase: Phase
+    PRIMITIVES: Progress
+    '''
+    Process the data for the primitives for the glTF file.
+    '''
+    COLLECT: _Collected|Progress
+    '''
+    Create the accessors and views for the glTF file, and collect all
+    subordinate objects.
+    '''
+    ENUMERATE: int|Progress
+    '''
+    Assign index values to each object
+    '''
+    VERTICES: Progress
+    '''
+    Optimize the vertices for the glTF file.
+    '''
+    SIZES: int|Progress
+    '''
+    Calculate sizes for the accessors and views for the glTF file.
+    '''
+    OFFSETS: int|Progress
+    '''
+    Calculate offsets for the accessors and views for the glTF file.
+    '''
+    BUFFERS: Progress
+    '''
+    Initialize buffers to receive data
+    '''
+    VIEWS: Progress
+    '''
+    Initialize buffer views to receive data
+    '''
+    EXTENSIONS: set[str]|None|Progress
+    '''
+    Collect the set of used extensions for the glTF file.
+    '''
+    BUILD: gltf.GLTF2|gltf.Property|Progress
+    '''
+    Construct the binary data for the glTF file.
+    '''
     @property
     def index(self) -> int:
         if self._index is None:
@@ -174,10 +230,6 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         elif self._index != index:
             raise ValueError(f'Index already set, old={self._index}, new={index}')
 
-    phases: list[Phase]
-    compiled: _GLTF|None
-    collected: _Collected|None
-
     element: _ELEMENT
     extension_objects: set['Extension']
 
@@ -187,14 +239,21 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
                 byteOffset: int|None=0,
                 ) -> None:
         self.name = name
-        self.phases = []
-        self.compiled = None
-        self.collected = None
         self._byteOffset = byteOffset
         self._index = None
         self._len = None
         self.element = element
         self.extension_objects = set(element.extension_objects)
+        self.PRIMITIVES: Progress = Progress.NONE
+        self.COLLECT: _Collected|Progress = Progress.NONE
+        self.ENUMERATE: int|Progress = Progress.NONE
+        self.VERTICES: Progress = Progress.NONE
+        self.SIZES: int|Progress = Progress.NONE
+        self.OFFSETS: int|Progress = Progress.NONE
+        self.BUFFERS: Progress = Progress.NONE
+        self.VIEWS: Progress = Progress.NONE
+        self.EXTENSIONS: set[str]|None|Progress = Progress.NONE
+        self.BUILD: gltf.GLTF2|gltf.Property|Progress = Progress.NONE
 
     def __repr__(self):
         return std_repr(self, (
@@ -345,71 +404,78 @@ class _Compilable(Generic[_GLTF, _STATE]):
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
         state = cast(_STATE, globl.state(cast('Element', self)))
-        if phase in state.phases:
-            match phase:
-                case Phase.COLLECT:
-                    return state.collected
-                case Phase.SIZES:
-                    assert isinstance(state, _CompileStateBinary)
-                    return len(state)
-                case Phase.OFFSETS:
-                    assert isinstance(state, _CompileStateBinary)
-                    return state.byteOffset
-                case Phase.BUILD:
-                    return cast(_GLTF, state.compiled)
-                case _:
-                    return None
-        else:
-            LOG.debug('Compiling %s in phase %s', self, phase)
+        progress = getattr(state, phase.name)
+        match progress:
+            case Progress.IN_PROGRESS:
+                raise RuntimeError(f"Recursive compilation detected on {self} in phase {phase.name}")
+            case Progress.NONE:
+                setattr(state, phase.name, Progress.IN_PROGRESS)
+                LOG.debug('Compiling %s in phase %s', self, phase.name)
 
-            def _do_compile():
-                return self._do_compile(globl, phase, state)
-            state.phases.append(phase)
-            match phase:
-                case Phase.COLLECT:
-                    def e_collect(ext: 'Extension'):
-                        return ext.compile(globl, Phase.COLLECT)
+                def _do_compile():
+                    return self._do_compile(globl, phase, state)
+                match phase:
+                    case Phase.COLLECT:
+                        def e_collect(ext: 'Extension'):
+                            return ext.compile(globl, Phase.COLLECT)
 
-                    globl.extension_objects.update(
-                        globl.state(cast(Extension, e))
-                        for group in (self.extension_objects,
-                                      state.extension_objects)
-                        for ext in group
-                        for e in e_collect(ext)
-                        if e is not None
-                    )
-                    state.name = globl._gen_name(self)
-                    items = cast(_ReturnCollect, (_do_compile() or ()))
-                    return (self, tuple(items or ()),)
-                case Phase.SIZES:
-                    assert isinstance(state, _CompileStateBinary)
-                    bytelen = cast(_ReturnSizes, _do_compile() or 0)
-                    assert bytelen is not None
-                    state._len = bytelen
-                    LOG.debug('%s has length %s', self, state._len)
-                    return bytelen
-                case Phase.OFFSETS:
-                    assert isinstance(state, _CompileStateBinary)
-                    _do_compile()
-                    if state.byteOffset >= 0:
-                        if LOG.isEnabledFor(DEBUG):
-                            LOG.debug('%s has offset %d',
-                                    self, state.byteOffset,
-                                    )
-                    else:
-                        LOG.debug(f'{self} has offset {state.byteOffset}')
-                        return state.byteOffset + len(state)
-                    return -1
-                case Phase.EXTENSIONS:
-                    if self.extensions:
-                        return set(self.extensions.keys())
-                    return None
-                case Phase.BUILD:
-                    if state.compiled is None:
-                        state.compiled = cast(_GLTF, _do_compile())
-                    return cast(_GLTF, state.compiled)
-                case _:
-                    _do_compile()
+                        globl.extension_objects.update(
+                            globl.state(cast(Extension, e))
+                            for group in (self.extension_objects,
+                                        state.extension_objects)
+                            for ext in group
+                            for e in e_collect(ext)
+                            if e is not None
+                        )
+                        state.name = globl._gen_name(self)
+                        items = cast(_ReturnCollect, (_do_compile() or ()))
+                        result= (
+                            self,
+                            tuple(
+                                i
+                                  for i in items or ()
+                                  if i
+                                )
+                        )
+                        state.COLLECT = result
+                        return result
+                    case Phase.SIZES:
+                        assert isinstance(state, _CompileStateBinary)
+                        bytelen = cast(_ReturnSizes, _do_compile() or 0)
+                        assert bytelen is not None
+                        state._len = bytelen
+                        LOG.debug('%s has length %s', self, state._len)
+                        state.SIZES = bytelen
+                        return bytelen
+                    case Phase.OFFSETS:
+                        assert isinstance(state, _CompileStateBinary)
+                        _do_compile()
+                        if state.byteOffset >= 0:
+                            if LOG.isEnabledFor(DEBUG):
+                                LOG.debug('%s has offset %d',
+                                        self, state.byteOffset,
+                                        )
+                            offset = state.byteOffset
+                        else:
+                            LOG.debug(f'{self} has offset {state.byteOffset}')
+                            offset = state.byteOffset + len(state)
+                        state.OFFSETS = offset
+                        return offset
+                    case Phase.EXTENSIONS:
+                        extensions = None
+                        if self.extensions:
+                            extensions = set(self.extensions.keys())
+                        state.EXTENSIONS = extensions
+                        return extensions
+                    case Phase.BUILD:
+                        built = cast(_GLTF, _do_compile())
+                        state.BUILD = cast(gltf.GLTF2|gltf.Property, built)
+                        return built
+                    case _:
+                        _do_compile()
+                        setattr(state, phase.name, Progress.DONE)
+            case _:
+                return getattr(state, phase.name)
 
 
     @abstractmethod

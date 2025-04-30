@@ -6,7 +6,12 @@
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
         "**/CVS": true,
-        "**/.ruby-lsp": true
+        "**/.ruby-lsp": true,
+        ".coverage": true,
+        ".venv/*": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache/": true,
+        "**/node_modules/": true
     },
     "hide-files.files": [],
     "cSpell.words": [
@@ -39,5 +44,14 @@
         }
     },
     "ruff.configuration": "",
-    "python.analysis.inlayHints.functionReturnTypes": false
+    "python.analysis.inlayHints.functionReturnTypes": false,
+    "search.exclude": {
+        ".venv/": true,
+        ".vscode/": true,
+        "**/__pycache__/*": true,
+        "**/node_modules/": true,
+        "package-lock.json": true,
+        "typings/": true,
+        "uv.lock": true
+    }
 }

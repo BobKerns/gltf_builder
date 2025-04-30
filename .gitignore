@@ -20,7 +20,7 @@ wheels/
 *.bin
 
 # Never include test output in the repository.
-test/out/
+test/out/*
 
 # Node.js dependencies
 

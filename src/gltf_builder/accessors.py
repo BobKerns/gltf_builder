@@ -147,11 +147,11 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 return ldata * self.componentSize
             case Phase.OFFSETS:
                 assert state.view is not None
-                state.view.compile(globl, phase)
                 v_state = globl.state(state.view)
                 start = state.byteOffset
                 end = state.byteOffset + len(state)
                 state.memory = v_state.memory[start:end]
+                return end
             case Phase.BUILD:
                 data = np.array(state.data, self.dtype)
                 if len(data) == 0:
