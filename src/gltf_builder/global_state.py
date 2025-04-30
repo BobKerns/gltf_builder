@@ -34,7 +34,7 @@ from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.builder import Builder
     from gltf_builder.extensions import Extension
-    #from gltf_builder.treewalker import TreeWalker
+    from gltf_builder.treewalker import TreeWalker
 
 
 LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
@@ -53,6 +53,8 @@ class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
     def builder(self) -> 'Builder':
         return self.__builder
 
+    treewalker: Optional['TreeWalker'] = None
+    returns: dict[Phase, _DoCompileReturn]
 
     def state(self, elt: Element[_GLTF, _STATE]) -> _STATE:
         '''
@@ -430,7 +432,8 @@ class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
             for s in cast(set[Extension]|None, _do_compile(elt)) or ()
         }
 
-    def _do_compile(self, gbl: Self, phase: Phase, state: Self):
+    # Currently a placeholder.
+    def _do_compile(self, globl: Self, phase: Phase, state: Self):
         '''
         Compile the given element.
         '''

@@ -132,34 +132,34 @@ class _Mesh(BMesh):
         return prim
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _MeshState,
                     /
                 ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:
             case Phase.PRIMITIVES:
-                gbl.meshes.add(self)
+                globl.meshes.add(self)
                 for i, prim in enumerate(self.primitives):
-                    p_state = gbl.state(prim)
+                    p_state = globl.state(prim)
                     p_state.index = i
-                    prim.compile(gbl, phase)
+                    prim.compile(globl, phase)
             case Phase.COLLECT:
-                gbl.meshes.add(self)
+                globl.meshes.add(self)
                 return (
-                    prim.compile(gbl, Phase.COLLECT)
+                    prim.compile(globl, Phase.COLLECT)
                     for prim in self.primitives
                 )
             case Phase.SIZES:
                 return sum(
-                    prim.compile(gbl, Phase.SIZES)
+                    prim.compile(globl, Phase.SIZES)
                     for prim in self.primitives
                 )
             case Phase.BUILD:
                 return gltf.Mesh(
                     name=self.name,
                     primitives=[
-                        p.compile(gbl, phase)
+                        p.compile(globl, phase)
                         for p in self.primitives
                     ],
                     weights=self.weights,
@@ -168,7 +168,7 @@ class _Mesh(BMesh):
                 )
             case _:
                 for prim in self.primitives:
-                    prim.compile(gbl, phase)
+                    prim.compile(globl, phase)
 
     def __repr__(self):
         return std_repr(self, (

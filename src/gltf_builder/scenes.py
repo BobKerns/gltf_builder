@@ -51,24 +51,24 @@ class _Scene(BScene):
         )
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state:_SceneState,
                     /):
         match phase:
             case Phase.COLLECT:
                 for n in self.nodes:
-                    gbl.nodes.add(n)
-                return [n.compile(gbl, phase) for n in self.nodes]
+                    globl.nodes.add(n)
+                return [n.compile(globl, phase) for n in self.nodes]
             case Phase.BUILD:
                 return gltf.Scene(
-                    nodes=[gbl.idx(n) for n in self.nodes],
+                    nodes=[globl.idx(n) for n in self.nodes],
                     extras=self.extras,
                     extensions=self.extensions,
                 )
             case _:
                 for n in self.nodes:
-                    n.compile(gbl, phase)
+                    n.compile(globl, phase)
 
     def __repr__(self):
         return std_repr(self, (

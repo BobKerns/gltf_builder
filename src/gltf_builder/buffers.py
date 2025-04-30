@@ -85,26 +85,26 @@ class _Buffer(BBuffer):
             extensions=extensions)
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _BufferState,
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
         def _compile1(elt: Element[_GLTF, _STATE]):
-            return elt.compile(gbl, phase)
+            return elt.compile(globl, phase)
         def _compile_views():
             for view in state.views:
                 _compile1(view)
         match phase:
             case Phase.COLLECT:
-                gbl.views.add(*state.views)
+                globl.views.add(*state.views)
                 return (
-                    view.compile(gbl, Phase.COLLECT)
+                    view.compile(globl, Phase.COLLECT)
                     for view in state.views
                 )
             case Phase.SIZES:
                 bytelen = sum(
-                    view.compile(gbl, Phase.SIZES)
+                    view.compile(globl, Phase.SIZES)
                     for view in state.views
                 )
                 state._bytearray = state._bytearray.zfill(bytelen)
@@ -112,7 +112,7 @@ class _Buffer(BBuffer):
             case Phase.OFFSETS:
                 offset = 0
                 for view in state.views:
-                    vstate = gbl.state(view)
+                    vstate = globl.state(view)
                     vstate.byteOffset = offset
                     _compile1(view)
                     offset += len(vstate.memory)

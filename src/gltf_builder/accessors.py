@@ -112,25 +112,25 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.target = target
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _AccessorState,
                     /
                     ) -> _DoCompileReturn[gltf.Accessor]:
         match phase:
             case Phase.COLLECT:
-                buffer = gbl.buffer
-                vname = gbl._gen_name(self,
+                buffer = globl.buffer
+                vname = globl._gen_name(self,
                                           scope=ScopeName.BUFFER_VIEW,
                                           suffix='/view')
-                state.view = gbl._get_view(buffer,
+                state.view = globl._get_view(buffer,
                                               self.target,
                                               byteStride=self.byteStride,
                                               name=vname)
-                gbl.views.add(state.view)
-                vstate = gbl.state(state.view)
+                globl.views.add(state.view)
+                vstate = globl.state(state.view)
                 vstate.add_accessor(self)
-                gbl.accessors.add(self)
+                globl.accessors.add(self)
                 return [(self,())]
             case Phase.SIZES:
                 (
@@ -147,8 +147,8 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 return ldata * self.componentSize
             case Phase.OFFSETS:
                 assert state.view is not None
-                state.view.compile(gbl, phase)
-                v_state = gbl.state(state.view)
+                state.view.compile(globl, phase)
+                v_state = globl.state(state.view)
                 start = state.byteOffset
                 end = state.byteOffset + len(state)
                 state.memory = v_state.memory[start:end]
@@ -170,7 +170,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 state.memory[:] = data.tobytes()
                 assert state.view is not None
                 return gltf.Accessor(
-                    bufferView=gbl.idx(state.view),
+                    bufferView=globl.idx(state.view),
                     count=self.count,
                     type=self.elementType,
                     componentType=self.componentType,

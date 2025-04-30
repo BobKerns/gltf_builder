@@ -47,22 +47,22 @@ class _Skin(BSkin):
         self.inverseBindMatrices = inverseBindMatrices
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _SkinState,
                     /) -> _DoCompileReturn[gltf.Skin]:
         match phase:
             case Phase.COLLECT:
-                gbl.nodes.add(self.skeleton)
+                globl.nodes.add(self.skeleton)
                 for j in self.joints:
-                    gbl.nodes.add(j)
-                return [self.skeleton.compile(gbl, phase)] + \
-                       [j.compile(gbl, phase) for j in self.joints]
+                    globl.nodes.add(j)
+                return [self.skeleton.compile(globl, phase)] + \
+                       [j.compile(globl, phase) for j in self.joints]
             case Phase.BUILD:
                 return gltf.Skin(
                     name=self.name,
-                    skeleton=gbl.idx(self.skeleton),
-                    joints=[gbl.idx(j) for j in self.joints],
+                    skeleton=globl.idx(self.skeleton),
+                    joints=[globl.idx(j) for j in self.joints],
                     extras=self.extras,
                     extensions=self.extensions,
                 )

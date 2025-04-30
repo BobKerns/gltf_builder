@@ -79,26 +79,26 @@ class _Image(BImage):
         self.imageType = imageType
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _ImageState,
                     /) -> _DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
-                gbl.images.add(self)
+                globl.images.add(self)
                 if self.blob is not None:
-                    name=gbl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
-                    state.view = gbl._get_view(gbl.buffer,
+                    name=globl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
+                    state.view = globl._get_view(globl.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,
                     )
-                    return [state.view.compile(gbl, phase,)]
+                    return [state.view.compile(globl, phase,)]
             case Phase.SIZES:
                 return len(self.blob) if self.blob is not None else 0
             case Phase.OFFSETS:
                 if state.view is not None:
                     assert state.blob is not None
-                    v_state = gbl.state(state.view)
+                    v_state = globl.state(state.view)
                     state.memory = v_state.memory[0:len(state.blob)]
                 return 0
             case Phase.BUILD:
@@ -109,7 +109,7 @@ class _Image(BImage):
                     assert memory is not None
                     assert blob is not None
                     memory[:] = blob
-                    self.view.compile(gbl, Phase.BUILD)
+                    self.view.compile(globl, Phase.BUILD)
                 img = gltf.Image(
                         name=self.name,
                         #pygltflib is sloppy about types

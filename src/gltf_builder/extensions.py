@@ -122,14 +122,14 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
         '''
         return self.data
 
-    def collect(self, gbl: GlobalState, state: _EXT_STATE) -> list[_Collected]:
+    def collect(self, globl: GlobalState, state: _EXT_STATE) -> list[_Collected]:
         '''
         Collect any additional elements that the extension needs to add
         to the global state.
 
         Parameters
         ----------
-        gbl : _GlobalState
+        globl : _GlobalState
             The global state of the compilation process.
         scope : _Scope
             The scope of the compilation process. It should be ignored
@@ -139,7 +139,7 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
         return []
 
     def _do_compile(self,
-                    gbl: GlobalState,
+                    globl: GlobalState,
                     phase: Phase,
                     state: _EXT_STATE,
     ) -> _DoCompileReturn[_EXT_DATA]:
@@ -158,7 +158,7 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
                 # If it needs to keep track of the elements it has added,
                 # it should subclass _ExtensionState and add the elements
                 # to the state.
-                return self.collect(gbl, state)
+                return self.collect(globl, state)
             case Phase.SIZES|Phase.OFFSETS:
                 # These are used to calculate the size and location of binary
                 # data in the glTF file. If the extension does not need to

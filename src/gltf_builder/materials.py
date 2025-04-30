@@ -65,7 +65,7 @@ class _Material(BMaterial):
         self.doubleSided = doubleSided
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _MaterialState) -> _DoCompileReturn[gltf.Material]:
         '''
@@ -84,13 +84,13 @@ class _Material(BMaterial):
                     if t
                 ]
                 for t in textures:
-                    t.compile(gbl, phase)
+                    t.compile(globl, phase)
                 return cast(_ReturnCollect, textures)
             case Phase.BUILD:
                 def texture_idx(t: BTexture|None) -> int|None:
                     if t is None:
                         return None
-                    return gbl.idx(t)
+                    return globl.idx(t)
                 t_baseColor = texture_idx(self.baseColorTexture)
                 t_metallicRoughness = texture_idx(self.metallicRoughnessTexture)
                 t_normal = texture_idx(self.normalTexture)

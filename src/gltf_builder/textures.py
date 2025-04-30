@@ -53,14 +53,14 @@ class _Texture(BTexture):
 
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _TextureState,
                     /):
         match phase:
             case Phase.COLLECT:
                 return (
-                    s.compile(gbl, phase)
+                    s.compile(globl, phase)
                     for s in (
                         self.sampler,
                         self.source,
@@ -69,8 +69,8 @@ class _Texture(BTexture):
             case Phase.BUILD:
                 return gltf.Texture(
                     name=self.name,
-                    sampler=gbl.idx(self.sampler),
-                    source=gbl.idx(self.source),
+                    sampler=globl.idx(self.sampler),
+                    source=globl.idx(self.source),
                     extras=self.extras,
                     extensions=self.extensions,
                 )

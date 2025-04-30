@@ -28,6 +28,7 @@ ffeecc
 fileuri
 frombuffer
 fromiter
+globl
 GLTFB
 ibytes
 idtype
@@ -62,6 +63,7 @@ sizedf
 skel
 skipkeys
 slerp
+STATEX
 Sysiphean
 Tait
 tanminus

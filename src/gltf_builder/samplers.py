@@ -56,7 +56,7 @@ class _Sampler(BSampler):
         )
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _SamplerState,
                     /):

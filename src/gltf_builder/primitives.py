@@ -96,27 +96,27 @@ class _Primitive(BPrimitive):
 
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _PrimitiveState,
                     /
                 ) -> _DoCompileReturn[gltf.Primitive]:
         def _compile(elt: Element[_GLTF, _STATE]):
-            return elt.compile(gbl, phase)
+            return elt.compile(globl, phase)
 
         mesh = self.mesh
         assert mesh is not None
-        buffer = gbl.buffer
+        buffer = globl.buffer
         def compile_attrib(name: str,
                            data: Sequence[BTYPE],
                         ) -> BAccessor[NPTypes, AttributeData]:
             index = mesh.primitives.index(self)
-            aname = gbl._gen_name(self,
+            aname = globl._gen_name(self,
                                         prefix=f'{mesh.name}:{self.mode.name}/',
                                         scope=ScopeName.ACCESSOR,
                                         index=index,
                                     )
-            attr_type = gbl.get_attribute_type(name)
+            attr_type = globl.get_attribute_type(name)
             dtype = decode_dtype(attr_type.elementType, attr_type.componentType)
             accessor = _Accessor(buffer, len(data),
                                  attr_type.elementType,
@@ -124,19 +124,19 @@ class _Primitive(BPrimitive):
                                  btype=attr_type.type,
                                  dtype=dtype,
                                  name=aname)
-            astate = gbl.state(accessor)
+            astate = globl.state(accessor)
             astate.add_data(data)
             _compile(accessor)
             return accessor
         match phase:
             case Phase.PRIMITIVES:
-                index_size = gbl._get_index_size(len(self.points))
+                index_size = globl._get_index_size(len(self.points))
                 assert index_size != IndexSize.AUTO
                 if index_size != IndexSize.NONE:
                     indices = list(range(len(self.points)))
                     idtype = decode_dtype(gltf.SCALAR, index_size)
                     index = mesh.primitives.index(self)
-                    name = gbl._gen_name(self,
+                    name = globl._gen_name(self,
                                             prefix=f'{mesh.name}:{self.mode.name}/',
                                             scope=ScopeName.ACCESSOR_INDEX,
                                             index=index,
@@ -160,10 +160,10 @@ class _Primitive(BPrimitive):
                         name=name,
                         target=BufferViewTarget.ELEMENT_ARRAY_BUFFER
                     )
-                    istate = gbl.state(state.indices_accessor)
+                    istate = globl.state(state.indices_accessor)
                     istate.add_data(indices)
             case Phase.COLLECT:
-                mesh.name = mesh.name or gbl._gen_name(mesh)
+                mesh.name = mesh.name or globl._gen_name(mesh)
                 state.accessors = {
                     name: compile_attrib(name, cast(Sequence[AttributeData], data))
                     for name, data in self.attribs.items()
@@ -171,12 +171,12 @@ class _Primitive(BPrimitive):
                 accessors: list[tuple[BAccessor[NPTypes,
                                                 AttributeData]
                                      |BAccessor[NPTypes, int], list[_Collected]]] = [
-                    (a, [a.compile(gbl, phase)])
+                    (a, [a.compile(globl, phase)])
                     for a in state.accessors.values()
                 ]
                 ia = state.indices_accessor
                 if ia:
-                    accessors.append((ia, [ia.compile(gbl, phase)]))
+                    accessors.append((ia, [ia.compile(globl, phase)]))
                 return accessors
             case phase.SIZES:
                 size = sum(
@@ -193,11 +193,11 @@ class _Primitive(BPrimitive):
                     _compile(state.indices_accessor)
             case Phase.BUILD:
                 attributes = {
-                    name: gbl.idx(acc)
+                    name: globl.idx(acc)
                     for name, acc in state.accessors.items()
                 }
                 i_accessor = state.indices_accessor
-                indices = gbl.idx(i_accessor) if i_accessor else None
+                indices = globl.idx(i_accessor) if i_accessor else None
                 return gltf.Primitive(
                     mode=self.mode,
                     indices=indices,
@@ -205,9 +205,9 @@ class _Primitive(BPrimitive):
                 )
             case _:
                 for acc in state.accessors.values():
-                    acc.compile(gbl, phase)
+                    acc.compile(globl, phase)
                 if state.indices_accessor:
-                    state.indices_accessor.compile(gbl, phase)
+                    state.indices_accessor.compile(globl, phase)
                 return None
 
     def __repr__(self):

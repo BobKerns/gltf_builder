@@ -66,7 +66,7 @@ class _Asset(BAsset):
         self.minVersion = minVersion
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _AssetState,
                     /):

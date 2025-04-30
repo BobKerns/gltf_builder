@@ -303,31 +303,31 @@ class _Compilable(Generic[_GLTF, _STATE]):
 
     @overload
     def compile(self,
-                gbl: 'GlobalState',
+                globl: 'GlobalState',
                 phase: Literal[Phase.COLLECT],
                 /
                 ) -> _Collected: ...
     @overload
     def compile(self,
-                gbl: 'GlobalState',
+                globl: 'GlobalState',
                 phase: Literal[Phase.SIZES],
                 /
             ) -> int: ...
     @overload
     def compile(self,
-                gbl: 'GlobalState',
+                globl: 'GlobalState',
                 phase: Literal[Phase.OFFSETS],
                 /
             ) -> int: ...
     @overload
     def compile(self,
-                gbl: 'GlobalState',
+                globl: 'GlobalState',
                 phase: Literal[Phase.BUILD],
                 /
                 ) -> _GLTF: ...
     @overload
     def compile(self,
-                gbl: 'GlobalState',
+                globl: 'GlobalState',
                 phase: Literal[
                         Phase.VIEWS,
                         Phase.ENUMERATE,
@@ -340,7 +340,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                 /
             ) -> None: ...
     def compile(self,
-                gbl: 'GlobalState',
+                globl: 'GlobalState',
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
@@ -363,22 +363,22 @@ class _Compilable(Generic[_GLTF, _STATE]):
             LOG.debug('Compiling %s in phase %s', self, phase)
 
             def _do_compile():
-                return self._do_compile(gbl, phase, state)
+                return self._do_compile(globl, phase, state)
             state.phases.append(phase)
             match phase:
                 case Phase.COLLECT:
                     def e_collect(ext: 'Extension'):
-                        return ext.compile(gbl, Phase.COLLECT)
+                        return ext.compile(globl, Phase.COLLECT)
 
-                    gbl.extension_objects.update(
-                        gbl.state(cast(Extension, e))
+                    globl.extension_objects.update(
+                        globl.state(cast(Extension, e))
                         for group in (self.extension_objects,
                                       state.extension_objects)
                         for ext in group
                         for e in e_collect(ext)
                         if e is not None
                     )
-                    state.name = gbl._gen_name(self)
+                    state.name = globl._gen_name(self)
                     items = cast(_ReturnCollect, (_do_compile() or ()))
                     return (self, tuple(items or ()),)
                 case Phase.SIZES:
@@ -414,7 +414,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
 
     @abstractmethod
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _STATE,
                     /

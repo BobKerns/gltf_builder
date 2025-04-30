@@ -212,31 +212,31 @@ class _Node(_BNodeContainer, BNode):
         )
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _NodeState,
                     /):
         match phase:
             case Phase.COLLECT:
-                gbl.nodes.add(self)
+                globl.nodes.add(self)
                 return (
-                    c.compile(gbl, phase)
+                    c.compile(globl, phase)
                     for c in (self.mesh, self.camera, *self.children)
                     if c is not None
                 )
             case Phase.SIZES:
                 size = sum(
-                    n.compile(gbl, phase)
+                    n.compile(globl, phase)
                     for n in self.children
                 )
                 if self.mesh is not None:
-                    size += self.mesh.compile(gbl, phase)
+                    size += self.mesh.compile(globl, phase)
                 return size
             case Phase.BUILD:
                 if self.mesh is not None:
-                    self.mesh.compile(gbl, phase)
+                    self.mesh.compile(globl, phase)
                 def idx(c: Element[_GLTF, _STATE]) -> int:
-                    return gbl.idx(c)
+                    return globl.idx(c)
                 mesh_idx = idx(self.mesh) if self.mesh else None
                 return gltf.Node(
                     name=self.name,
@@ -251,9 +251,9 @@ class _Node(_BNodeContainer, BNode):
                 )
             case _:
                 if self.mesh is not None:
-                    self.mesh.compile(gbl, phase)
+                    self.mesh.compile(globl, phase)
                 for child in self.children:
-                    child.compile(gbl, phase)
+                    child.compile(globl, phase)
 
 
 

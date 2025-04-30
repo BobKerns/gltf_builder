@@ -77,16 +77,16 @@ class _BufferView(BBufferView):
         self.byteStride = byteStride
 
     def _do_compile(self,
-                    gbl: 'GlobalState',
+                    globl: 'GlobalState',
                     phase: Phase,
                     state: _BufferViewState,
                     /):
         match phase:
             case Phase.COLLECT:
-                gbl.accessors.add(*state.accessors)
-                bstate = gbl.state(self.buffer)
+                globl.accessors.add(*state.accessors)
+                bstate = globl.state(self.buffer)
                 bstate.add_view(self)
-                return [acc.compile(gbl, phase)
+                return [acc.compile(globl, phase)
                         for acc in state.accessors]
             case Phase.SIZES:
                 self.byteStride = (
@@ -95,28 +95,29 @@ class _BufferView(BBufferView):
                     else 0
                 )
                 return sum(
-                    accessor.compile(gbl, phase)
+                    accessor.compile(globl, phase)
                     for accessor in state.accessors
                 )
             case Phase.OFFSETS:
                 end = state.byteOffset + len(state)
-                bstate = gbl.state(self.buffer)
+                bstate = globl.state(self.buffer)
                 buf_memview = memoryview(bstate._bytearray)
                 state.memory = buf_memview[state.byteOffset:end]
                 offset = 0
                 for acc in state.accessors:
+                    astate = globl.state(acc)
                     assert isinstance(astate, _AccessorState )
                     astate.byteOffset = offset
-                    a_state = gbl.state(acc)
+                    a_state = globl.state(acc)
                     offset +=  len(a_state)
-                    acc.compile(gbl, phase)
+                    acc.compile(globl, phase)
                 return end
             case Phase.BUILD:
                 for acc in state.accessors:
-                    acc.compile(gbl, Phase.BUILD)
+                    acc.compile(globl, Phase.BUILD)
                 return gltf.BufferView(
                     name=self.name,
-                    buffer=gbl.idx(self.buffer),
+                    buffer=globl.idx(self.buffer),
                     byteOffset=state.byteOffset,
                     byteLength=len(state),
                     byteStride=self.byteStride or None,
