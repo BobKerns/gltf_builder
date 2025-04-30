@@ -38,6 +38,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
 )
 from gltf_builder.log import GLTF_LOG
+from gltf_builder.utils import std_repr
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -91,7 +92,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
     @property
     def index_size(self) ->  IndexSize:
         '''
-        The number of bits to use for indices.
+        The number of bytes to use for indices.
         '''
         return self.__index_size
 
@@ -118,7 +119,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         '''
         The primary `BBuffer` for the glTF file.
         '''
-        return self._buffers[0]
+        return self.buffers[0]
 
     '''
     The global state for the compilation of the glTF file.
@@ -161,7 +162,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         self.asset = asset
         self.meshes = _Holder(BMesh, *meshes)
         self.cameras = _Holder(BCamera, *cameras)
-        self._buffers = _Holder(BBuffer, *buffers)
+        self.buffers = _Holder(BBuffer, *buffers)
         self._views = _Holder(BBufferView)
         self._accessors = _Holder(BAccessor)
         self.images = _Holder(BImage, *images)
@@ -341,3 +342,20 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 )
         self.nodes.add(node)
         return node
+
+    def __repr__(self):
+        def iflen(s: Iterable) -> Optional[int]:
+            return len(list(s)) if s else None
+        return std_repr(self, (
+            ('cameras', iflen(self.cameras)),
+            ('meshes', iflen(self.meshes)),
+            ('images', iflen(self.images)),
+            ('materials', iflen(self.materials)),
+            ('nodes', iflen(self.nodes)),
+            ('samplers', iflen(self.samplers)),
+            ('skins', iflen(self.skins)),
+            ('scenes', iflen(self.scenes)),
+            ('textures', iflen(self.textures)),
+            ('buffers', iflen(self.buffers)),
+            'index_size',
+        ))

@@ -195,7 +195,7 @@ class ProxyBuilder(Builder):
             or self.skins.get(name)
             or self._accessors.get(name)
             or self._views.get(name)
-            or self._buffers.get(name)
+            or self.buffers.get(name)
             or self.scenes.get(name)
             or self.extensions.get(name)
             or self.extras.get(name)

@@ -463,7 +463,19 @@ class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
         yield from self.buffers
 
 
-    def __repr__(self) -> str:
+    def __repr__(self):
+        def iflen(s: Iterable) -> Optional[int]:
+            return len(list(s)) if s else None
         return std_repr(self, (
-            'builder',
+            ('cameras', iflen(self.cameras)),
+            ('meshes', iflen(self.meshes)),
+            ('images', iflen(self.images)),
+            ('materials', iflen(self.materials)),
+            ('nodes', iflen(self.nodes)),
+            ('samplers', iflen(self.samplers)),
+            ('skins', iflen(self.skins)),
+            ('scenes', iflen(self.scenes)),
+            ('textures', iflen(self.textures)),
+            ('buffers', iflen(self.buffers)),
+            'index_size',
         ))
