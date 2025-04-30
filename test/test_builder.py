@@ -2,6 +2,7 @@
 Test cases
 '''
 
+from re import I
 import pytest
 
 from collections.abc import Callable
@@ -76,7 +77,7 @@ def cube(save):
 
 
 def test_cube(cube):
-    cube.index_size = -1
+    cube.index_size = IndexSize.NONE
     m = cube.meshes['CUBE_MESH']
     assert len(m.primitives) == 6
     n = cube.nodes['TOP']
@@ -131,7 +132,7 @@ def test_faces2(save):
     assert len(g.nodes) == 7
     size = 6 * 3 * 4 * 4 + 4 * 4 * 6
     assert len(g.binary_blob()) == size
-    
+
 
 @pytest.mark.parametrize('index_size', [
     IndexSize.NONE,
@@ -167,7 +168,7 @@ def test_cubeX(index_size, cube):
 
 
 def test_instances_mesh(cube: GeometryData):
-    cube.index_size = -1
+    cube.index_size = IndexSize.NONE
     m = cube.meshes['CUBE_MESH']
 
     n = cube.nodes['TOP']
