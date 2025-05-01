@@ -5,6 +5,8 @@ Test cases
 from typing import Iterable
 import math
 
+from pytest import raises
+
 
 from gltf_builder import (
     Builder, PrimitiveMode, Quaternion as Q,
@@ -206,3 +208,46 @@ def test_normal(index_sizes, save):
     assert len(g.bufferViews) == 1 + idx_views
     assert len(g.accessors) == 12 + 6 * idx_views
     assert len(g.nodes) == 3
+
+
+def test_root_fn():
+    n = node('root')
+    assert n.root is True
+    assert n.parent is None
+
+def test_root_builder_create():
+    b = Builder()
+    n = b.create_node('root')
+    assert n.root is True
+    assert n.parent is None
+
+
+def test_root_builder_add():
+    b = Builder()
+    n = node('root')
+    #b.add(n)
+    b.nodes.add(n)
+    assert n.root is True
+    assert n.parent is None
+
+def test_child_fn():
+    c = node('child')
+    n = node('root', children=[c])
+    assert c.root is False
+    assert c.parent is n
+
+def test_child_node_create():
+    n = node('root')
+    c = n.create_node('child')
+    assert c.root is False
+    assert c.parent is n
+
+def test_child_no_multiparent():
+    '''
+    Test that a node cannot be added to multiple parents.
+    '''
+    c = node('CHILD')
+    node('TOP1', children=[c])
+    with raises(ValueError):
+        node('TOP2', children=[c])
+

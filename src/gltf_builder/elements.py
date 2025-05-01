@@ -288,7 +288,14 @@ class BPerspectiveCamera(BCamera):
 class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol):
     _scope_name = ScopeName.NODE
     mesh: BMesh|None
-    root: bool
+
+    @property
+    def root(self) -> bool:
+        '''
+        Return `True` if this node is the root node of the scene.
+        '''
+        return self.parent is None
+
     __translation: Optional[Vector3]
     @property
     def translation(self) -> Optional[Vector3]:

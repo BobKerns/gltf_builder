@@ -36,3 +36,12 @@ def test_add_scene(test_builder):
     g = test_builder.build()
     assert len(g.nodes) == 7
     assert g.nodes[0].name == 'CUBE'
+
+def test_default_scene(test_builder):
+    test_builder.nodes.add(node('CUBE'))
+    g = test_builder.build()
+    assert g.scene == 0
+    assert g.scenes[0].name is None
+    assert len(g.nodes) == 1
+    assert g.nodes[0].name == 'CUBE'
+    assert g.scenes[0].nodes == [0]

@@ -53,7 +53,13 @@ class AttributeType(NamedTuple):
     parser: _AttributeParser[AttributeData]|None = None
 
 class _BNodeContainerProtocol(Protocol):
-    _parent: Optional['BNode'] = None
+    @property
+    @abstractmethod
+    def parent(self) -> Optional['BNode']:
+        '''
+        Return the parent of this node.
+        '''
+        ...
     nodes: _Holder['BNode']
     descendants: dict[str, 'BNode']
     @property
@@ -350,7 +356,4 @@ class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol):
         '''
         Get the index of the given element.
         '''
-        i = self.state(elt).index
-        if i == -1:
-            raise ValueError(f'Element {elt} has no index yet')
         return self.state(elt).index

@@ -5,10 +5,11 @@ the build phase.
 
 
 from collections.abc import Iterable
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, cast
 
 import pygltflib as gltf
 
+import gltf_builder.builder as builder
 from gltf_builder.compiler import _GLTF, _STATE, _CompileState
 from gltf_builder.core_types import ExtensionsData, ExtrasData, Phase
 from gltf_builder.attribute_types import (
@@ -30,14 +31,23 @@ if TYPE_CHECKING:
 
 
 class _BNodeContainer(_BNodeContainerProtocol):
+    _parent: Optional[BNode] = None
+    @property
+    def parent(self) -> Optional[BNode]:
+        '''
+        Return the parent of this node.
+        '''
+        return self._parent
     nodes: _Holder[BNode]
     @property
     def children(self):
         return self.nodes
 
     def __init__(self, /,
+                parent: Optional[BNode]=None,
                 nodes: Iterable[BNode]=(),
             ):
+        self._parent = parent
         self._local_views = {}
         self.nodes = _Holder(BNode, *nodes)
         self.descendants: dict[str, BNode] = {}
@@ -84,9 +94,9 @@ class _BNodeContainer(_BNodeContainerProtocol):
         -------
         BNode
         '''
-        root = isinstance(self, _GlobalBinary)
+        root = isinstance(self, (_GlobalBinary, builder.Builder))
         node = _Node(name,
-                    root=root,
+                    parent=cast(BNode, self) if not root else None,
                     children=children,
                     mesh=mesh,
                     camera=camera,
@@ -103,7 +113,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
             while n is not None:
                 if name not in n.descendants:
                     n.descendants[name] = node
-                n = n._parent
+                n = n.parent
         return node
 
     def instantiate(self, node_or_mesh: BNode|BMesh,
@@ -172,10 +182,10 @@ class _Node(_BNodeContainer, BNode):
 
     def __init__(self,
                  name: str ='', /,
+                 parent: Optional[BNode]=None,
                  children: Iterable[BNode]=(),
                  mesh: Optional[BMesh]=None,
                  camera: Optional[BCamera]=None,
-                 root: Optional[bool]=None,
                  translation: Optional[Vector3Spec]=None,
                  rotation: Optional[QuaternionSpec]=None,
                  scale: Optional[Vector3Spec]=None,
@@ -189,9 +199,10 @@ class _Node(_BNodeContainer, BNode):
                          extensions=extensions,
                         )
         _BNodeContainer.__init__(self,
-                                nodes=children,
+                            parent=parent,
+                            nodes=children,
                             )
-        self.root = root or False
+
         self.mesh = mesh
         self.camera = camera
         self.translation = vector3(translation) if translation else None
@@ -200,8 +211,11 @@ class _Node(_BNodeContainer, BNode):
         self.matrix = to_matrix(matrix) if matrix else None
         self._local_views = _Holder(BBufferView)
         for c in self.children:
+            c = cast(_Node, c)
             c._parent = self
-            c.root = False
+        for c in self.children:
+            print(f'child={c!r}')
+        pass
 
     def _clone_attributes(self) -> dict[str, Any]:
         return dict(
@@ -212,7 +226,6 @@ class _Node(_BNodeContainer, BNode):
             rotation=self.rotation,
             scale=self.scale,
             matrix=self.matrix,
-            root=self.root,
         )
 
     def _do_compile(self,
@@ -339,9 +352,14 @@ def node(
     _Node
         A node object with the given attributes.
     '''
+    for c in children:
+        if not c.root:
+            raise ValueError(
+                f'{c.name!r} already has a parent: {c.parent!r}'
+            )
     return _Node(
         name,
-        children=[c.clone() for c in children],
+        children=children,
         mesh=mesh.clone() if mesh is not None else None,
         camera=camera.clone() if camera else None,
         translation=translation,

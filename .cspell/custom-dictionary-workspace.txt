@@ -46,6 +46,7 @@ linalg
 mathbf
 memview
 mmdc
+multiparent
 namespec
 ndarray
 ndata
