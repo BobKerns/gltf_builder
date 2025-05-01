@@ -2,6 +2,8 @@
 Test cases for the cameras module.
 '''
 
+import pytest
+
 from gltf_builder import (
     camera, CameraType,
 )
@@ -66,3 +68,25 @@ def test_camera_orthographic():
     assert cam.orthographic.zfar == 1000.0
     assert cam.orthographic.extras == {}
     assert cam.orthographic.extensions == {}
+
+
+@pytest.mark.parametrize('test_camera', [
+    camera(CameraType.PERSPECTIVE),
+    camera(CameraType.ORTHOGRAPHIC),
+])
+def test_camera_node(cube, index_sizes, test_camera, test_builder):
+    '''
+    Test that a camera node is correctly built.
+    '''
+    index_size, idx_bytes, idx_views = index_sizes
+    tb = test_builder
+    tb.create_node('CameraNode',
+                   translation=(0, 0, -10),
+                   camera=test_camera)
+    tb.instantiate(cube.nodes['TOP'],)
+    g = tb.build(index_size=index_size)
+    assert len(tuple(
+        n
+        for n in g.nodes
+        if n.camera is not None
+    )) == 1

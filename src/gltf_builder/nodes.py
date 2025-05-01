@@ -47,6 +47,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
                 /, *,
                 children: Iterable[BNode]=(),
                 mesh: Optional[BMesh]=None,
+                camera: Optional[BCamera]=None,
                 translation: Optional[Vector3Spec]=None,
                 rotation: Optional[QuaternionSpec]=None,
                 scale: Optional[Vector3Spec]=None,
@@ -65,6 +66,8 @@ class _BNodeContainer(_BNodeContainerProtocol):
             Children of the node.
         mesh : Optional[BMesh]
             Mesh of the node.
+        camera : Optional[BCamera]
+            Camera of the node.
         translation : Optional[Vector3Spec]
             Translation of the node.
         rotation : Optional[QuaternionSpec]
@@ -86,6 +89,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
                     root=root,
                     children=children,
                     mesh=mesh,
+                    camera=camera,
                     translation=translation,
                     rotation=rotation,
                     scale=scale,
@@ -219,6 +223,10 @@ class _Node(_BNodeContainer, BNode):
         match phase:
             case Phase.COLLECT:
                 globl.nodes.add(self)
+                if self.camera is not None:
+                    globl.cameras.add(self.camera)
+                if self.mesh is not None:
+                    globl.meshes.add(self.mesh)
                 return (
                     c.compile(globl, phase)
                     for c in (self.mesh, self.camera, *self.children)
@@ -238,9 +246,11 @@ class _Node(_BNodeContainer, BNode):
                 def idx(c: Element[_GLTF, _STATE]) -> int:
                     return globl.idx(c)
                 mesh_idx = idx(self.mesh) if self.mesh else None
+                cam_idx = idx(self.camera) if self.camera else None
                 return gltf.Node(
                     name=self.name,
                     mesh=mesh_idx,
+                    camera=cam_idx,
                     children=[idx(child) for child in self.children],
                     translation=list(self.translation) if self.translation else None,
                     rotation=list(self.rotation) if self.rotation else None,

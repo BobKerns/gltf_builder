@@ -221,7 +221,7 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
     @property
     def index(self) -> int:
         if self._index is None:
-            raise ValueError(f'Index not set for {type(self)}')
+            raise ValueError(f'Index not set for {type(self.element).__name__!s}')
         return self._index
     @index.setter
     def index(self, index: int):
