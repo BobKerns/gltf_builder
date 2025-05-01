@@ -171,7 +171,7 @@ def define_geometry(name: str, fn: GeometryFn, /, *,
                                     name_policy=name_policy,
                                     extras=extras,
                                     extensions=extensions,
-                                    )
+                                )
 
 def get_geometry(name: str) -> BNode:
     '''
@@ -191,8 +191,6 @@ def _cube(cube: BNode):
         node = cube.create_node(name)
         mesh = node.create_mesh(name)
 
-        uvx = uv(0.0, 0.0), uv(0.0, 1.0), uv(1.0, 1.0), uv(1.0, 0.0)
         mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE_VERTICES[i] for i in face],)
-    CUBE = cube
 
 define_geometry('CUBE', _cube)
