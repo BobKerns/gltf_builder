@@ -223,6 +223,12 @@ See [quaternions.md](quaternions.md) or [quaternions.py](src/gltf_builder/quater
 
 The unit tests and their organization are described in the [Testing README](testing/README.md). Files created by the tests are automatically validated using the official Khronos validator.
 
+## The Compiler
+
+This is basically a compiler, translating from an input representation to the final product.
+
+A bit of documentation [here](docs/compiler.md).
+
 ## Still Needed
 
 - Animation

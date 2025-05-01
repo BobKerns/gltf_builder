@@ -40,6 +40,12 @@ This is only in the returned value, not the `.gltf` or `glb` files. It is there 
 
 It is also saved in `test_builder.report`.
 
+## The Compiler
+
+This is basically a compiler, translating from an input representation to the final product.
+
+A bit of documentation [here](../docs/compiler.md).
+
 ## Debugging
 
 With the recommended VSCode plugins, `.glb` files can be viewed directly within VSCode.
@@ -50,3 +56,5 @@ With the recommended VSCode plugins, `.glb` files can be viewed directly within 
   * This uses google's model viewer
 
 These provide inline validation of the `.gltf` JSON data, mouseover hover information, navigation by clicking on element IDs, and more.
+
+The tests are set up to generate `.glb`, and `.gltf`, and a `.json` validation report. These appear in the [test/out](test/out) directory. A small [`pytest`](https://docs.pytest.org/en/stable/index.html#) is often the best way to dig into a problem.

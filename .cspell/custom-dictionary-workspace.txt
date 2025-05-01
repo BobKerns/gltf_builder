@@ -29,6 +29,7 @@ ffeecc
 fileuri
 frombuffer
 fromiter
+getitem
 globl
 GLTFB
 ibytes
@@ -63,6 +64,7 @@ reweighted
 rgba
 rtol
 scipy
+setitem
 sizedf
 skel
 skipkeys
