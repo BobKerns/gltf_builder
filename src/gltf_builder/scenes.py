@@ -62,6 +62,7 @@ class _Scene(BScene):
                 return [n.compile(globl, phase) for n in self.nodes]
             case Phase.BUILD:
                 return gltf.Scene(
+                    name=self.name,
                     nodes=[globl.idx(n) for n in self.nodes],
                     extras=self.extras,
                     extensions=self.extensions,
