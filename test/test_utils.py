@@ -163,3 +163,28 @@ def test_first(input, expected):
             first(*input)
     else:
         assert first(*input) == expected
+
+
+@pytest.mark.parametrize('input,expected', [
+    ((), TypeError),
+    (((),), ValueError),
+    (((1,),), 1),
+    (((1, 2),), 2),
+    (((1, 2, 3),), 3),
+    (((), 'default'), 'default'),
+    (((), None), None),
+    (((1,), 'default'), 1),
+    (((1,), None), 1),
+])
+def test_last(input, expected):
+    '''
+    Test that last returns the last element of an iterable.
+    '''
+    from gltf_builder.utils import last
+    if (isinstance(expected, type)
+        and issubclass(expected, Exception)):
+        with pytest.raises(expected):
+            last(*input)
+    else:
+        assert last(*input) == expected
+

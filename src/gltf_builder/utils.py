@@ -2,7 +2,8 @@
 Internal utilities for the glTF builder.
 '''
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from contextlib import suppress
 from enum import Enum
 from math import floor
 import os
@@ -408,6 +409,7 @@ def count_iter(iterable: Iterable[Any]) -> int:
 
 _T1 = TypeVar('_T1')
 _T2 = TypeVar('_T2')
+_T3 = TypeVar('_T3')
 
 @overload
 def first(iterable: Iterable[_T1], /) -> _T1: ...
@@ -417,6 +419,8 @@ def first(iterable: Iterable[_T1], /, *args) -> _T1|Any:
     '''
     Return the first item in an iterable, or a default value if the iterable is empty.
     '''
+    if len(args) > 1:
+        raise TypeError('Too many arguments for first(iter, [default])')
     try:
         return next(iter(iterable))
     except StopIteration:
@@ -425,6 +429,232 @@ def first(iterable: Iterable[_T1], /, *args) -> _T1|Any:
         return args[0]
     except TypeError:
         raise TypeError(f'Expected an iterable, got {type(iterable).__name__}')
+
+@overload
+def last(iterable: Iterable[_T1], /) -> _T1: ...
+@overload
+def last(iterable: Iterable[_T1], default: _T2, /) -> _T1|_T2: ...
+def last(iterable: Iterable[_T1], *args) -> _T1|Any:
+    '''
+    Return the last item in an iterable.
+    '''
+    item = last
+    match len(args):
+        case 0:
+            for item in iterable:
+                pass
+            if item is last:
+                raise ValueError('Iterable is empty and no default value was provided.')
+        case 1:
+            for item in iterable:
+                pass
+            if item is last:
+                return args[0]
+        case _:
+            raise TypeError('Too many arguments for last(iter, [default])')
+    return item
+
+
+@overload
+def index_of(obj: Iterable[_T1], /, fn: Callable[[_T1], bool], *,
+             field: Optional[Any]=None,
+             attribute: Optional[str]=None,
+             ): ...
+@overload
+def index_of(obj: Iterable[_T1], /, *,
+             value_is: Any,
+             field: Optional[Any]=None,
+             attribute: Optional[str]=None,
+             ): ...
+@overload
+def index_of(obj: Iterable[_T1], /, *,
+             value_is_not: Any,
+             field: Optional[Any]=None,
+             attribute: Optional[str]=None,
+             ): ...
+@overload
+def index_of(obj: Iterable[_T1], /, *,
+             value_eq: Any,
+             field: Optional[Any]=None,
+             attribute: Optional[str]=None,
+             ): ...
+@overload
+def index_of(obj: Iterable[_T1], /, *,
+             value_ne: Any,
+             field: Optional[Any]=None,
+             attribute: Optional[str]=None,
+             ): ...
+def index_of(obj: Iterable[_T1], /, fn: Optional[Callable[[_T1], bool]]=None,
+             **kwargs) -> int:
+    '''
+    Return the index of the first item in an iterable that matches the given predicate.
+    If no item matches, return -1.
+
+    See also `value_is`, `value_is_not`, `value_eq`, `value_ne`, which are
+    convenience functions for common predicates. The corresponding keyword arguments
+    use the functions to create the predicate function if no predicate function is given.
+
+    The keyword arguments `field` and `attribute` can be used to extract a value from
+    the item before applying the predicate function. If the item is a dictionary,
+    `field` is the key to extract, and if the item is an object, `attribute` is the
+    attribute to extract. If both are given, the value is extracted from the item
+    in the order they are given.
+
+    These correspond to the `value_field` and `value_attribute` functions, respectively.
+
+    PARAMETERS
+    ----------
+    obj: Iterable[_T1]
+        The iterable to search.
+    fn: Callable[[_T1], bool]
+        The predicate function to match the items against.
+    value_is: Any
+        A value to match the items against. If the item is equal to this value, it is considered a match.
+    value_is_not: Any
+        A value to match the items against. If the item is not equal to this value, it is considered a match.
+    value_eq: Any
+        A value to match the items against. If the item is == to this value, it is considered a match.
+    value_ne: Any
+        A value to match the items against. If the item is != to this value, it is considered a match.
+    field: Optional[Any]
+        A field to extract from the item. If the item is a dictionary, this is the key to extract.
+    attribute: Optional[str]
+        An attribute to extract from the item. If the item is an object, this is the attribute to extract.
+
+
+    RETURNS
+    -------
+    int
+        The index of the first item that matches the predicate, or -1 if no item matches.
+    '''
+    extract = None
+    if 'value_is' in kwargs:
+        if fn:
+            raise TypeError('Can specify one of fn=, value_is=, or value_is_not=.')
+        fn = value_eq(kwargs['value_is'])
+    if 'value_is_not' in kwargs:
+        if fn:
+            raise TypeError('Can specify one of fn=, value_is=, or value_is_not=.')
+        fn = value_ne(kwargs['value_is_not'])
+    if 'value_eq' in kwargs:
+        if fn:
+            raise TypeError('Can specify one of fn=, value_eq=, or value_ne=.')
+        fn = value_eq(kwargs['value_eq'])
+    if 'value_ne' in kwargs:
+        if fn:
+            raise TypeError('Can specify one of fn=, value_eq=, or value_ne=.')
+        fn = value_ne(kwargs['value_ne'])
+    if fn is None:
+        fn = bool
+    for key, val in kwargs.items():
+        match key:
+            case 'attribute':
+                if extract is None:
+                    extract = value_attribute(val)
+                else:
+                    extract = chain_fns(extract, value_attribute(val))
+            case 'field':
+                if extract is None:
+                    extract = value_field(val)
+                else:
+                    extract = chain_fns(extract, value_field(val))
+            case 'value_is'|'value_is_not'|'value_eq'|'value_ne'|'fn':
+                pass
+            case _:
+                raise TypeError(f'Unknown keyword argument {key!r}.')
+    for i, item in enumerate(obj):
+        with suppress(Exception):
+            if extract is not None:
+                item = extract(item)
+            if fn(item):
+                return i
+    return -1
+
+def value_is(item: Any) -> Callable[[Any], bool]:
+    '''
+    Return a predicate function that checks if an item is equal to the given item.
+    '''
+    def value_is(x: Any) -> bool:
+        return x is item
+    return value_is
+
+def value_is_not(item: Any) -> Callable[[Any], bool]:
+    '''
+    Return a predicate function that checks if an item is not equal to the given item.
+    '''
+    def value_is_not(x: Any) -> bool:
+        return x is not item
+    return value_is_not
+
+def value_eq(item: Any) -> Callable[[Any], bool]:
+    '''
+    Return a predicate function that checks if an item is equal to the given item.
+    '''
+    def value_eq(x: Any) -> bool:
+        return x == item
+    return value_eq
+
+def value_ne(item: Any) -> Callable[[Any], bool]:
+    '''
+    Return a predicate function that checks if an item is not equal to the given item.
+    '''
+    def item_ne(x: Any) -> bool:
+        return x != item
+    return item_ne
+
+
+def value_field(field: Any, /, *args) -> Callable[[Any], Any]:
+    '''
+    Return a function that obtains the the value of the given field from the object.
+    If the field is not found, return None.
+
+    A field is either accessed with subscript notation.
+    '''
+    match len(args):
+        case 0:
+            def value_field(obj: Any, /) -> Any:
+                try:
+                    return obj[field] # type: ignore
+                except KeyError:
+                    raise ValueError(f'Field {field} not found in object {obj}.')
+        case 1:
+            def value_field(obj: Any, /) -> Any:
+                try:
+                    return obj[field] # type: ignore
+                except KeyError:
+                    return args[0]
+        case _:
+            raise TypeError('Too many arguments for field_of(obj, field, [default])')
+    return value_field
+
+def value_attribute(attr: str, /, *args) -> Callable[[Any], Any]:
+    '''
+    Return the value of the given attribute from the object.
+
+    An attribute is either accessed with dot notation or subscript notation.
+    '''
+    match len(args):
+        case 0:
+            def value_attribute(obj: Any, /) -> Any:
+                return getattr(obj, attr)
+        case 1:
+            def value_attribute(obj: Any, /) -> Any:
+                return getattr(obj, attr, args[0])
+        case _:
+            raise TypeError('Too many arguments for attribute_of(obj, attr, [default])')
+    return value_attribute
+
+def chain_fns(fn1: Callable[[_T1], _T2],
+                fn2: Callable[[_T2], _T3],
+                /,
+                ) -> Callable[[_T1], _T3]:
+    '''
+    Chain two functions together. The first function is called with the input value,
+    and the result is passed to the second function.
+    '''
+    def chain_fns(x: _T1) -> _T3:
+        return fn2(fn1(x))
+    return chain_fns
 
 
 def simple_num(x: Any, /) -> str:
