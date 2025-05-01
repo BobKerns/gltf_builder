@@ -227,7 +227,7 @@ class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
         '''
         Compile the glTF document.
         '''
-
+        LOG.debug('Building glTF document.')
         python = sys.version_info
         if self.asset is None:
             self.asset = asset = _Asset()

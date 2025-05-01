@@ -10,6 +10,9 @@ import warnings
 import subprocess
 import json
 import shutil
+import logging
+from threading import Lock
+
 
 from pygltflib import BufferFormat, ImageFormat
 import pygltflib as gltf
@@ -26,6 +29,14 @@ from gltf_builder.geometries import _CUBE, _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
+LOCK = Lock()
+'''
+A lock for actions that should not be run in parallel.
+This is used to prevent multiple tests from running at the same time.
+
+In case we ever do that. I have a strong aversion to tests that
+"temporarily" modify global state.
+'''
 
 @pytest.fixture
 def testing_output_dir():
@@ -470,3 +481,16 @@ def cube(save):
                    nodes={'TOP': top},
                    save=save,
                 )
+
+
+@pytest.fixture()
+def DEBUG(request):
+    '''
+    A fixture to enable `DEBUG` logging.
+    '''
+    from gltf_builder.log import GLTF_LOG
+    with LOCK:
+        old = GLTF_LOG.level
+        GLTF_LOG.setLevel(logging.DEBUG)
+        yield GLTF_LOG.getChild(Path(request.node.name).stem)
+        GLTF_LOG.setLevel(old)
