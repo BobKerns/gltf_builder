@@ -25,17 +25,17 @@ def test_example1(test_builder):
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
-    top = test_builder.create_node('TOP')
-    cube = node('CUBE',
-                mesh=msh,
-                translation=(-0.5, -0.5, -0.5),
-    )
-    # Instantiate it at the origin
-    top.instantiate(cube)
-    # Instantiate it translated, scaled, and rotated.
-    top.instantiate(cube,
-                    translation=(2, 0, 0),
-                    scale=(1, 2, 2),
-                    rotation=Q.from_axis_angle((1, 1, 0.5), math.pi/4)
-                )
-    gltf = test_builder.build()
+    with test_builder() as tb:
+        top = tb.create_node('TOP')
+        cube = node('CUBE',
+                    mesh=msh,
+                    translation=(-0.5, -0.5, -0.5),
+        )
+        # Instantiate it at the origin
+        top.instantiate(cube)
+        # Instantiate it translated, scaled, and rotated.
+        top.instantiate(cube,
+                        translation=(2, 0, 0),
+                        scale=(1, 2, 2),
+                        rotation=Q.from_axis_angle((1, 1, 0.5), math.pi/4)
+                    )

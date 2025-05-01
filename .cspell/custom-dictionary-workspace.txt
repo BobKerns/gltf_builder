@@ -21,6 +21,7 @@ bytelen
 CALMULLROMSPLINE
 cnst
 conftest
+contextmanager
 contin
 CUBICSPLINE
 DATAURI

@@ -36,17 +36,18 @@ def test_mesh_build(test_builder):
              extras=TEST_EXTRAS,
              extensions=TEST_EXTENSIONS,
              )
-    test_builder.meshes.add(m)
-    assert m.name == 'MESH'
-    assert m.extras == TEST_EXTRAS
-    assert m.extensions == TEST_EXTENSIONS
-    assert m.primitives == []
-    assert m.weights == []
-    assert repr(m).startswith('<Mesh#')
-    g = test_builder.build(ignoredIssues=['UNDEFINED_PROPERTY'])
-    assert g.meshes[0] is not None
-    assert g.meshes[0].name == 'MESH'
-    assert g.meshes[0].extras == TEST_EXTRAS
-    assert g.meshes[0].extensions == TEST_EXTENSIONS
-    assert g.meshes[0].primitives == []
-    assert g.meshes[0].weights == []
+    with test_builder() as tb:
+        tb.meshes.add(m)
+        assert m.name == 'MESH'
+        assert m.extras == TEST_EXTRAS
+        assert m.extensions == TEST_EXTENSIONS
+        assert m.primitives == []
+        assert m.weights == []
+        assert repr(m).startswith('<Mesh#')
+        g = tb.build(ignoredIssues=['UNDEFINED_PROPERTY'])
+        assert g.meshes[0] is not None
+        assert g.meshes[0].name == 'MESH'
+        assert g.meshes[0].extras == TEST_EXTRAS
+        assert g.meshes[0].extensions == TEST_EXTENSIONS
+        assert g.meshes[0].primitives == []
+        assert g.meshes[0].weights == []

@@ -4,14 +4,16 @@ Test cases for the cameras module.
 
 import pytest
 
+import pygltflib as gltf
+
 from gltf_builder import (
     camera, CameraType,
 )
 
-from conftest import TEST_EXTRAS, TEST_EXTENSIONS
+from conftest import TEST_EXTRAS, TEST_EXTENSIONS, BuilderContext, GeometryData
 
 
-def test_camera_perspective(test_builder):
+def test_camera_perspective(test_builder: BuilderContext):
     '''
     Test that a perspective camera is correctly built.
     '''
@@ -39,8 +41,11 @@ def test_camera_perspective(test_builder):
     assert cam.perspective.zfar == 1000.0
     assert cam.perspective.extras == {}
     assert cam.perspective.extensions == {}
+    with test_builder() as tb:
+        tb.cameras.add(cam)
 
-def test_camera_orthographic():
+
+def test_camera_orthographic(test_builder: BuilderContext):
     '''
     Test that an orthographic camera is correctly built.
     '''
@@ -68,25 +73,31 @@ def test_camera_orthographic():
     assert cam.orthographic.zfar == 1000.0
     assert cam.orthographic.extras == {}
     assert cam.orthographic.extensions == {}
+    with test_builder() as tb:
+        tb.cameras.add(cam)
 
 
 @pytest.mark.parametrize('test_camera', [
     camera(CameraType.PERSPECTIVE),
     camera(CameraType.ORTHOGRAPHIC),
 ])
-def test_camera_node(cube, index_sizes, test_camera, test_builder):
+def test_camera_node(cube: GeometryData,
+                     index_sizes: tuple[IndexSize, int, int],
+                     test_camera: BPerspectiveCamera | BOrthographicCamera,
+                     test_builder: BuilderContext):
     '''
     Test that a camera node is correctly built.
     '''
     index_size, idx_bytes, idx_views = index_sizes
-    tb = test_builder
-    tb.create_node('CameraNode',
-                   translation=(0, 0, -10),
-                   camera=test_camera)
-    tb.instantiate(cube.nodes['TOP'],)
-    g = tb.build(index_size=index_size)
-    assert len(tuple(
-        n
-        for n in g.nodes
-        if n.camera is not None
-    )) == 1
+    with test_builder() as tb:
+        tb.create_node('CameraNode',
+                    translation=(0, 0, -10),
+                    camera=test_camera,
+                    )
+        tb.instantiate(cube.nodes['TOP'],)
+        g: gltf.GLTF2 = tb.build(index_size=index_size)
+        assert count_iter(
+            n
+            for n in g.nodes
+            if n.camera is not None
+        ) == 1

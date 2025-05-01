@@ -30,7 +30,9 @@ def test_extension(plugins,
     if input is not None:
         ext.parse(input)
     assert ext.name == 'GLTFB_example'
-    globl = GlobalState(test_builder)
+    with test_builder() as tb:
+        tb.extensions[ext.name] = ext
+        globl = GlobalState(tb)
     state = globl.state(ext)
     assert state.extension == ext
     assert ext in globl.extension_objects

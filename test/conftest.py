@@ -1,7 +1,9 @@
 '''
 Test fixtures
 '''
-from collections.abc import Callable
+from abc import abstractmethod
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 import re
@@ -125,14 +127,14 @@ class GltfFormat(StrEnum):
 
 class SaveFn(Protocol):
     def __call__(self,
-                gl: gltf.GLTF2, /,
+                gl: gltf.GLTF2, /, *,
                 format: Optional[GltfFormat]=None,
                 outfile: Optional[Path]=None,
                 writeTimestamp: bool=True,
                 maxIssues: int=100,
                 ignoredIssues: Optional[list[str]]=None,
                 severityOverrides: Optional[dict[str, Severity]]=None,
-            ) -> None:
+            ) -> gltf.GLTF2:
         '''
         A function to save the result of a test to both a .gltf and .glb file.
         '''
@@ -147,7 +149,7 @@ def sanitize(name: str):
 
 class ProxyBuilder(Builder):
     result: gltf.GLTF2|None = None
-    save: SaveFn|None = None
+    _save: SaveFn|None = None
     validation: JsonObject|None = None
     '''
     A proxy builder that can be used to test the builder interface.
@@ -165,7 +167,7 @@ class ProxyBuilder(Builder):
             extras=extras,
             extensions=extensions,
         )
-        self.save = save
+        self._save = save
         self.result = None
         self.validation = None
 
@@ -184,8 +186,8 @@ class ProxyBuilder(Builder):
             warnings.simplefilter("error")
             result = super().build(index_size=index_size)
             self.result = result
-            if self.save is not None:
-                self.save(result,
+            if self._save is not None:
+                self._save(result,
                           ignoredIssues=ignoredIssues,
                           severityOverrides=severityOverrides,
                           maxIssues=maxIssues,
@@ -218,7 +220,8 @@ class ProxyBuilder(Builder):
 
 
 @pytest.fixture
-def save(out_dir, request):
+def save(out_dir: Path,
+         request: pytest.FixtureRequest) -> SaveFn:
     '''
 
     Save the result of a test to both a .gltf and .glb file.
@@ -239,7 +242,8 @@ def save(out_dir, request):
             format: Optional[GltfFormat]=None,
             outfile: Optional[Path]=None,
             writeTimestamp: bool=True,
-             **params):
+            **params) -> 'gltf.GLTF2':
+
         if isinstance(b, Builder):
             g = b.build(**params)
         else:
@@ -307,15 +311,54 @@ def builder_extras(request):
             }
         }
 
+class BuilderContext(Protocol):
+    @contextmanager
+    @abstractmethod
+    def __call__(self,
+                 index_size: Optional[IndexSize]=None,
+                 name_policy: Optional[NamePolicy]=None,
+                 extras: Optional[dict]=None,
+                 extensions: Optional[dict]=None,
+                 save: Optional[SaveFn]=None,
+            ) -> Generator[ProxyBuilder, None, None]:
+        '''
+        A context manager to create a test builder.
+        '''
+        ...
+
 @pytest.fixture
-def test_builder(request, save, builder_extras):
-    builder = ProxyBuilder(
-        save=save,
-        extras=dict(builder_extras)
-    )
-    yield builder
-    result = builder.build()
-    save(result)
+def test_builder(request: pytest.FixtureRequest,
+                 save: SaveFn,
+                 builder_extras: ExtrasData,) -> BuilderContext:
+    '''
+    A fixture to create a test builder.
+    '''
+    outer_save = save
+    @contextmanager
+    def test_builder(
+            index_size: Optional[IndexSize]=None,
+            name_policy: Optional[NamePolicy]=None,
+            extras: Optional[dict]=None,
+            extensions: Optional[dict]=None,
+            save: Optional[SaveFn]=None,
+        ) -> Generator[ProxyBuilder, None, None]:
+        if extras is None:
+            extras = {}
+        if extensions is None:
+            extensions = {}
+        if save is None:
+            save = outer_save
+        b = ProxyBuilder(
+                index_size=index_size,
+                name_policy=name_policy,
+                save=save,
+                extras=dict(builder_extras)
+            )
+        yield b
+        if b.result is not None:
+            result = b.build()
+            save(result)
+    return test_builder
 
 VALIDATOR_JS = Path(__file__).parent / 'gltf-validator.js'
 NODE = shutil.which('node')

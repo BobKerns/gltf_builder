@@ -32,16 +32,18 @@ def test_add_scene(test_builder):
               extras=TEST_EXTRAS,
               extensions=TEST_EXTENSIONS,
     )
-    test_builder.scenes.add(s)
-    g = test_builder.build()
-    assert len(g.nodes) == 7
-    assert g.nodes[0].name == 'CUBE'
+    with test_builder() as tb:
+        tb.scenes.add(s)
+        g = tb.build()
+        assert len(g.nodes) == 7
+        assert g.nodes[0].name == 'CUBE'
 
 def test_default_scene(test_builder):
-    test_builder.nodes.add(node('CUBE'))
-    g = test_builder.build()
-    assert g.scene == 0
-    assert g.scenes[0].name is None
-    assert len(g.nodes) == 1
-    assert g.nodes[0].name == 'CUBE'
-    assert g.scenes[0].nodes == [0]
+    with test_builder() as tb:
+        tb.scenes.add(scene('SCENE'))
+        g = tb.build()
+        assert g.scene == 0
+        assert g.scenes[0].name == 'SCENE'
+        assert len(g.nodes) == 0
+        assert g.scenes[0].nodes == []
+        
