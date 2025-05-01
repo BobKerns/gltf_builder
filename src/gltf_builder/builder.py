@@ -159,6 +159,8 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
             scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
             for scope in ScopeName
         }
+        if index_size is None:
+            index_size = IndexSize.NONE
         self.asset = asset
         self.meshes = _Holder(BMesh, *meshes)
         self.cameras = _Holder(BCamera, *cameras)
@@ -171,7 +173,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         self.scenes = _Holder(BScene, *scenes)
         self.skins = _Holder(BSkin, *skins)
         self.textures = _Holder(BTexture, *textures)
-        self.index_size = index_size or IndexSize.NONE
+        self.index_size = IndexSize.NONE if index_size is None else index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
         self.scene = scene
