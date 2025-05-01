@@ -2,19 +2,13 @@
 Test cases
 '''
 
-from re import I
-import pytest
-
-from collections.abc import Callable
 from typing import Iterable
-from dataclasses import dataclass, field
 import math
 
-import pygltflib as gltf
 
 from gltf_builder import (
-    Builder, PrimitiveMode, BMesh, Quaternion as Q,
-    IndexSize, BNode, node,
+    Builder, PrimitiveMode, Quaternion as Q,
+    IndexSize, node,
 )
 from gltf_builder.geometries import (
     _CUBE,
@@ -23,27 +17,6 @@ from gltf_builder.geometries import (
     _CUBE_NORMAL1, _CUBE_NORMAL2, _CUBE_NORMAL3,
     _CUBE_NORMAL4, _CUBE_NORMAL5, _CUBE_NORMAL6,
 )
-
-@dataclass
-class GeometryData:
-    builder: Builder
-    meshes: dict[str, BMesh] = field(default_factory=dict)
-    nodes: dict[str, BNode] = field(default_factory=dict)
-    save: Callable[[gltf.GLTF2], gltf.GLTF2] = lambda g, **kwargs: g
-    def build(self, **kwargs):
-        return self.save(self.builder.build(**kwargs))
-    def __getitem__(self, name):
-        return (
-            self.nodes.get(name)
-            or self.meshes.get(name)
-            or self.builder[name]
-        )
-    @property
-    def index_size(self):
-        return self.builder.index_size
-    @index_size.setter
-    def index_size(self, size):
-        self.builder.index_size = size
 
 
 def test_empty_builder(save):
@@ -55,25 +28,6 @@ def test_empty_builder(save):
     assert len(g.bufferViews) == 0
     assert len(g.nodes) == 0
     save(g)
-
-
-@pytest.fixture(scope='function')
-def cube(save):
-    b = Builder()
-    m = b.create_mesh('CUBE_MESH')
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE1))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE2))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE3))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE4))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE5))
-    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE6))
-    top = b.create_node('TOP')
-    top.create_node('CUBE', mesh=m)
-    yield GeometryData(builder=b,
-                   meshes={'CUBE_MESH': m},
-                   nodes={'TOP': top},
-                   save=save,
-                )
 
 
 def test_cube(cube):

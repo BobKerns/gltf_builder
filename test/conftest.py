@@ -1,6 +1,8 @@
 '''
 Test fixtures
 '''
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 import re
 from typing import Optional, Protocol
@@ -17,9 +19,10 @@ from pathlib import Path
 
 from gltf_builder import Builder
 from gltf_builder.compiler import ExtensionsData, ExtrasData
-from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy
-from gltf_builder.elements import GLTF_LOG
+from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy, PrimitiveMode
+from gltf_builder.elements import GLTF_LOG, BMesh, BNode
 from gltf_builder.extensions import load_extensions, _EXTENSION_PLUGINS
+from gltf_builder.geometries import _CUBE, _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3, _CUBE_FACE4, _CUBE_FACE5, _CUBE_FACE6
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -427,3 +430,43 @@ def index_sizes(
     '''
     return request.param
 
+
+@dataclass
+class GeometryData:
+    builder: Builder
+    meshes: dict[str, BMesh] = field(default_factory=dict)
+    nodes: dict[str, BNode] = field(default_factory=dict)
+    save: Callable[[gltf.GLTF2], gltf.GLTF2] = lambda g, **kwargs: g
+    def build(self, **kwargs):
+        return self.save(self.builder.build(**kwargs))
+    def __getitem__(self, name):
+        return (
+            self.nodes.get(name)
+            or self.meshes.get(name)
+            or self.builder[name]
+        )
+    @property
+    def index_size(self):
+        return self.builder.index_size
+    @index_size.setter
+    def index_size(self, size):
+        self.builder.index_size = size
+
+
+@pytest.fixture(scope='function')
+def cube(save):
+    b = Builder()
+    m = b.create_mesh('CUBE_MESH')
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE1))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE2))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE3))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE4))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE5))
+    m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE6))
+    top = b.create_node('TOP')
+    top.create_node('CUBE', mesh=m)
+    yield GeometryData(builder=b,
+                   meshes={'CUBE_MESH': m},
+                   nodes={'TOP': top},
+                   save=save,
+                )
