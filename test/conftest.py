@@ -411,3 +411,19 @@ def no_plugins():
     _EXTENSION_PLUGINS.clear()
     yield _EXTENSION_PLUGINS
     _EXTENSION_PLUGINS.clear()
+
+@pytest.fixture(params=[
+    (IndexSize.NONE, 0, 0),
+    (IndexSize.AUTO, 1, 1),
+    (IndexSize.UNSIGNED_BYTE, 1, 1),
+    (IndexSize.UNSIGNED_SHORT, 2,1 ),
+    (IndexSize.UNSIGNED_INT, 4, 1),
+])
+def index_sizes(
+        request
+    ) -> tuple[IndexSize, int, int]:
+    '''
+    Provide a list of index sizes to test.
+    '''
+    return request.param
+
