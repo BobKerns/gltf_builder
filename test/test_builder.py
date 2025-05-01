@@ -21,7 +21,9 @@ from gltf_builder.geometries import (
 
 def test_empty_builder(save):
     b = Builder()
+    assert b.index_size == IndexSize.NONE
     g = b.build()
+    assert b.index_size == IndexSize.NONE
     blob = g.binary_blob()
     assert len(blob) == 0
     assert len(g.buffers) == 0
@@ -30,20 +32,51 @@ def test_empty_builder(save):
     save(g)
 
 
-def test_cube(cube):
-    cube.index_size = IndexSize.NONE
+def test_empty_index_size_constuctor(index_sizes,
+                                     save):
+    index_size, idx_bytes, idx_views = index_sizes
+    b = Builder(index_size=index_size)
+    assert b.index_size == index_size
+    g = b.build()
+    assert b.index_size == index_size
+    blob = g.binary_blob()
+    assert len(blob) == 0
+    assert len(g.buffers) == 0
+    assert len(g.bufferViews) == 0
+    assert len(g.nodes) == 0
+    save(g)
+
+
+def test_empty_index_size_build(index_sizes,
+                                     save):
+    index_size, idx_bytes, idx_views = index_sizes
+    b = Builder()
+    assert b.index_size == IndexSize.NONE
+    g = b.build(index_size=index_size)
+    assert b.index_size == index_size
+    blob = g.binary_blob()
+    assert len(blob) == 0
+    assert len(g.buffers) == 0
+    assert len(g.bufferViews) == 0
+    assert len(g.nodes) == 0
+    save(g)
+
+
+def test_cube(index_sizes, cube):
+    index_size, idx_bytes, idx_views = index_sizes
+    cube.index_size = index_size
     m = cube.meshes['CUBE_MESH']
     assert len(m.primitives) == 6
     n = cube.nodes['TOP']
     assert len(n.children) == 1
     g = cube.build()
-    assert len(g.bufferViews) == 1
+    assert len(g.bufferViews) == 1 + idx_views
     assert len(g.nodes) == 2
-    size = 6 * 3 * 4 * 4 + 0 * 4 * 6
+    size = 6 * 3 * 4 * 4 + idx_bytes * 4 * 6
     assert len(g.binary_blob()) ==  size
 
 
-def test_faces(index_sizes, save):
+def test_faces(DEBUG, index_sizes, save):
     index_size, idx_bytes, idx_buffers = index_sizes
     b = Builder(index_size=index_size)
     def face(name, indices: Iterable[int]):
