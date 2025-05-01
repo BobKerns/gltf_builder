@@ -13,7 +13,7 @@ import ctypes.wintypes
 import subprocess
 import getpass
 from itertools import chain, repeat
-from typing import  Any, Optional, TypeAlias, overload
+from typing import  Any, Optional, TypeAlias, TypeVar, overload
 
 import numpy as np
 
@@ -397,6 +397,34 @@ def map_range(value: float|int,
     if isinstance(to_min, int) and isinstance(to_max, int):
         return round(new_value)
     return new_value
+
+
+def count_iter(iterable: Iterable[Any]) -> int:
+    '''
+    Count the number of items in an iterable.
+    '''
+    return sum(1 for _ in iterable)
+
+
+_T1 = TypeVar('_T1')
+_T2 = TypeVar('_T2')
+
+@overload
+def first(iterable: Iterable[_T1], /) -> _T1: ...
+@overload
+def first(iterable: Iterable[_T1], default: _T2, /) -> _T1|_T2: ...
+def first(iterable: Iterable[_T1], /, *args) -> _T1|Any:
+    '''
+    Return the first item in an iterable, or a default value if the iterable is empty.
+    '''
+    try:
+        return next(iter(iterable))
+    except StopIteration:
+        if len(args) == 0:
+            raise ValueError('Iterable is empty and no default value was provided.')
+        return args[0]
+    except TypeError:
+        raise TypeError(f'Expected an iterable, got {type(iterable).__name__}')
 
 
 def simple_num(x: Any, /) -> str:

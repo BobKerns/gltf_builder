@@ -13,6 +13,7 @@ from gltf_builder import (
     distribute_ints, distribute_floats, normalize, map_range,
     Vector2, Vector3, Vector4, Tangent, EPSILON,
 )
+from gltf_builder.utils import count_iter
 
 
 @pytest.mark.parametrize('lower, upper, values, expected', [
@@ -131,3 +132,34 @@ def test_map_range(input, from_range, to_range, expected):
                 )
     assert r == approx(expected)
     assert type(r) is type(expected)
+
+def test_count_iter():
+    '''
+    Test that count_iter returns the correct number of elements.
+    '''
+    assert count_iter(()) == 0
+    assert count_iter((1,)) == 1
+    assert count_iter((1, 2, 3)) == 3
+
+@pytest.mark.parametrize('input,expected', [
+    ((), TypeError),
+    (((),), ValueError),
+    (((1,),), 1),
+    (((1, 2),), 1),
+    (((1, 2, 3),), 1),
+    (((), 'default'), 'default'),
+    (((), None), None),
+    (((1,), 'default'), 1),
+    (((1,), None), 1),
+])
+def test_first(input, expected):
+    '''
+    Test that first returns the first element of an iterable.
+    '''
+    from gltf_builder.utils import first
+    if (isinstance(expected, type)
+        and issubclass(expected, Exception)):
+        with pytest.raises(expected):
+            first(*input)
+    else:
+        assert first(*input) == expected
