@@ -29,7 +29,9 @@ from gltf_builder.holders import _Holder
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.protocols import  _GlobalBinary, AttributeType
 from gltf_builder.scenes import scene
-from gltf_builder.utils import USER, USERNAME, decode_dtype, std_repr
+from gltf_builder.utils import (
+    USER, USERNAME, decode_dtype, std_repr, count_iter,
+)
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.builder import Builder
@@ -464,18 +466,19 @@ class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
 
 
     def __repr__(self):
-        def iflen(s: Iterable) -> Optional[int]:
-            return len(list(s)) if s else None
         return std_repr(self, (
-            ('cameras', iflen(self.cameras)),
-            ('meshes', iflen(self.meshes)),
-            ('images', iflen(self.images)),
-            ('materials', iflen(self.materials)),
-            ('nodes', iflen(self.nodes)),
-            ('samplers', iflen(self.samplers)),
-            ('skins', iflen(self.skins)),
-            ('scenes', iflen(self.scenes)),
-            ('textures', iflen(self.textures)),
-            ('buffers', iflen(self.buffers)),
+            ('cameras', count_iter(self.cameras)),
+            ('meshes', count_iter(self.meshes)),
+            ('images', count_iter(self.images)),
+            ('materials', count_iter(self.materials)),
+            ('nodes', count_iter(self.nodes)),
+            ('samplers', count_iter(self.samplers)),
+            ('skins', count_iter(self.skins)),
+            ('scenes', count_iter(self.scenes)),
+            ('textures', count_iter(self.textures)),
+            ('accessors', count_iter(self.accessors)),
+            ('views', count_iter(self.views)),
+            ('extensions', count_iter(self.extensions)),
+            ('buffers', count_iter(self.buffers)),
             'index_size',
         ))

@@ -38,7 +38,7 @@ from gltf_builder.elements import (
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
 )
 from gltf_builder.log import GLTF_LOG
-from gltf_builder.utils import std_repr
+from gltf_builder.utils import std_repr, count_iter
 
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
@@ -344,18 +344,16 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         return node
 
     def __repr__(self):
-        def iflen(s: Iterable) -> Optional[int]:
-            return len(list(s)) if s else None
         return std_repr(self, (
-            ('cameras', iflen(self.cameras)),
-            ('meshes', iflen(self.meshes)),
-            ('images', iflen(self.images)),
-            ('materials', iflen(self.materials)),
-            ('nodes', iflen(self.nodes)),
-            ('samplers', iflen(self.samplers)),
-            ('skins', iflen(self.skins)),
-            ('scenes', iflen(self.scenes)),
-            ('textures', iflen(self.textures)),
-            ('buffers', iflen(self.buffers)),
+            ('cameras', count_iter(self.cameras)),
+            ('meshes', count_iter(self.meshes)),
+            ('images', count_iter(self.images)),
+            ('materials', count_iter(self.materials)),
+            ('nodes', count_iter(self.nodes)),
+            ('samplers', count_iter(self.samplers)),
+            ('skins', count_iter(self.skins)),
+            ('scenes', count_iter(self.scenes)),
+            ('textures', count_iter(self.textures)),
+            ('buffers', count_iter(self.buffers)),
             'index_size',
         ))

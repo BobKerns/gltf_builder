@@ -43,8 +43,9 @@ def test_cube(cube):
     assert len(g.binary_blob()) ==  size
 
 
-def test_faces(save):
-    b = Builder(index_size=IndexSize.UNSIGNED_BYTE)
+def test_faces(index_sizes, save):
+    index_size, idx_bytes, idx_buffers = index_sizes
+    b = Builder(index_size=index_size)
     def face(name, indices: Iterable[int]):
         m = b.create_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
@@ -61,12 +62,13 @@ def test_faces(save):
     g = b.build()
     save(g)
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 1 + idx_buffers
     assert len(g.nodes) == 7
-    size = 6 * 3 * 4 * 4 + 1 * 4 * 6
+    size = 6 * 3 * 4 * 4 + 1 * 4 * 6 * idx_bytes
     assert len(g.binary_blob()) == size
 
-def test_faces2(save):
+def test_faces2(index_sizes, save):
+    index_size, idx_bytes, idx_buffers = index_sizes
     b = Builder()
     cube = b.create_node('CUBE')
     def face(name, indices: Iterable[int]):
@@ -79,23 +81,17 @@ def test_faces2(save):
     face('FACE4', _CUBE_FACE4)
     face('FACE5', _CUBE_FACE5)
     face('FACE6', _CUBE_FACE6)
-    g = b.build(index_size=IndexSize.UNSIGNED_INT)
+    g = b.build(index_size=index_size)
     save(g)
     assert len(g.buffers) == 1
-    assert len(g.bufferViews) == 2
+    assert len(g.bufferViews) == 1 + idx_buffers
     assert len(g.nodes) == 7
-    size = 6 * 3 * 4 * 4 + 4 * 4 * 6
+    size = 6 * 3 * 4 * 4 + idx_bytes * 4 * 6
     assert len(g.binary_blob()) == size
 
 
-@pytest.mark.parametrize('index_size', [
-    IndexSize.NONE,
-    IndexSize.AUTO,
-    IndexSize.UNSIGNED_BYTE,
-    IndexSize.UNSIGNED_SHORT,
-    IndexSize.UNSIGNED_INT,
-    ])
-def test_cubeX(index_size, cube):
+def test_cubeX(index_sizes, cube):
+    index_size, idx_bytes, idx_views = index_sizes
     cube.builder.index_size = index_size
     m = cube.meshes['CUBE_MESH']
     assert len(m.primitives) == 6
@@ -103,26 +99,14 @@ def test_cubeX(index_size, cube):
     assert len(n.children) == 1
     g = cube.build()
     assert len(g.nodes) == 2
-    match index_size:
-        case IndexSize.NONE:
-            views, ibytes = 1, 0
-        case IndexSize.AUTO:
-            views, ibytes = 2, 1
-        case IndexSize.UNSIGNED_BYTE:
-            views, ibytes = 2, 1
-        case IndexSize.UNSIGNED_SHORT:
-            views, ibytes = 2, 2
-        case IndexSize.UNSIGNED_INT:
-            views, ibytes = 2, 4
-        case _:
-            raise ValueError(f'Unknown index size: {index_size}')
-    assert len(g.bufferViews) == views
-    size = 6 * 3 * 4 * 4 + ibytes * 4 * 6
+    assert len(g.bufferViews) == 1 + idx_views
+    size = 6 * 3 * 4 * 4 + idx_bytes * 4 * 6
     assert len(g.binary_blob()) ==  size
 
 
-def test_instances_mesh(cube: GeometryData):
-    cube.index_size = IndexSize.NONE
+def test_instances_mesh(index_sizes, cube):
+    index_size, idx_bytes, idx_views = index_sizes
+    cube.index_size = index_size
     m = cube.meshes['CUBE_MESH']
 
     n = cube.nodes['TOP']
@@ -130,14 +114,15 @@ def test_instances_mesh(cube: GeometryData):
     n2.translation = (1.25, 0, 0)
     assert len(n.children) == 2
     g = cube.build()
-    assert len(g.bufferViews) == 1
+    assert len(g.bufferViews) == 1 + idx_views
     assert len(g.nodes) == 3
-    size = 6 * 3 * 4 * 4 + 0 * 4 * 6
+    size = 6 * 3 * 4 * 4 + idx_bytes * 4 * 6
     assert len(g.binary_blob()) ==  size
 
 
-def test_instances(cube):
-    cube.index_size = -1
+def test_instances(index_sizes, cube):
+    index_size, idx_bytes, idx_views = index_sizes
+    cube.index_size = index_size
     c = cube.builder.create_node('CUBE', mesh=cube.meshes['CUBE_MESH'])
     n = cube.nodes['TOP']
     n.instantiate(c,
@@ -151,13 +136,14 @@ def test_instances(cube):
     )
     #cube.builder.print_hierarchy()
     g = cube.build()
-    assert len(g.bufferViews) == 1
+    assert len(g.bufferViews) == 1 + idx_views
     assert len(g.nodes) == 7
-    size = 6 * 3 * 4 * 4 + 0 * 4 * 6
+    size = 6 * 3 * 4 * 4 + idx_bytes * 4 * 6
     assert len(g.binary_blob()) ==  size
 
-def test_normal(save):
-    b = Builder()
+def test_normal(index_sizes, save):
+    index_size, idx_bytes, idx_views = index_sizes
+    b = Builder(index_size=index_size)
     m = b.create_mesh('CUBE_MESH')
     m.add_primitive(PrimitiveMode.LINE_LOOP,
                     *[_CUBE[i] for i in _CUBE_FACE1],
@@ -182,8 +168,8 @@ def test_normal(save):
     top.instantiate(cube)
     g = b.build()
     save(g)
-    size = 2 * 6 * 3 * 4 * 4 + 0 * 4 * 6
+    size = 2 * 6 * 3 * 4 * 4 + idx_bytes * 4 * 6
     assert len(g.binary_blob()) ==  size
-    assert len(g.bufferViews) == 1
-    assert len(g.accessors) == 12
+    assert len(g.bufferViews) == 1 + idx_views
+    assert len(g.accessors) == 12 + 6 * idx_views
     assert len(g.nodes) == 3
