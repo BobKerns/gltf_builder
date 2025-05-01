@@ -22,9 +22,8 @@ from gltf_builder.elements import (
 from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
 from gltf_builder.holders import _Holder
-from gltf_builder.protocols import (
-    _BNodeContainerProtocol, _GlobalBinary,
-)
+from gltf_builder.protocols import _BNodeContainerProtocol
+from gltf_builder.global_config import _GlobalBinary
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState

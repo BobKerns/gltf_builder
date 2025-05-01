@@ -31,12 +31,13 @@ from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.images import _Image
 
 from gltf_builder.protocols import (
-    _AttributeParser, _GlobalConfiguration, AttributeType,
+    _AttributeParser,  AttributeType,
 )
 from gltf_builder.elements import (
      BAccessor, BAsset, BBuffer, BBufferView, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
 )
+from gltf_builder.global_config import _GlobalConfiguration
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import std_repr, count_iter
 

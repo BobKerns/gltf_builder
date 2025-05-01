@@ -27,7 +27,8 @@ from gltf_builder.core_types import (
 from gltf_builder.elements import BAccessor, BBuffer, BBufferView, Element
 from gltf_builder.holders import _Holder
 from gltf_builder.nodes import _BNodeContainer
-from gltf_builder.protocols import  _GlobalBinary, AttributeType
+from gltf_builder.protocols import AttributeType
+from gltf_builder.global_config import _GlobalBinary
 from gltf_builder.scenes import scene
 from gltf_builder.utils import (
     USER, USERNAME, decode_dtype, std_repr, count_iter,
@@ -210,18 +211,18 @@ class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
                 count: int=0,
                 target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
                 ) -> BAccessor[NPTypes, BTYPE]:
-            dtype = decode_dtype(elementType, componentType)
-            return _Accessor(
-                elementType=elementType,
-                componentType=componentType,
-                btype=btype,
-                buffer=buffer or self.buffers[0],
-                name=name,
-                dtype=dtype,
-                count=count,
-                normalized=normalized,
-                target=target,
-            )
+        dtype = decode_dtype(elementType, componentType)
+        return _Accessor(
+            elementType=elementType,
+            componentType=componentType,
+            btype=btype,
+            buffer=buffer or self.buffers[0],
+            name=name,
+            dtype=dtype,
+            count=count,
+            normalized=normalized,
+            target=target,
+        )
 
     def build(self) -> gltf.GLTF2:
         '''

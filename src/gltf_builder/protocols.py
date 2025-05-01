@@ -4,20 +4,16 @@ Protocol classes to avoid circular imports.
 
 from abc import abstractmethod
 from typing import (
-    NamedTuple, Protocol, TypeAlias, runtime_checkable,
-    Optional, TYPE_CHECKING, Any
+    NamedTuple, Protocol, TypeAlias,
+    Optional, TYPE_CHECKING,
 )
 from collections.abc import Callable, Iterable
 import math
 
-from gltf_builder.compiler import (
-    _GLTF, _STATE, _Compilable, _CompileState,
-)
 from gltf_builder.holders import _Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType,
-    ExtensionsData, ExtrasData, IndexSize,
-    NPTypes, ScopeName,
+    ExtensionsData, ExtrasData,
 )
 from gltf_builder.attribute_types import (
     AttributeData, Vector3Spec, BTYPE
@@ -26,11 +22,8 @@ from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
     from gltf_builder.elements import(
-        BNode, BMesh, BBuffer, BBufferView, BAccessor, BImage,
-        BSampler, BTexture, BScene, BSkin, BMaterial, BCamera,
-        BAsset, Element,
+        BNode, BMesh, BBuffer,
     )
-    from gltf_builder.extensions import Extension
 
 
 class _BufferViewKey(NamedTuple):
@@ -40,10 +33,12 @@ class _BufferViewKey(NamedTuple):
     name: str
 
 
+
 _AttributeParser: TypeAlias = Callable[..., BTYPE]
 '''
 Parse the given data into an attribute data item.
 '''
+
 
 class AttributeType(NamedTuple):
     name: str
@@ -51,6 +46,7 @@ class AttributeType(NamedTuple):
     componentType: ComponentType
     type: type
     parser: _AttributeParser[AttributeData]|None = None
+
 
 class _BNodeContainerProtocol(Protocol):
     @property
@@ -137,223 +133,3 @@ class _BNodeContainerProtocol(Protocol):
     @abstractmethod
     def __iter__(self) -> Iterable['BNode']:
         ...
-
-@runtime_checkable
-class _GlobalConfiguration(Protocol):
-    '''
-    Protocol for the global configuration of the glTF file.
-    '''
-    asset: Optional['BAsset']
-    '''
-    The asset information for the glTF file.
-    '''
-    meshes: _Holder['BMesh']
-    '''
-    The meshes in the glTF file.
-    '''
-    cameras: _Holder['BCamera']
-    '''
-    The cameras in the glTF file.
-    '''
-    images: _Holder['BImage']
-    '''
-    The images in the glTF file.
-    '''
-    materials: _Holder['BMaterial']
-    '''
-    The materials in the glTF file.
-    '''
-    nodes: _Holder['BNode']
-    '''
-    The nodes in the glTF file.
-    '''
-    samplers: _Holder['BSampler']
-    '''
-    The samplers in the glTF file.
-    '''
-    scenes: _Holder['BScene']
-    '''
-    The scenes in the glTF file.
-    '''
-    skins: _Holder['BSkin']
-    '''
-    The skins in the glTF File
-    '''
-    scene: Optional['BScene']
-    '''
-    The initial scene.
-    '''
-    textures: _Holder['BTexture']
-    '''
-    The textures in the glTF file.
-    '''
-    extras: dict[str, Any]
-    '''
-    The extras for the glTF file.
-    '''
-    extensions: dict[str, Any]
-    '''
-    The extensions for the glTF file.
-    '''
-    extensionsUsed: list[str]
-    '''
-    The extensions used in this file
-    '''
-    extensionsRequired: list[str]
-    '''
-    The extensions required to load this file.
-    '''
-    extension_objects: set['Extension']
-
-    @property
-    @abstractmethod
-    def index_size(self) -> IndexSize:
-        '''
-        The size of the index buffer.
-        '''
-        ...
-
-    @abstractmethod
-    def get_attribute_type(self, name: str) -> AttributeType:
-        ...
-
-
-    @abstractmethod
-    def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
-                    name: str='',
-                    translation: Optional[Vector3Spec]=None,
-                    rotation: Optional[QuaternionSpec]=None,
-                    scale: Optional[Vector3Spec]=None,
-                    matrix: Optional[Matrix4]=None,
-                    extras: Optional[ExtrasData]=None,
-                    extensions: Optional[ExtensionsData]=None,
-                ) -> 'BNode':
-        '''
-        Instantiate a node or mesh with the given parameters.
-        PARAMETERS
-        ----------
-        node_or_mesh: BNode|BMesh
-            The node or mesh to instantiate.
-        name: str
-            The name of the node.
-        translation: Vector3Spec
-            The translation of the node.
-        rotation: QuaternionSpec
-            The rotation of the node.
-        scale: Vector3Spec
-            The scale of the node.
-        matrix: Matrix4
-            The transformation matrix of the node.
-        extras: JsonObject
-            Extra data for the node.
-        extensions: JsonObject
-            Extensions for the node.
-        RETURNS
-        -------
-        BNode
-            The instantiated node.
-        '''
-        ...
-
-
-class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol):
-    '''
-    Abstract class for a Builder.  This exists to avoid circular dependencies.
-    '''
-
-    buffers: _Holder['BBuffer']
-    '''
-    The buffers in the glTF file.'''
-    views: _Holder['BBufferView']
-    '''
-    The buffer views in the glTF file.
-    '''
-    accessors: _Holder['BAccessor[NPTypes, AttributeData]']
-    '''
-    The accessors in the glTF file.
-    '''
-
-    @property
-    @abstractmethod
-    def buffer(self) -> 'BBuffer':
-        '''
-        The main buffer for the glTF file.
-        '''
-        ...
-
-    _states: dict[int, _CompileState]
-    '''
-    The per-element states for the compilation of the glTF file.
-    '''
-
-    @abstractmethod
-    def _get_index_size(self, max_value: int) -> IndexSize:
-        ...
-
-    @abstractmethod
-    def _gen_name(self,
-                  obj: _Compilable[_GLTF, _STATE], /, *,
-                  prefix: str='',
-                  scope: ScopeName|None=None,
-                  index: Optional[int]=None,
-                  suffix: str=''
-                  ) -> str:
-        '''
-        Generate a name for an object according to the current `NameMode` policy.
-
-        PARAMETERS
-        ----------
-        obj: Element
-            The object to generate a name for.
-        gen_prefix: str|object
-            The prefix to use for the generated name.
-            If the prefix is an object, its `__class__.__name__` will be used.
-        '''
-        ...
-
-    @abstractmethod
-    def _create_accessor(self,
-                elementType: ElementType,
-                componentType: ComponentType,
-                btype: type[BTYPE],
-                name: str='',
-                normalized: bool=False,
-                buffer: Optional['BBuffer']=None,
-                count: int=0,
-                target: BufferViewTarget=BufferViewTarget.ARRAY_BUFFER,
-                ) -> 'BAccessor[NPTypes, BTYPE]':
-        '''
-        Create a `BAccessor` for the given element type and component type.
-        PARAMETERS
-        ----------
-        elementType: ElementType
-            The element type for the accessor.
-        componentType: ComponentType
-            The component type for the accessor.
-        btype: type[BTYPE]
-            The type of the accessor data.
-        name: str
-            The name of the accessor.
-        normalized: bool
-            Whether the accessor data is normalized.
-        target: BufferViewTarget
-            The target for the buffer view.
-        RETURNS
-        -------
-        BAccessor[NPTypes, BTYPE]
-            The created accessor.
-        '''
-        ...
-
-    @abstractmethod
-    def state(self, elt: 'Element[_GLTF, _STATE]') -> _STATE:
-        '''
-        Get the state for the given element.
-        '''
-        ...
-
-    def idx(self, elt: 'Element[_GLTF, _STATE]') -> int:
-        '''
-        Get the index of the given element.
-        '''
-        return self.state(elt).index

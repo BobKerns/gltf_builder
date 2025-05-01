@@ -8,9 +8,10 @@ import pygltflib as gltf
 
 from gltf_builder.core_types import CameraType, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
-from gltf_builder.protocols import _GlobalBinary
 from gltf_builder.utils import std_repr
 from gltf_builder.compiler import _CompileState, ExtensionsData, ExtrasData
+from gltf_builder.global_config import _GlobalBinary
+
 
 _CAMERA = TypeVar('_CAMERA', bound='_Camera')
 
