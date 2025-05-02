@@ -1,0 +1,48 @@
+name: Create Pull Request
+
+on:
+  push:
+    branches:
+      - main  # Trigger when changes are pushed to the main branch
+
+jobs:
+  create-pr:
+    name: Create Pull Request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up GitHub CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Create and Push Branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create a new branch with a descriptive name
+          git checkout -b feature/add-publish-workflow
+          git push origin feature/add-publish-workflow
+
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create a pull request linked to the branch
+          gh pr create --title "Add Publish Workflow" --body "This PR adds the publish workflow for Test PyPI and PyPI." --base main --head feature/add-publish-workflow
+
+      - name: Create Pull Request for Existing Branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if a branch already exists
+          branch_name="your-branch-name"  # Replace with your branch name
+          if git ls-remote --heads origin $branch_name; then
+            echo "Branch $branch_name exists. Creating PR..."
+            gh pr create --title "Your PR Title" --body "Your PR Description" --base main --head $branch_name
+          else
+            echo "Branch $branch_name does not exist. Skipping PR creation."
+          fi

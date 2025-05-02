@@ -53,9 +53,12 @@ namespec
 ndarray
 ndata
 nocopy
+norecursedirs
+pinentry
 pointlike
 pointspecs
 pygltflib
+pypi
 pytest
 pythonpath
 releaselevel
@@ -76,6 +79,7 @@ tanminus
 tanplus
 tcase
 tdata
+testpypi
 Thresholding
 tlen
 tname
