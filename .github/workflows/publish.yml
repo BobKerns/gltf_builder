@@ -1,16 +1,19 @@
-name: Publish
+# This workflow is used for building, testing, and publishing the project.
+# Ensure this workflow is configured as a required status check in branch protection rules.
+
+name: Build, Test, and Publish
 
 on:
+    push:
     release:
         types: [published]
+    workflow_dispatch:
 
 jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    environment: pypi
     permissions:
-      # IMPORTANT: this permission is mandatory for Trusted Publishing
       id-token: write
 
     steps:
@@ -24,7 +27,7 @@ jobs:
           uses: astral-sh/setup-uv@v5.3.1
           with:
                 # Install a specific version of uv.
-                version: "0.6.6"
+                version: "0.6.14"
                 enable-cache: true
                 cache-dependency-glob: "uv.lock"
 
@@ -34,6 +37,13 @@ jobs:
                 python-version-file: ".python-version"
         - name: Install the project
           run: uv sync --all-extras --dev
+        - name: Install Nodejs
+          uses: actions/setup-node@v4
+          with:
+                node-version: 23
+                cache: 'npm'
+        - name: Install Node dependencies
+          run: npm ci
 
         - name: Run tests
           run: uv run pytest test
