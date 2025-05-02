@@ -62,7 +62,7 @@ exclude = [
 pythonpath = [
     "src"
 ]
-norecursedirs = .venv node_modules dist build
+norecursedirs = ".venv node_modules dist build"
 
 [[tool.uv.index]]
 name = "testpypi"
