@@ -59,6 +59,7 @@ pointlike
 pointspecs
 pygltflib
 pypi
+pyproject
 pytest
 pythonpath
 releaselevel
