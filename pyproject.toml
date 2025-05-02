@@ -1,6 +1,6 @@
 [project]
 name = "gltf-builder"
-version = "0.2.0"
+version = "0.2.1"
 description = "Library for building gltf files, handling buffers, views, and accessors."
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -54,3 +54,10 @@ exclude = [
 pythonpath = [
   "src"
 ]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
