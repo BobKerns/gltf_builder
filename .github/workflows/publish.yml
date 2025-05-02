@@ -102,13 +102,29 @@ jobs:
                 enable-cache: true
                 cache-dependency-glob: "uv.lock"
 
+        - name: Import GPG Key
+          env:
+              GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          run: |
+              echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+              gpg --list-secret-keys
+
+        - name: Configure GPG for Signing
+          run: |
+              echo "use-agent" >> ~/.gnupg/gpg.conf
+              echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+              echo "default-cache-ttl 600" >> ~/.gnupg/gpg-agent.conf
+              echo "max-cache-ttl 7200" >> ~/.gnupg/gpg-agent.conf
+
         - name: Download Build Artifact
           uses: actions/download-artifact@v4
           with:
               name: build-artifact
               path: dist/
 
-        - name: Publish to PyPI
+        - name: Publish to PyPI with Signing
           env:
               UV_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-          run: uv publish --token $UV_PYPI_TOKEN
+              GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          run: |
+              uv publish --token $UV_PYPI_TOKEN --sign --identity <key-id>
