@@ -15,14 +15,6 @@
     },
     "hide-files.files": [],
     "cSpell.words": [
-        "advapi",
-        "gecos",
-        "getent",
-        "getlogin",
-        "getuid",
-        "gltf",
-        "numpy",
-        "venv"
     ],
     "python.testing.pytestArgs": [
         "test"
@@ -37,8 +29,8 @@
     "npm.packageManager": "npm",
     "cSpell.customDictionaries": {
         "custom-dictionary-workspace": {
-            "name": "custom-dictionary-workspace",
-            "path": "${workspaceFolder:gltf_builder}/.cspell/custom-dictionary-workspace.txt",
+            "name": ".cspell.txt",
+            "path": "./.cspell.txt",
             "addWords": true,
             "scope": "workspace"
         }
@@ -53,5 +45,12 @@
         "package-lock.json": true,
         "typings/": true,
         "uv.lock": true
-    }
+    },
+    "cSpell.workspaceRootPath": "${workspaceFolder}",
+    "cSpell.dictionaries": [
+        "git",
+        "python",
+        "game-development",
+        "python-common"
+    ]
 }
