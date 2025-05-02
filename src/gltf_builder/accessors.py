@@ -127,10 +127,10 @@ class _Accessor(BAccessor[NP, BTYPE]):
                                               self.target,
                                               byteStride=self.byteStride,
                                               name=vname)
-                globl.views.add(state.view)
+                globl.add(state.view)
                 vstate = globl.state(state.view)
                 vstate.add_accessor(self)
-                globl.accessors.add(self)
+                globl.add(self)
                 return [(self,())]
             case Phase.SIZES:
                 (

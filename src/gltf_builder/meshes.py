@@ -139,13 +139,13 @@ class _Mesh(BMesh):
                 ) -> _DoCompileReturn[gltf.Mesh]:
         match phase:
             case Phase.PRIMITIVES:
-                globl.meshes.add(self)
+                globl.add(self)
                 for i, prim in enumerate(self.primitives):
                     p_state = globl.state(prim)
                     p_state.index = i
                     prim.compile(globl, phase)
             case Phase.COLLECT:
-                globl.meshes.add(self)
+                globl.add(self)
                 return (
                     prim.compile(globl, Phase.COLLECT)
                     for prim in self.primitives

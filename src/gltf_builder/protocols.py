@@ -10,7 +10,7 @@ from typing import (
 from collections.abc import Callable, Iterable
 import math
 
-from gltf_builder.holders import _Holder
+from gltf_builder.holders import _RO_Holder
 from gltf_builder.core_types import (
     BufferViewTarget, ElementType, ComponentType,
     ExtensionsData, ExtrasData,
@@ -58,7 +58,7 @@ class _BNodeContainerProtocol(Protocol):
         ...
     @property
     @abstractmethod
-    def nodes(self) -> _Holder['BNode']:
+    def nodes(self) -> _RO_Holder['BNode']:
         '''
         Return the nodes in this container (node, builder, or scene)
         '''

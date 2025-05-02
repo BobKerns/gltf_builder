@@ -12,10 +12,23 @@ from typing import Any, Optional, TYPE_CHECKING
 from gltf_builder.attribute_types import BTYPE, AttributeData, Vector3Spec
 from gltf_builder.compiler import _GLTF, _STATE, _Compilable, _CompileState
 from gltf_builder.core_types import BufferViewTarget, ComponentType, ElementType, ExtensionsData, ExtrasData, IndexSize, NPTypes, ScopeName
-from gltf_builder.holders import _Holder
+from gltf_builder.holders import _RO_Holder, _Holder
 from gltf_builder.matrix import Matrix4
 from gltf_builder.protocols import _BNodeContainerProtocol, AttributeType
 from gltf_builder.quaternions import QuaternionSpec
+from gltf_builder.accessors import _Accessor
+from gltf_builder.assets import _Asset
+from gltf_builder.buffers import _Buffer
+from gltf_builder.cameras import _Camera
+from gltf_builder.images import _Image
+from gltf_builder.materials import _Material
+from gltf_builder.meshes import _Mesh
+from gltf_builder.nodes import _Node
+from gltf_builder.samplers import _Sampler
+from gltf_builder.scenes import _Scene
+from gltf_builder.skins import _Skin
+from gltf_builder.textures import _Texture
+from gltf_builder.views import _BufferView
 if TYPE_CHECKING:
     from gltf_builder.extensions import Extension
     from gltf_builder.elements import (
@@ -38,7 +51,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __meshes: _Holder['BMesh']
     @property
-    def meshes(self) -> _Holder['BMesh']:
+    def meshes(self) -> _RO_Holder['BMesh']:
         '''
         The meshes in the glTF file.
         '''
@@ -46,7 +59,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __cameras: _Holder['BCamera']
     @property
-    def cameras(self) -> _Holder['BCamera']:
+    def cameras(self) -> _RO_Holder['BCamera']:
         '''
         The cameras in the glTF file.
         '''
@@ -54,7 +67,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __images: _Holder['BImage']
     @property
-    def images(self) -> _Holder['BImage']:
+    def images(self) -> _RO_Holder['BImage']:
         '''
         The images in the glTF file.
         '''
@@ -62,7 +75,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __materials: _Holder['BMaterial']
     @property
-    def materials(self) -> _Holder['BMaterial']:
+    def materials(self) -> _RO_Holder['BMaterial']:
         '''
         The materials in the glTF file.
         '''
@@ -70,7 +83,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __nodes: _Holder['BNode']
     @property
-    def nodes(self) -> _Holder['BNode']:
+    def nodes(self) -> _RO_Holder['BNode']:
         '''
         The nodes in the glTF file.
         '''
@@ -78,7 +91,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __samplers: _Holder['BSampler']
     @property
-    def samplers(self) -> _Holder['BSampler']:
+    def samplers(self) -> _RO_Holder['BSampler']:
         '''
         The samplers in the glTF file.
         '''
@@ -86,7 +99,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __scenes: _Holder['BScene']
     @property
-    def scenes(self) -> _Holder['BScene']:
+    def scenes(self) -> _RO_Holder['BScene']:
         '''
         The scenes in the glTF file.
         '''
@@ -101,7 +114,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __skins: _Holder['BSkin']
     @property
-    def skins(self) -> _Holder['BSkin']:
+    def skins(self) -> _RO_Holder['BSkin']:
         '''
         The skins in the glTF File
         '''
@@ -109,7 +122,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __textures: _Holder['BTexture']
     @property
-    def textures(self) -> _Holder['BTexture']:
+    def textures(self) -> _RO_Holder['BTexture']:
         '''
         The textures in the glTF file.
         '''
@@ -118,7 +131,7 @@ class _GlobalShared(_BNodeContainerProtocol):
     __extension_objects: _Holder['Extension']
     @property
     @abstractmethod
-    def extension_objects(self) -> _Holder['Extension']:
+    def extension_objects(self) -> _RO_Holder['Extension']:
         '''
         The extension objects for the glTF file.
         '''
@@ -126,7 +139,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __buffers: _Holder['BBuffer']
     @property
-    def buffers(self) -> _Holder['BBuffer']:
+    def buffers(self) -> _RO_Holder['BBuffer']:
         '''
         The buffers in the glTF file.
     '''
@@ -134,7 +147,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __buffer_views: _Holder['BBufferView']
     @property
-    def views(self) -> _Holder['BBufferView']:
+    def views(self) -> _RO_Holder['BBufferView']:
         '''
         The buffer views in the glTF file.
     '''
@@ -142,7 +155,7 @@ class _GlobalShared(_BNodeContainerProtocol):
 
     __accessors: _Holder['BAccessor[NPTypes, AttributeData]']
     @property
-    def accessors(self) -> _Holder['BAccessor[NPTypes, AttributeData]']:
+    def accessors(self) -> _RO_Holder['BAccessor[NPTypes, AttributeData]']:
         '''
         The accessors in the glTF file.
     '''
@@ -232,6 +245,45 @@ class _GlobalShared(_BNodeContainerProtocol):
         self.extensions = {}
         self.extensionsUsed = set()
         self.extensionsRequired = set()
+        global Extension
+        from gltf_builder.extensions import Extension
+
+    def add(self, elt: 'Element') -> None:
+        '''
+        Add an element to the global state.
+        '''
+        match elt:
+            # In rough order of frequency of use
+            case _Accessor():
+                self.__accessors.add(elt)
+            case _BufferView():
+                self.__buffer_views.add(elt)
+            case _Node():
+                self.__nodes.add(elt)
+            case _Mesh():
+                self.__meshes.add(elt)
+            case _Camera():
+                self.__cameras.add(elt)
+            case _Image():
+                self.__images.add(elt)
+            case _Material():
+                self.__materials.add(elt)
+            case _Sampler():
+                self.__samplers.add(elt)
+            case _Scene():
+                self.__scenes.add(elt)
+            case _Skin():
+                self.__skins.add(elt)
+            case _Texture():
+                self.__textures.add(elt)
+            case Extension():
+                self.__extension_objects.add(elt)
+            case _Buffer():
+                self.__buffers.add(elt)
+            case _Asset():
+                if self.asset is not None:
+                    raise ValueError('Asset already set')
+                self.__asset = elt
 
 
 class _CurrentGlobalShared(_GlobalShared):

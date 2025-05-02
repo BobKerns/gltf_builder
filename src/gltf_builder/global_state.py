@@ -127,7 +127,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentGlobalShared):
                   if builder.buffers
                   else _Buffer('main'))
         _Scope.__init__(self, self, buffer)
-        self.buffers.add(buffer)
+        self.add(buffer)
         self.buffers.add_from(builder.buffers)
         self.views.add_from(builder.views)
         self.accessors.add_from(builder.accessors)
@@ -289,8 +289,8 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentGlobalShared):
         }
         # Add a default scene if none provided.
         if len(self.scenes) == 0:
-            self.scenes.add(scene('DEFAULT',
-                                  *(n for n in self.nodes if n.root)))
+            self.add(scene('DEFAULT',
+                                *(n for n in self.nodes if n.root)))
         self._states = {}
         for phase in Phase:
             if phase != Phase.BUILD:
@@ -369,7 +369,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentGlobalShared):
         match phase:
             case Phase.COLLECT:
                 if self.scene:
-                    self.scenes.add(self.scene)
+                    self.add(self.scene)
                 collected = [
                     *(_do_compile(n) for n in self.scenes),
                     *(_do_compile(n) for n in self.skins),

@@ -47,7 +47,7 @@ def test_camera_perspective(test_builder: BuilderContext):
     assert cam.perspective.extras == {}
     assert cam.perspective.extensions == {}
     with test_builder() as tb:
-        tb.cameras.add(cam)
+        tb.add(cam)
 
 
 def test_camera_orthographic(test_builder: BuilderContext):
@@ -79,7 +79,7 @@ def test_camera_orthographic(test_builder: BuilderContext):
     assert cam.orthographic.extras == {}
     assert cam.orthographic.extensions == {}
     with test_builder() as tb:
-        tb.cameras.add(cam)
+        tb.add(cam)
 
 
 @pytest.mark.parametrize('test_camera', [

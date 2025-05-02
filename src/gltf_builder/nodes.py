@@ -241,9 +241,9 @@ class _Node(_BNodeContainer, BNode):
             case Phase.COLLECT:
                 globl.nodes.add(self)
                 if self.camera is not None:
-                    globl.cameras.add(self.camera)
+                    globl.add(self.camera)
                 if self.mesh is not None:
-                    globl.meshes.add(self.mesh)
+                    globl.add(self.mesh)
                 return (
                     c.compile(globl, phase)
                     for c in (self.mesh, self.camera, *self.children)

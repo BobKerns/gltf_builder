@@ -85,7 +85,7 @@ class _Image(BImage):
                     /) -> _DoCompileReturn[gltf.Image]:
         match phase:
             case Phase.COLLECT:
-                globl.images.add(self)
+                globl.add(self)
                 if self.blob is not None:
                     name=globl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
                     state.view = globl._get_view(globl.buffer,
