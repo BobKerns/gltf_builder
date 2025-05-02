@@ -23,7 +23,6 @@ wheels/
 test/out/*
 
 # Node.js dependencies
-
 node_modules/
 
 ~*

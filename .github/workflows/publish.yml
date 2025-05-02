@@ -5,8 +5,8 @@ on:
         types: [published]
 
 jobs:
-  publish:
-    name: publish
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -15,7 +15,11 @@ jobs:
 
     steps:
         - uses: actions/checkout@v4
-    
+
+        - name: Remove Unnecessary Directories
+          run: |
+              rm -rf .venv node_modules dist build
+
         - name: Install uv
           uses: astral-sh/setup-uv@v5.3.1
           with:
@@ -23,19 +27,106 @@ jobs:
                 version: "0.6.6"
                 enable-cache: true
                 cache-dependency-glob: "uv.lock"
-        
+
         - name: Set up Python
           uses: actions/setup-python@v5
           with:
                 python-version-file: ".python-version"
         - name: Install the project
           run: uv sync --all-extras --dev
-        
+
         - name: Run tests
           run: uv run pytest test
 
         - name: Build
           run: uv build
 
-        - name: Publish
-          run: uv publish
+        - name: Upload Build Artifact
+          uses: actions/upload-artifact@v4
+          with:
+              name: build-artifact
+              path: dist/
+
+  publish-to-testpypi:
+    name: Publish to Test PyPI
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'release'
+    environment: testpypi
+    permissions:
+      id-token: write
+
+    steps:
+        - uses: actions/checkout@v4
+
+        - name: Remove Unnecessary Directories
+          run: |
+              rm -rf .venv node_modules dist build
+
+        - name: Install uv
+          uses: astral-sh/setup-uv@v5.3.1
+          with:
+                version: "0.6.14"
+                enable-cache: true
+                cache-dependency-glob: "uv.lock"
+
+        - name: Download Build Artifact
+          uses: actions/download-artifact@v4
+          with:
+              name: build-artifact
+              path: dist/
+
+        - name: Publish to Test PyPI
+          env:
+              UV_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          run: uv publish --index testpypi --token $UV_PYPI_TOKEN
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'workflow_dispatch'
+    environment: pypi
+    permissions:
+      id-token: write
+
+    steps:
+        - uses: actions/checkout@v4
+
+        - name: Remove Unnecessary Directories
+          run: |
+              rm -rf .venv node_modules dist build
+
+        - name: Install uv
+          uses: astral-sh/setup-uv@v5.3.1
+          with:
+                version: "0.6.14"
+                enable-cache: true
+                cache-dependency-glob: "uv.lock"
+
+        - name: Import GPG Key
+          env:
+              GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          run: |
+              echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+              gpg --list-secret-keys
+
+        - name: Configure GPG for Signing
+          run: |
+              echo "use-agent" >> ~/.gnupg/gpg.conf
+              echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+              echo "default-cache-ttl 600" >> ~/.gnupg/gpg-agent.conf
+              echo "max-cache-ttl 7200" >> ~/.gnupg/gpg-agent.conf
+
+        - name: Download Build Artifact
+          uses: actions/download-artifact@v4
+          with:
+              name: build-artifact
+              path: dist/
+
+        - name: Publish to PyPI with Signing
+          env:
+              UV_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+              GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          run: |
+              uv publish --token $UV_PYPI_TOKEN --sign --identity <key-id>
