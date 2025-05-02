@@ -23,7 +23,7 @@ from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
 from gltf_builder.holders import _Holder
 from gltf_builder.protocols import _BNodeContainerProtocol
-from gltf_builder.global_config import _GlobalBinary
+from gltf_builder.global_config import _GlobalConfiguration
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
@@ -93,7 +93,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         -------
         BNode
         '''
-        root = isinstance(self, (_GlobalBinary, builder.Builder))
+        root = isinstance(self, (_GlobalConfiguration, builder.Builder))
         node = _Node(name,
                     parent=cast(BNode, self) if not root else None,
                     children=children,
@@ -177,7 +177,6 @@ class _Node(_BNodeContainer, BNode):
     @classmethod
     def state_type(cls):
         return _NodeState
-
 
     def __init__(self,
                  name: str ='', /,

@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, NP, BBufferView
 )
-from gltf_builder.compiler import _CompileStateBinary, _DoCompileReturn
+from gltf_builder.compiler import _GlobalCompileState, _DoCompileReturn
 from gltf_builder.utils import (
     decode_dtype, decode_stride, decode_type, std_repr,
 )
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
-class _AccessorState(_CompileStateBinary[gltf.Accessor, '_AccessorState', '_Accessor']):
+class _AccessorState(_GlobalCompileState[gltf.Accessor, '_AccessorState', '_Accessor']):
     '''
     State for the compilation of an accessor.
     '''

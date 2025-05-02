@@ -9,7 +9,7 @@ from pathlib import Path
 import pygltflib as gltf
 import numpy as np
 
-from gltf_builder.compiler import _DoCompileReturn, _CompileStateBinary
+from gltf_builder.compiler import _DoCompileReturn, _GlobalCompileState
 from gltf_builder.core_types import (
     BufferViewTarget, ExtensionsData, ExtrasData, ImageType, Phase, ScopeName
 )
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
 
-class _ImageState(_CompileStateBinary[gltf.Image, '_ImageState', '_Image']):
+class _ImageState(_GlobalCompileState[gltf.Image, '_ImageState', '_Image']):
     '''
     State for the compilation of an image.
     '''

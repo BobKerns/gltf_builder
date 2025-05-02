@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     )
 
 
-class _GlobalConfiguration():
+class _GlobalConfiguration(_BNodeContainerProtocol):
     '''
     Protocol for the global configuration of the glTF file.
     '''
@@ -141,11 +141,6 @@ class _GlobalConfiguration():
         ...
 
 
-class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol):
-    '''
-    Abstract class for a Builder.  This exists to avoid circular dependencies.
-    '''
-
     buffers: _Holder['BBuffer']
     '''
     The buffers in the glTF file.'''
@@ -156,6 +151,13 @@ class _GlobalBinary(_GlobalConfiguration, _BNodeContainerProtocol):
     accessors: _Holder['BAccessor[NPTypes, AttributeData]']
     '''
     The accessors in the glTF file.
+    '''
+
+class _CurrentConfiguration(_GlobalConfiguration):
+    '''
+    Protocol for the current configuration of the glTF file.
+    This is used by the compiler to keep track of the current state of the,
+    beyond the global state.
     '''
 
     @property

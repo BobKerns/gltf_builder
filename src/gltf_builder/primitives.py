@@ -8,7 +8,7 @@ from typing import Any, Optional, Self, cast, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _Collected, _CompileStateBinary, _DoCompileReturn,
+    _GLTF, _STATE, _Collected, _GlobalCompileState, _DoCompileReturn,
 )
 from gltf_builder.core_types import (
     ExtensionsData, ExtrasData, IndexSize, NPTypes,
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
 
-class _PrimitiveState(_CompileStateBinary[gltf.Primitive, '_PrimitiveState', '_Primitive']):
+class _PrimitiveState(_GlobalCompileState[gltf.Primitive, '_PrimitiveState', '_Primitive']):
     '''
     State for the compilation of a primitive.
     '''

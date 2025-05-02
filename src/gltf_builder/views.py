@@ -14,14 +14,14 @@ from gltf_builder.core_types import (
 from gltf_builder.elements import (
     BAccessor, BBuffer, BBufferView,
 )
-from gltf_builder.compiler import _CompileStateBinary
+from gltf_builder.compiler import _GlobalCompileState
 from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
 
-class _BufferViewState(_CompileStateBinary[gltf.BufferView, '_BufferViewState', '_BufferView']):
+class _BufferViewState(_GlobalCompileState[gltf.BufferView, '_BufferViewState', '_BufferView']):
     '''
     State for the compilation of a buffer view.
     '''

@@ -17,7 +17,7 @@ from gltf_builder.assets import _Asset, __version__
 from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _Compilable, _CompileState, _CompileStateBinary,
+    _GLTF, _STATE, _Compilable, _CompileState, _GlobalCompileState,
     _Collected, _DoCompileReturn, _Scope,
 )
 from gltf_builder.core_types import (
@@ -28,7 +28,7 @@ from gltf_builder.elements import BAccessor, BBuffer, BBufferView, Element
 from gltf_builder.holders import _Holder
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.protocols import AttributeType
-from gltf_builder.global_config import _GlobalBinary
+from gltf_builder.global_config import _CurrentConfiguration
 from gltf_builder.scenes import scene
 from gltf_builder.utils import (
     USER, USERNAME, decode_dtype, std_repr, count_iter,
@@ -44,7 +44,7 @@ LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 
 _imported: bool = False
 
-class GlobalState(_CompileStateBinary, _BNodeContainer, _GlobalBinary):
+class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
     _scope_name: ScopeName = ScopeName.BUILDER
 
     _id_counters: dict[str, count]

@@ -265,8 +265,7 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         ))
 
 
-
-class _CompileStateBinary(Generic[_GLTF, _STATEX, _ELEMENT],
+class _GlobalCompileState(Generic[_GLTF, _STATEX, _ELEMENT],
                           _CompileState[_GLTF, _STATEX, _ELEMENT]):
     __slots__ = (
         '_len', '_byteOffset',
@@ -440,7 +439,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                         state.COLLECT = result
                         return result
                     case Phase.SIZES:
-                        assert isinstance(state, _CompileStateBinary)
+                        assert isinstance(state, _GlobalCompileState)
                         bytelen = cast(_ReturnSizes, _do_compile() or 0)
                         assert bytelen is not None
                         state._len = bytelen
@@ -448,7 +447,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                         state.SIZES = bytelen
                         return bytelen
                     case Phase.OFFSETS:
-                        assert isinstance(state, _CompileStateBinary)
+                        assert isinstance(state, _GlobalCompileState)
                         _do_compile()
                         if state.byteOffset >= 0:
                             if LOG.isEnabledFor(DEBUG):
