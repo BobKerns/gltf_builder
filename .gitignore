@@ -25,6 +25,18 @@ test/out/*
 # Node.js dependencies
 node_modules/
 
+# Linux, editor and IDE files
 ~*
 \#*
 *#
+.bak
+.backup
+*.swp
+*.tmp
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+

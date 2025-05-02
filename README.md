@@ -221,6 +221,15 @@ See [quaternions.md](quaternions.md) or [quaternions.py](src/gltf_builder/quater
 
 ## Development
 
+### Prerequisites
+
+- \[For testing] [`node`, `npm`](https://nodejs.org/)
+- \[Recommended] [`direnv](https://direnv.net/docs/installation.html)
+
+`direnv` enables automatic switching of environments when you cd into a directory. An alternative is to use `oh-my-zsh` with the `virtualenv` plugin, but it doesn't handle other tasks such as setting PATH.
+
+### 
+
 ### Testing
 
 The unit tests and their organization are described in the [Testing README](testing/README.md). Files created by the tests are automatically validated using the official Khronos validator.
