@@ -53,6 +53,8 @@ namespec
 ndarray
 ndata
 nocopy
+norecursedirs
+pinentry
 pointlike
 pointspecs
 pygltflib
