@@ -107,6 +107,11 @@ classDiagram
 
     class Plugin {
         +name: str
+        +version: str
+        semver: Version
+        +author: str
+        summary: str
+        requiresPython: Version
     }
     class Extension {
         +name: str
@@ -125,6 +130,7 @@ classDiagram
     _CompileState <|-- _GlobalCompileState
     _Scope <|-- _CompileState
     _GlobalConfiguration <|-- _CurrentConfiguration
+
     _Compilable <|-- Element
     Element <|-- BNode
     Element <|-- BBuffer
@@ -196,6 +202,7 @@ classDiagram
 
     BSkin --> "1" BNode : skeleton
     BSkin --> "*" BNode : joints
+    BSkin *--> "0..1" BAccessor : inverseBindMatrices
 
     BTexture --> BImage : source
     BTexture --> BSampler : sampler
@@ -236,12 +243,24 @@ classDiagram
     BNode "1" *--> "0..1" BMesh : mesh
     BMesh "1" *--> "0..1" BPrimitive : primitives
     BMesh "1" *--> "0..1" BAccessor : weights
+
     BPrimitive --> "0..1" BMaterial : material
     BPrimitive o--> "0..1" BAccessor : indices
+
     BAccessor --> BBufferView : bufferview
+
     BBufferView --> BBuffer : buffer
 
     BPrimitive --> "0..1" BMaterial : material
+
+    BImage "1" *--> "1" BufferView : bufferView
+
+    BAnimationChannel --> BSampler : sampler
+    BAnimationChannel --> BNode : target
+
+    BAnimation --> "*" BAnimationChannel : channels
+    BAnimation --> "*" BAnimationSampler : samplers
+
 
     %% _CompileState <|-- _Compilable
     %% _Scope <|-- GlobalState

@@ -21,8 +21,10 @@ The geometry model contains sufficient detail to construct a glTF file with wire
 
 In addition, it shows where the BCamera instances attach, and how materials attach to primitives, without going into further detail.
 
+Layered on top of the geometry model are materials, skins, morphing, and animation. There is a mechanism for applying extensions to bring additional features.
+
 Click the image for a full-sized SVG version.
-[![erDiagram](docs/erDiagramGeometryThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagramGeometry.svg)
+[![erDiagram](erDiagramGeometry.svg)](erDiagramGeometry.svg)
 
 ### User model
 
