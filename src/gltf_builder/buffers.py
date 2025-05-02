@@ -97,7 +97,7 @@ class _Buffer(BBuffer):
                 _compile1(view)
         match phase:
             case Phase.COLLECT:
-                globl.views.add(*state.views)
+                globl.views.add_from(state.views)
                 return (
                     view.compile(globl, Phase.COLLECT)
                     for view in state.views

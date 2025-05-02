@@ -2,7 +2,7 @@
 Functions for creating cameras in glTF format.
 '''
 
-from typing import Any, Literal, Optional, TypeVar, overload
+from typing import Any, Literal, Optional, TypeVar, overload, TYPE_CHECKING
 
 import pygltflib as gltf
 
@@ -10,7 +10,8 @@ from gltf_builder.core_types import CameraType, Phase
 from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
 from gltf_builder.utils import std_repr
 from gltf_builder.compiler import _CompileState, ExtensionsData, ExtrasData
-from gltf_builder.global_state import GlobalState
+if TYPE_CHECKING:
+    from gltf_builder.global_state import GlobalState
 
 
 _CAMERA = TypeVar('_CAMERA', bound='_Camera')
@@ -76,7 +77,7 @@ class _PerspectiveCamera(_Camera, BPerspectiveCamera, BCamera):
         self.aspectRatio=aspectRatio
 
     def _do_compile(self,
-                    builder: GlobalState,
+                    builder: 'GlobalState',
                     phase: Phase,
                     state: _CompileState[gltf.Camera, _CameraState, '_PerspectiveCamera'],
                     /
@@ -141,7 +142,7 @@ class _OrthographicCamera(_Camera, BOrthographicCamera):
         )
 
     def _do_compile(self,
-                    builder: GlobalState,
+                    builder: 'GlobalState',
                     phase: Phase,
                     state: _CompileState[gltf.Camera, _CameraState, '_OrthographicCamera'],
                     ):

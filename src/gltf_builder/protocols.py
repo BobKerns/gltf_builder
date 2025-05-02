@@ -56,7 +56,14 @@ class _BNodeContainerProtocol(Protocol):
         Return the parent of this node.
         '''
         ...
-    nodes: _Holder['BNode']
+    @property
+    @abstractmethod
+    def nodes(self) -> _Holder['BNode']:
+        '''
+        Return the nodes in this container (node, builder, or scene)
+        '''
+        ...
+
     descendants: dict[str, 'BNode']
     @property
     def children(self):

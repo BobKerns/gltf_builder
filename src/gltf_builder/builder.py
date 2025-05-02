@@ -20,7 +20,7 @@ from gltf_builder.core_types import (
      NameMode, NamePolicy,
      ElementType, ComponentType, ScopeName,
 )
-from gltf_builder.extensions import load_extensions
+from gltf_builder.extensions import Extension, load_extensions
 from gltf_builder.global_state import GlobalState
 from gltf_builder.holders import _Holder
 from gltf_builder.buffers import _Buffer
@@ -34,10 +34,10 @@ from gltf_builder.protocols import (
     _AttributeParser,  AttributeType,
 )
 from gltf_builder.elements import (
-     BAccessor, BAsset, BBuffer, BBufferView, BCamera, BImage, BMaterial,
+     BAsset, BBuffer, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
 )
-from gltf_builder.global_config import _GlobalConfiguration
+from gltf_builder.global_shared import _GlobalShared
 from gltf_builder.log import GLTF_LOG
 from gltf_builder.utils import std_repr, count_iter
 
@@ -73,8 +73,57 @@ Default naming mode for each scope.
 _RE_ATTRIB_NAME = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(?:_\d+)$')
 
 
-class Builder(_BNodeContainer, _GlobalConfiguration):
+class Builder(_BNodeContainer, _GlobalShared):
+    '''
+    The global input state for the compilation of the glTF file.
+    This is used to store the global state of the compilation process.
+
+    While it is temporarily stored in the builder, it will be allocated
+    on each build.
+    '''
+
     _scope_name = ScopeName.BUILDER
+
+    __asset: Optional[BAsset]
+    @property
+    def asset(self) -> Optional[BAsset]:
+        '''
+        The asset information for the glTF file.
+        '''
+        return self.__asset
+    @asset.setter
+    def asset(self, asset: Optional[BAsset], /):
+        if asset is not None:
+            if not isinstance(asset, BAsset):
+                raise TypeError(f'Asset must be of type BAsset, not {type(asset)}')
+        self.__asset = asset
+
+    __scene: Optional[BScene]
+    @property
+    def scene(self) -> Optional[BScene]:
+        '''
+        The scene to use as the default scene for the glTF file.
+        '''
+        return self.__scene
+    @scene.setter
+    def scene(self, scene: Optional[BScene], /):
+        if scene is not None:
+            if not isinstance(scene, BScene):
+                raise TypeError(f'Scene must be of type BScene, not {type(scene)}')
+        self.__scene = scene
+
+    __extension_objects: _Holder[Extension]
+    @property
+    def extension_objects(self) -> _Holder[Extension]:
+        '''
+        The extensions used by the glTF file.
+        '''
+        return self.__extension_objects
+    @extension_objects.setter
+    def extension_objects(self, extensions: Iterable[Extension], /):
+        if not isinstance(extensions, Iterable):
+            raise TypeError(f'Extensions must be iterable, not {type(extensions)}')
+        self.__extension_objects.add_from(extensions)
 
     __index_size: IndexSize = IndexSize.AUTO
     '''
@@ -122,17 +171,6 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         '''
         return self.buffers[0]
 
-    '''
-    The global state for the compilation of the glTF file.
-    This is used to store the global state of the compilation process.
-
-    While it is temporarily stored in the builder, it will be allocated
-    on each build.
-    '''
-
-    '''
-    The main object that collects all the geometry info and compiles it into a glTF object.
-    '''
     def __init__(self, /,
                 asset: Optional[BAsset]=None,
                 cameras: Iterable[BCamera]=(),
@@ -153,7 +191,9 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
                 extensionsUsed: Optional[list[str]]=None,
                 extensionsRequired: Optional[list[str]]=None,
         ):
-        super().__init__(nodes=nodes)
+        _BNodeContainer.__init__(self, nodes=nodes)
+        _GlobalShared.__init__(self)
+        self.__extension_objects = _Holder(Extension)
 
         name_policy = name_policy or {}
         self.name_policy = {
@@ -163,23 +203,10 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         if index_size is None:
             index_size = IndexSize.NONE
         self.asset = asset
-        self.meshes = _Holder(BMesh, *meshes)
-        self.cameras = _Holder(BCamera, *cameras)
-        self.buffers = _Holder(BBuffer, *buffers)
-        self._views = _Holder(BBufferView)
-        self._accessors = _Holder(BAccessor)
-        self.images = _Holder(BImage, *images)
-        self.materials = _Holder(BMaterial, *materials)
-        self.samplers = _Holder(BSampler, *samplers)
-        self.scenes = _Holder(BScene, *scenes)
-        self.skins = _Holder(BSkin, *skins)
-        self.textures = _Holder(BTexture, *textures)
         self.index_size = IndexSize.NONE if index_size is None else index_size
         self.extras = extras or {}
         self.extensions = extensions or {}
         self.scene = scene
-        self.extensionsUsed = list(extensionsUsed or ())
-        self.extensionsRequired = list(extensionsRequired or ())
         self.attr_type_map = {}
         self.define_attrib('POSITION', ElementType.VEC3, ComponentType.FLOAT, Point, point)
         self.define_attrib('NORMAL', ElementType.VEC3, ComponentType.FLOAT, Vector3, vector3)
@@ -189,7 +216,6 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
         self.define_attrib('JOINTS', ElementType.VEC4, ComponentType.UNSIGNED_SHORT, Joint)
         self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
-        self.extension_objects = set()
 
     def create_mesh(self,
                 name: str='',
@@ -224,7 +250,7 @@ class Builder(_BNodeContainer, _GlobalConfiguration):
             for i in flatten(n)
         })
         # Add all the child nodes.
-        self.nodes.add(*(n for n in nodes if not n.root))
+        self.nodes.add_from(n for n in nodes if not n.root)
         global_state = GlobalState(self)
         return global_state.build()
 

@@ -54,8 +54,7 @@ class _Skin(BSkin):
         match phase:
             case Phase.COLLECT:
                 globl.nodes.add(self.skeleton)
-                for j in self.joints:
-                    globl.nodes.add(j)
+                globl.nodes.add_from(self.joints)
                 return [self.skeleton.compile(globl, phase)] + \
                        [j.compile(globl, phase) for j in self.joints]
             case Phase.BUILD:

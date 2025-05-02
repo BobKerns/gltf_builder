@@ -21,14 +21,15 @@ from gltf_builder.compiler import (
     _Collected, _DoCompileReturn, _Scope,
 )
 from gltf_builder.core_types import (
-    BufferViewTarget, ComponentType, ElementType, IndexSize, JsonObject,
-    NPTypes, NameMode, Phase, ScopeName,
+    BufferViewTarget, ComponentType, ElementType, IndexSize,
+    JsonObject, NPTypes, NameMode, Phase, ScopeName,
 )
-from gltf_builder.elements import BAccessor, BBuffer, BBufferView, Element
-from gltf_builder.holders import _Holder
+from gltf_builder.elements import (
+    BAccessor, BAsset, BBuffer, BBufferView, BScene, Element,
+)
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.protocols import AttributeType
-from gltf_builder.global_config import _CurrentConfiguration
+from gltf_builder.global_shared import _CurrentGlobalShared
 from gltf_builder.scenes import scene
 from gltf_builder.utils import (
     USER, USERNAME, decode_dtype, std_repr, count_iter,
@@ -44,7 +45,7 @@ LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 
 _imported: bool = False
 
-class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
+class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentGlobalShared):
     _scope_name: ScopeName = ScopeName.BUILDER
 
     _id_counters: dict[str, count]
@@ -58,6 +59,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
 
     treewalker: Optional['TreeWalker'] = None
     returns: dict[Phase, _DoCompileReturn]
+
 
     def state(self, elt: Element[_GLTF, _STATE]) -> _STATE:
         '''
@@ -77,12 +79,29 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
             self._states[_key] = state
         return state
 
+    __asset: Optional['BAsset'] = None
+    @property
+    def asset(self) -> Optional['BAsset']:
+        '''
+        The asset for the glTF document.
+        '''
+        return self.__asset
+
+    __scene: Optional['BScene'] = None
+    @property
+    def scene(self) -> Optional['BScene']:
+        '''
+        The default scene for the glTF document.
+        '''
+        return self.__scene
+
+    __buffer: BBuffer|None = None
     @property
     def buffer(self) -> BBuffer:
         '''
         The default buffer for the glTF document.
         '''
-        return self.buffers[0]
+        return self.__buffer or self.buffers[0]
 
     @property
     def index_size(self) -> IndexSize:
@@ -101,33 +120,36 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
     Global state for the compilation of a glTF document.
     '''
     def __init__(self, builder: 'Builder') -> None:
-        super().__init__(builder, 'GLOBAL')
-        buffer = _Buffer('main')
+        _GlobalCompileState.__init__(self, builder, 'GLOBAL')
+        _BNodeContainer.__init__(self)
+        _CurrentGlobalShared.__init__(self)
+        buffer = (builder.buffers[0]
+                  if builder.buffers
+                  else _Buffer('main'))
         _Scope.__init__(self, self, buffer)
-        self.buffers = _Holder(BBuffer)
-        self.views = _Holder(BBufferView)
-        self.accessors = _Holder(BAccessor)
         self.buffers.add(buffer)
+        self.buffers.add_from(builder.buffers)
+        self.views.add_from(builder.views)
+        self.accessors.add_from(builder.accessors)
         self.__builder = builder
-        self.asset = builder.asset
-        self.meshes = builder.meshes
-        self.cameras = builder.cameras
-        self.images = builder.images
-        self.materials = builder.materials
-        self.nodes = builder.nodes
-        self.samplers = builder.samplers
-        self.scenes = builder.scenes
-        self.skins = builder.skins
-        self.textures = builder.textures
+        self.__asset = builder.asset
+        self.meshes.add_from(builder.meshes)
+        self.cameras.add_from(builder.cameras)
+        self.images.add_from(builder.images)
+        self.materials.add_from(builder.materials)
+        self.nodes.add_from(builder.nodes)
+        self.samplers.add_from(builder.samplers)
+        self.scenes.add_from(builder.scenes)
+        self.skins.add_from(builder.skins)
+        self.textures.add_from(builder.textures)
         self.extras = builder.extras or {}
         self.extensions = builder.extensions or {}
-        self.scene = builder.scene
-        self.extensionsUsed = list(builder.extensionsUsed or ())
-        self.extensionsRequired = list(builder.extensionsRequired or ())
+        self.__scene = builder.scene
+        self.extensionsUsed = set(builder.extensionsUsed or ())
+        self.extensionsRequired = set(builder.extensionsRequired or ())
         self._id_counters = {}
         self._states = {}
         self._states[id(builder)] = self
-        self.extension_objects = set()
         self.returns = {}
 
     def _get_index_size(self, max_value):
@@ -231,7 +253,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
         LOG.debug('Building glTF document.')
         python = sys.version_info
         if self.asset is None:
-            self.asset = asset = _Asset()
+            self.__asset = asset = _Asset()
         else:
             asset = self.asset
         extras = asset.extras = asset.extras or {}
@@ -252,22 +274,23 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
                 'creation_time': datetime.now().isoformat(),
                 **builder_info
             }
-        self.asset.extras = {
+        asset.extras = {
             'gltf_builder': builder_info,
             'username': USERNAME,
             'user': USER,
             'date': datetime.now().isoformat(),
-            **self.asset.extras,
+            **asset.extras,
         }
         # Filter out empty values.
-        self.asset.extras = {
+        asset.extras = {
             key: value
-            for key, value in self.asset.extras.items()
+            for key, value in asset.extras.items()
             if value is not None
         }
         # Add a default scene if none provided.
         if len(self.scenes) == 0:
-            self.scenes.add(scene('DEFAULT', *(n for n in self.nodes if n.root)))
+            self.scenes.add(scene('DEFAULT',
+                                  *(n for n in self.nodes if n.root)))
         self._states = {}
         for phase in Phase:
             if phase != Phase.BUILD:
@@ -288,7 +311,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
         images = build_list(self.images)
         accessors = build_list(a for a in self.accessors if a.count > 0)
         bufferViews = build_list(self.__ordered_views)
-        _asset = self.asset.compile(self, Phase.BUILD)
+        _asset = asset.compile(self, Phase.BUILD)
         def check_buffer(b: BBuffer|None) -> bool:
             if b is None:
                 return False
@@ -300,7 +323,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
             if check_buffer(b)
         )
         scenes = build_list(self.scenes)
-        self.scene = self.scene or (self.scenes[0] if self.scenes else None)
+        self.__scene = self.scene or (self.scenes[0] if self.scenes else None)
         if self.scene is None:
             scene_info = {}
         else:
@@ -323,8 +346,8 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
             extras=self.extras,
             extensions=self.extensions,
             animations=[],
-            extensionsUsed=self.extensionsUsed,
-            extensionsRequired=self.extensionsRequired,
+            extensionsUsed=list(self.extensionsUsed),
+            extensionsRequired=list(self.extensionsRequired),
             **scene_info,
         )
         if len(self.buffers) == 1 :
@@ -408,7 +431,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentConfiguration):
                 unused = specified - actual
                 if unused:
                     LOG.warning(f'Unused extensions: {unused}')
-                self.extensionsUsed = list(specified | actual)
+                self.extensionsUsed |= specified | actual
             case _:
                 _do_compile_n(
                     self.scenes,

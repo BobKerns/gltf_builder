@@ -18,6 +18,7 @@ from gltf_builder.core_types import (
     ExtensionData, ExtensionsData, ExtrasData, Phase,
     BufferViewTarget, ScopeName
 )
+from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
@@ -25,8 +26,8 @@ if TYPE_CHECKING:
     from gltf_builder.elements import (
         Element, BBuffer, BBufferView,
     )
-    from gltf_builder.extensions import Extension
     from gltf_builder.global_state import GlobalState
+    from gltf_builder.extensions import Extension
 
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
@@ -57,7 +58,7 @@ _SLOTS: tuple[str, ...] = tuple(
             'name',
             '_index',
             'element',
-            'extension_objects',
+            '_extension_objects',
             #'__dict__',
         )
     )
@@ -231,7 +232,17 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
             raise ValueError(f'Index already set, old={self._index}, new={index}')
 
     element: _ELEMENT
-    extension_objects: set['Extension']
+
+    __extension_objects: _Holder['Extension']|None
+    @property
+    def extension_objects(self) -> _Holder['Extension']:
+        '''
+        The extension objects for the element.
+        '''
+        if self.__extension_objects is None:
+            from gltf_builder.extensions import Extension
+            self.__extension_objects = _Holder(Extension)
+        return self.__extension_objects
 
     def __init__(self,
                  element: _ELEMENT,
@@ -243,7 +254,8 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         self._index = None
         self._len = None
         self.element = element
-        self.extension_objects = set(element.extension_objects)
+        self.__extension_objects = None
+        self.extension_objects.add_from(element.extension_objects)
         self.PRIMITIVES: Progress = Progress.NONE
         self.COLLECT: _Collected|Progress = Progress.NONE
         self.ENUMERATE: int|Progress = Progress.NONE
@@ -418,7 +430,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                         def e_collect(ext: 'Extension'):
                             return ext.compile(globl, Phase.COLLECT)
 
-                        globl.extension_objects.update(
+                        globl.extension_objects.add_from(
                             globl.state(cast(Extension, e))
                             for group in (self.extension_objects,
                                         state.extension_objects)

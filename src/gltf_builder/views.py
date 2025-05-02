@@ -83,7 +83,7 @@ class _BufferView(BBufferView):
                     /):
         match phase:
             case Phase.COLLECT:
-                globl.accessors.add(*state.accessors)
+                globl.accessors.add_from(state.accessors)
                 bstate = globl.state(self.buffer)
                 bstate.add_view(self)
                 return [acc.compile(globl, phase)

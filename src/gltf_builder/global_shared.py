@@ -24,54 +24,130 @@ if TYPE_CHECKING:
     )
 
 
-class _GlobalConfiguration(_BNodeContainerProtocol):
+class _GlobalShared(_BNodeContainerProtocol):
     '''
     Protocol for the global configuration of the glTF file.
     '''
-    asset: Optional['BAsset']
+    @property
+    @abstractmethod
+    def asset(self) -> Optional['BAsset']:
+        '''
+        The asset information for the glTF file.
+        '''
+        ...
+
+    __meshes: _Holder['BMesh']
+    @property
+    def meshes(self) -> _Holder['BMesh']:
+        '''
+        The meshes in the glTF file.
+        '''
+        return self.__meshes
+
+    __cameras: _Holder['BCamera']
+    @property
+    def cameras(self) -> _Holder['BCamera']:
+        '''
+        The cameras in the glTF file.
+        '''
+        return self.__cameras
+
+    __images: _Holder['BImage']
+    @property
+    def images(self) -> _Holder['BImage']:
+        '''
+        The images in the glTF file.
+        '''
+        return self.__images
+
+    __materials: _Holder['BMaterial']
+    @property
+    def materials(self) -> _Holder['BMaterial']:
+        '''
+        The materials in the glTF file.
+        '''
+        return self.__materials
+
+    __nodes: _Holder['BNode']
+    @property
+    def nodes(self) -> _Holder['BNode']:
+        '''
+        The nodes in the glTF file.
+        '''
+        return self.__nodes
+
+    __samplers: _Holder['BSampler']
+    @property
+    def samplers(self) -> _Holder['BSampler']:
+        '''
+        The samplers in the glTF file.
+        '''
+        return self.__samplers
+
+    __scenes: _Holder['BScene']
+    @property
+    def scenes(self) -> _Holder['BScene']:
+        '''
+        The scenes in the glTF file.
+        '''
+        return self.__scenes
+
+    @property
+    @abstractmethod
+    def scene(self) -> Optional['BScene']:
+        '''
+        The initial scene.
+        '''
+
+    __skins: _Holder['BSkin']
+    @property
+    def skins(self) -> _Holder['BSkin']:
+        '''
+        The skins in the glTF File
+        '''
+        return self.__skins
+
+    __textures: _Holder['BTexture']
+    @property
+    def textures(self) -> _Holder['BTexture']:
+        '''
+        The textures in the glTF file.
+        '''
+        return self.__textures
+
+    __extension_objects: _Holder['Extension']
+    @property
+    @abstractmethod
+    def extension_objects(self) -> _Holder['Extension']:
+        '''
+        The extension objects for the glTF file.
+        '''
+        return self.__extension_objects
+
+    __buffers: _Holder['BBuffer']
+    @property
+    def buffers(self) -> _Holder['BBuffer']:
+        '''
+        The buffers in the glTF file.
     '''
-    The asset information for the glTF file.
+        return self.__buffers
+
+    __buffer_views: _Holder['BBufferView']
+    @property
+    def views(self) -> _Holder['BBufferView']:
+        '''
+        The buffer views in the glTF file.
     '''
-    meshes: _Holder['BMesh']
+        return self.__buffer_views
+
+    __accessors: _Holder['BAccessor[NPTypes, AttributeData]']
+    @property
+    def accessors(self) -> _Holder['BAccessor[NPTypes, AttributeData]']:
+        '''
+        The accessors in the glTF file.
     '''
-    The meshes in the glTF file.
-    '''
-    cameras: _Holder['BCamera']
-    '''
-    The cameras in the glTF file.
-    '''
-    images: _Holder['BImage']
-    '''
-    The images in the glTF file.
-    '''
-    materials: _Holder['BMaterial']
-    '''
-    The materials in the glTF file.
-    '''
-    nodes: _Holder['BNode']
-    '''
-    The nodes in the glTF file.
-    '''
-    samplers: _Holder['BSampler']
-    '''
-    The samplers in the glTF file.
-    '''
-    scenes: _Holder['BScene']
-    '''
-    The scenes in the glTF file.
-    '''
-    skins: _Holder['BSkin']
-    '''
-    The skins in the glTF File
-    '''
-    scene: Optional['BScene']
-    '''
-    The initial scene.
-    '''
-    textures: _Holder['BTexture']
-    '''
-    The textures in the glTF file.
-    '''
+        return self.__accessors
+
     extras: dict[str, Any]
     '''
     The extras for the glTF file.
@@ -80,15 +156,14 @@ class _GlobalConfiguration(_BNodeContainerProtocol):
     '''
     The extensions for the glTF file.
     '''
-    extensionsUsed: list[str]
+    extensionsUsed: set[str]
     '''
     The extensions used in this file
     '''
-    extensionsRequired: list[str]
+    extensionsRequired: set[str]
     '''
     The extensions required to load this file.
     '''
-    extension_objects: set['Extension']
 
     @property
     @abstractmethod
@@ -101,7 +176,6 @@ class _GlobalConfiguration(_BNodeContainerProtocol):
     @abstractmethod
     def get_attribute_type(self, name: str) -> AttributeType:
         ...
-
 
     @abstractmethod
     def instantiate(self, node_or_mesh: 'BNode|BMesh', /,
@@ -138,22 +212,29 @@ class _GlobalConfiguration(_BNodeContainerProtocol):
         BNode
             The instantiated node.
         '''
-        ...
+    def __init__(self):
+        import gltf_builder.elements as elt
+        import gltf_builder.extensions as ext
+        self.__meshes = _Holder(elt.BMesh)
+        self.__cameras = _Holder(elt.BCamera)
+        self.__images = _Holder(elt.BImage)
+        self.__materials = _Holder(elt.BMaterial)
+        self.__nodes = _Holder(elt.BNode)
+        self.__samplers = _Holder(elt.BSampler)
+        self.__scenes = _Holder(elt.BScene)
+        self.__skins = _Holder(elt.BSkin)
+        self.__textures = _Holder(elt.BTexture)
+        self.__extension_objects = _Holder(ext.Extension)
+        self.__buffers = _Holder(elt.BBuffer)
+        self.__buffer_views = _Holder(elt.BBufferView)
+        self.__accessors = _Holder(elt.BAccessor)
+        self.extras = {}
+        self.extensions = {}
+        self.extensionsUsed = set()
+        self.extensionsRequired = set()
 
 
-    buffers: _Holder['BBuffer']
-    '''
-    The buffers in the glTF file.'''
-    views: _Holder['BBufferView']
-    '''
-    The buffer views in the glTF file.
-    '''
-    accessors: _Holder['BAccessor[NPTypes, AttributeData]']
-    '''
-    The accessors in the glTF file.
-    '''
-
-class _CurrentConfiguration(_GlobalConfiguration):
+class _CurrentGlobalShared(_GlobalShared):
     '''
     Protocol for the current configuration of the glTF file.
     This is used by the compiler to keep track of the current state of the,
@@ -244,3 +325,7 @@ class _CurrentConfiguration(_GlobalConfiguration):
         Get the index of the given element.
         '''
         return self.state(elt).index
+
+    def __init__(self):
+        super().__init__()
+        self._states = {}

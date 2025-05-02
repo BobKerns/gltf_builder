@@ -26,9 +26,19 @@ class _Holder(Iterable[T]):
         self.__by_index = []
         self.__by_name = {}
         self.__by_value = set()
-        self.add(*items)
+        self.add_from(items)
 
-    def add(self, *items: T):
+    def add(self, item: T):
+        '''
+        Add an item to the holder, if not already present.
+        '''
+        if item not in self.__by_value:
+            self.__by_value.add(item)
+            self.__by_index.append(item)
+            if item.name:
+                self.__by_name[item.name] = item
+
+    def add_from(self, items: Iterable[T]):
         '''
         Add items to the holder, if not already present.
         '''
@@ -85,6 +95,12 @@ class _Holder(Iterable[T]):
                 return item >= 0 and item < len(self)
             case _:
                 return item in self.__by_index
+
+    def __bool__(self):
+        '''
+        Return `True` if the holder is not empty.
+        '''
+        return bool(self.__by_index)
 
     def __repr__(self):
         '''

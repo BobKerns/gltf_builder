@@ -9,7 +9,6 @@ from typing import Any, Optional, TYPE_CHECKING, cast
 
 import pygltflib as gltf
 
-import gltf_builder.builder as builder
 from gltf_builder.compiler import _GLTF, _STATE, _CompileState
 from gltf_builder.core_types import ExtensionsData, ExtrasData, Phase
 from gltf_builder.attribute_types import (
@@ -23,7 +22,6 @@ from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
 from gltf_builder.holders import _Holder
 from gltf_builder.protocols import _BNodeContainerProtocol
-from gltf_builder.global_config import _GlobalConfiguration
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
@@ -31,13 +29,21 @@ if TYPE_CHECKING:
 
 class _BNodeContainer(_BNodeContainerProtocol):
     _parent: Optional[BNode] = None
+    __nodes: _Holder[BNode]
+    @property
+    def nodes(self) -> _Holder[BNode]:
+        '''
+        Return the nodes in this container.
+        '''
+        return self.__nodes
+
     @property
     def parent(self) -> Optional[BNode]:
         '''
         Return the parent of this node.
         '''
         return self._parent
-    nodes: _Holder[BNode]
+
     @property
     def children(self):
         return self.nodes
@@ -48,7 +54,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
             ):
         self._parent = parent
         self._local_views = {}
-        self.nodes = _Holder(BNode, *nodes)
+        self.__nodes = _Holder(BNode, *nodes)
         self.descendants: dict[str, BNode] = {}
 
     def create_node(self,
@@ -93,7 +99,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         -------
         BNode
         '''
-        root = isinstance(self, (_GlobalConfiguration, builder.Builder))
+        root = not isinstance(self, _Node)
         node = _Node(name,
                     parent=cast(BNode, self) if not root else None,
                     children=children,
