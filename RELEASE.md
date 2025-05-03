@@ -2,10 +2,13 @@
 
 * Create a feature branch for the release.
   * No branch names are enforced, but `release/vx.x.x` would be a good choice.
-* Increment the version number in [pyproject.toml](pyproject.toml).
-* Update [CHANGES.md](CHANGES.md)
-* If any `*.mmd` files have changed, execute `npm run build`
-* Commit, including changed `.svg` files and push
+* Prepare for release:
+  * `uv run scripts/build --all
+  * This:
+    * Rebuilds the `.svg` diagrams to ensure they are up to date.
+    * Updates the `uv.lock` and `requirements.txt` files.
+    * Increments the release number.
+* Commit the changed files.  The `.svg` files are needed for the documentation online
 * [Create a PR](https://github.com/BobKerns/gltf_builder/pulls) for the release
 * PR's must pass the test suite before merging. Monitor the workflow on the [GitHub Actions page for the project](https://github.com/BobKerns/gltf_builder/actions)
 * Create a release (e.g. [through the GitHub UI](https://github.com/BobKerns/gltf_builder/releases)) with tag in the form `vn.m.p` and a description.
@@ -13,4 +16,3 @@
 * If that succeeds, merge the PR to `main`.
 * To release to PyPi, manually trigger the workflow.
 * If tests and checks pass, this will publish to [pypi.org](https://pypi.org/project/gltf-builder/).
-

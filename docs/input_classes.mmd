@@ -1,0 +1,147 @@
+classDiagram
+
+    class ScopeName {
+        <<enumeration>>
+        ASSET: str
+        PRIMITIVE: str
+        MESH: str
+        NODE: str
+        BUFFER_VIEW: str
+        ACCESSOR: str
+        ACCESSOR_INDEX: str
+        BUFFER: str
+        BUILDER: str
+        IMAGE: str
+        MATERIAL: str
+        TEXTURE: str
+        CAMERA: str
+        SAMPLER: str
+        SKIN: str
+        SCENE: str
+        EXTENSION: str
+        ANIMATION: str
+        ANIMATION_CHANNEL: str
+        ANIMATION_SAMPLER: str
+    }
+
+    class _Compilable {
+        <<interface>>
+        _scope: ScopeName
+        -name: str
+        -extensions: ExtensionsData
+        -extras: ExtrasData
+        -extension_objects: set[Extension]
+        +name_scope: bool
+        +view_scope: bool
+        +state_type(): type[_STATE]
+        +compile(globl: GlobalState, phase): _GLTF|int|_Collected|set[str]|None
+        +_do_compile(globl, phase, state): _DoCompileReturn[_GLTF]
+    }
+
+    class Builder {
+        -index_size: Optional[IndexSize]
+        -name_policy: Optional[NamePolicy]
+        -extras: Optional[dict]
+        -extensions: Optional[dict]
+        +build(): gltf.GLTF2
+    }
+
+    class _NodeContainerProtocol {
+        <<interface>>
+        +__len__(): int
+        +__getitem__(name: str): BNode
+        +__setitem__(name: str, node: BNode)
+        +__contains__(name: str): bool
+        +__iter__(): Iterable[BNode]
+    }
+
+    class _GlobalShared {
+        <<interface>>
+    }
+
+    class Element {
+        <<interface>>
+    }
+
+    class Plugin {
+        +name: str
+        +version: str
+        semver: Version
+        +author: str
+        summary: str
+        requiresPython: Version
+    }
+    class Extension {
+        +name: str
+        +compile_*(...)
+    }
+    Extension --> Plugin : plugin
+    Plugin *--> ExtensionClass : extension_class
+    Extension --|> ExtensionClass
+
+    _NodeContainer <|-- Builder
+    _GlobalShared <|-- Builder
+    _NodeContainerProtocol <|-- _NodeContainer
+    _NodeContainerProtocol <|-- _GlobalShared
+    _GlobalShared <|-- _CurrentConfiguration
+
+    _Compilable <|-- Element
+    Element <|-- BNode
+    Element <|-- BBuffer
+    Element <|-- BBufferView
+    Element <|-- BAccessor
+    Element <|-- BTexture
+    Element <|-- BImage
+    Element <|-- BSampler
+    Element <|-- BMaterial
+    Element <|-- BMesh
+    Element <|-- BCamera
+    Element <|-- BScene
+    Element <|-- BSkin
+    Element <|-- BAnimation
+    Element <|-- BAnimationChannel
+    Element <|-- BAnimationSampler
+    Element <|-- Extension
+
+    BSkin --> "1" BNode : skeleton
+    BSkin --> "*" BNode : joints
+    BSkin *--> "0..1" BAccessor : inverseBindMatrices
+
+    BTexture --> BImage : source
+    BTexture --> BSampler : sampler
+
+    BMaterial --> "0..1" BTexture : baseColorTexture
+    BMaterial --> "0..1" BTexture : metallicRoughnessTexture
+    BMaterial --> "0..1" BTexture : normalTexture
+    BMaterial --> "0..1" BTexture : occlusionTexture
+    BMaterial --> "0..1" BTexture : emissiveTexture
+
+
+    _NodeContainerProtocol <|-- BNode
+    BNode "1" -- "*" BNode : nodes, parent
+    BScene "*" o--> "*" BNode : nodes
+
+    BNode o--> "0..1" BCamera : camera
+
+    BNode "1" *--> "0..1" BMesh : mesh
+    BMesh "1" *--> "0..1" BPrimitive : primitives
+    BMesh "1" *--> "0..1" BAccessor : weights
+
+    BPrimitive --> "0..1" BMaterial : material
+    BPrimitive o--> "0..1" BAccessor : indices
+
+    BAccessor --> BBufferView : bufferview
+
+    BBufferView --> BBuffer : buffer
+
+    BPrimitive --> "0..1" BMaterial : material
+
+    BImage "1" *--> "1" BufferView : bufferView
+
+    BAnimationChannel --> BSampler : sampler
+    BAnimationChannel --> BNode : target
+
+    BAnimation --> "*" BAnimationChannel : channels
+    BAnimation --> "*" BAnimationSampler : samplers
+
+
