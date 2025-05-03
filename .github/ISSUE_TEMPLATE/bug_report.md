@@ -13,7 +13,7 @@ A clear and concise description of what the bug is.
 **To Reproduce**
 Steps to reproduce the behavior:
 
-Sample code preferred
+Include sample code that demonstrates the issue, if applicable. The code should be minimal, complete, and include any relevant inputs to reproduce the bug.
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
