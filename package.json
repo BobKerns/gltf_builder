@@ -8,10 +8,15 @@
         "browse": "markserv README.md",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "dependencies": {
+    "devDependencies": {
         "@mermaid-js/mermaid-cli": "^11.4.2",
+        "braces": "^3.0.3",
         "gltf-validator": "^2.0.0-dev.3.10",
         "markserv": "^1.17.4",
-        "mermaid.cli": "^0.5.1"
+        "mermaid.cli": "^0.5.1",
+        "markdown-it": "^14.1.0",
+        "send": "^1.2.0"
+    },
+    "dependencies": {
     }
 }
