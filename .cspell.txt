@@ -51,6 +51,7 @@ jtype
 Khronos
 ldata
 linalg
+markserv
 mathbf
 memview
 mmdc
@@ -92,10 +93,12 @@ Thresholding
 tlen
 tname
 tobytes
+treewalk
 treewalker
 tupleobj
 vargs
 venv
+visitfn
 viter
 vname
 vstate

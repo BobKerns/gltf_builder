@@ -286,7 +286,7 @@ class _GlobalShared(_BNodeContainerProtocol):
                 self.__asset = elt
 
 
-class _CurrentGlobalShared(_GlobalShared):
+class _GlobalSharedState(_GlobalShared):
     '''
     Protocol for the current configuration of the glTF file.
     This is used by the compiler to keep track of the current state of the,

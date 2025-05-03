@@ -15,3 +15,4 @@
 * This will trigger a test deployment to ([test.pypi.org](https://test.pypi.org/project/gltf-builder/))
 * If that succeeds, merge the PR to `main`.
 * To release to PyPi, manually trigger the workflow.
+* If tests and checks pass, this will publish to [pypi.org](https://pypi.org/project/gltf-builder/).

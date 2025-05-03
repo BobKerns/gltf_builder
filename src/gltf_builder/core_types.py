@@ -2,7 +2,7 @@
 Simple common types for the gltf_builder module.
 '''
 
-from enum import IntEnum, StrEnum
+from enum import IntEnum, IntFlag, StrEnum
 from typing import TypeAlias, Literal
 
 import pygltflib as gltf
@@ -164,6 +164,23 @@ The values are:
 - 16: 4x4 matrix
 '''
 
+class ElementFlags(IntFlag):
+    '''
+    Flags that apply to the elements in the glTF file.
+    '''
+    NONE = 0
+    '''
+    No flags are set.
+    '''
+    NAME_SCOPE = 1
+    '''
+    Names should be unique within the scope of this element.
+    '''
+    VIEW_SCOPE = 2
+    '''
+    `BufferView` instances should be shared where possible within the
+    scope of this element.
+    '''
 
 BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
 '''
