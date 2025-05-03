@@ -15,7 +15,7 @@ from pathlib import Path
 import pygltflib as gltf
 
 from gltf_builder.core_types import (
-    ExtensionData, ExtensionsData, ExtrasData, Phase,
+    ElementFlags, ExtensionData, ExtensionsData, ExtrasData, Phase,
     BufferViewTarget, ScopeName
 )
 from gltf_builder.holders import _Holder
@@ -308,8 +308,12 @@ class _GlobalCompileState(Generic[_GLTF, _STATEX, _ELEMENT],
         return bool(self._len)
 
 class _Compilable(Generic[_GLTF, _STATE]):
+    '''
+    Base implementation class for all elements that can be
+    compiled into a glTF file.
+    '''
     __slots__ = (
-        'name', 'extensions', 'extras', 'extension_objects',
+        'name', 'extensions', 'extras', 'extension_objects', '_flags'
     )
     _scope_name: ScopeName
 
@@ -327,6 +331,36 @@ class _Compilable(Generic[_GLTF, _STATE]):
     '''
     extras: ExtrasData
     name: str
+
+    _flags: ElementFlags
+
+    @property
+    def name_scope(self) -> bool:
+        '''
+        Whether element names are scoped within this element.
+        '''
+        return bool(self._flags & ElementFlags.NAME_SCOPE)
+
+    @name_scope.setter
+    def name_scope(self, value: bool):
+        if value:
+            self._flags |= ElementFlags.NAME_SCOPE
+        else:
+            self._flags &= ~ElementFlags.NAME_SCOPE
+
+    @property
+    def view_scope(self) -> bool:
+        '''
+        Whether buffer views are scoped within this element.
+        '''
+        return bool(self._flags & ElementFlags.VIEW_SCOPE)
+
+    @view_scope.setter
+    def view_scope(self, value: bool):
+        if value:
+            self._flags |= ElementFlags.VIEW_SCOPE
+        else:
+            self._flags &= ~ElementFlags.VIEW_SCOPE
 
     @classmethod
     def state_type(cls) -> type[_STATE]:
@@ -510,4 +544,3 @@ class _Compilable(Generic[_GLTF, _STATE]):
         if phase == Phase.EXTENSIONS:
             return self.compile(globl, phase)
         return None
-

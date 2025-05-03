@@ -29,7 +29,7 @@ from gltf_builder.elements import (
 )
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.protocols import AttributeType
-from gltf_builder.global_shared import _CurrentGlobalShared
+from gltf_builder.global_shared import _GlobalSharedState
 from gltf_builder.scenes import scene
 from gltf_builder.utils import (
     USER, USERNAME, decode_dtype, std_repr, count_iter,
@@ -45,7 +45,7 @@ LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 
 _imported: bool = False
 
-class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentGlobalShared):
+class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
     _scope_name: ScopeName = ScopeName.BUILDER
 
     _id_counters: dict[str, count]
@@ -122,7 +122,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _CurrentGlobalShared):
     def __init__(self, builder: 'Builder') -> None:
         _GlobalCompileState.__init__(self, builder, 'GLOBAL')
         _BNodeContainer.__init__(self)
-        _CurrentGlobalShared.__init__(self)
+        _GlobalSharedState.__init__(self)
         buffer = (builder.buffers[0]
                   if builder.buffers
                   else _Buffer('main'))
