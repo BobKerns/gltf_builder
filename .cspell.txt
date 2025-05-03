@@ -35,6 +35,8 @@ getent
 getitem
 getlogin
 getuid
+globl
+gltf
 GLTFB
 ibytes
 idtype
@@ -90,10 +92,12 @@ Thresholding
 tlen
 tname
 tobytes
+treewalk
 treewalker
 tupleobj
 vargs
 venv
+visitfn
 viter
 vname
 vstate
