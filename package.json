@@ -4,25 +4,14 @@
     "description": "Development tooling for glTF builder",
     "private": true,
     "scripts": {
-        "build": "npm run build:erDiagram && npm run build:erDiagramUserSubset && npm run build:erDiagramGeometry && npm run build:classDiagram",
-
-        "build:erDiagram": "npm run build:erDiagram:svg",
-        "build:erDiagram:svg": "npx mmdc -i docs/erDiagram.mmd -o docs/erDiagram.svg -t default --backgroundColor ffeecc -s 1",
-
-        "build:erDiagramUserSubset": "npm run build:erDiagramUserSubset:svg",
-        "build:erDiagramUserSubset:svg": "npx mmdc -i docs/erDiagramUserSubset.mmd -o docs/erDiagramUserSubset.svg -t default --backgroundColor ffeecc -s 1",
-
-        "build:erDiagramGeometry": "npm run build:erDiagramGeometry:svg",
-        "build:erDiagramGeometry:svg": "npx mmdc -i docs/erDiagramGeometry.mmd -o docs/erDiagramGeometry.svg -t default --backgroundColor ffeecc -s 1",
-
-        "build:classDiagram": "npm run build:classDiagram:svg",
-        "build:classDiagram:svg": "npx mmdc -i docs/compiler_classes.mmd -o docs/compiler_classes.svg -t default --backgroundColor ffeecc -s 1",
-
+        "build": "uv run build",
+        "browse": "markserv README.md",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
         "@mermaid-js/mermaid-cli": "^11.4.2",
         "gltf-validator": "^2.0.0-dev.3.10",
+        "markserv": "^1.17.4",
         "mermaid.cli": "^0.5.1"
     }
 }

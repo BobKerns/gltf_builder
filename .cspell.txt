@@ -35,6 +35,8 @@ getent
 getitem
 getlogin
 getuid
+globl
+gltf
 GLTFB
 ibytes
 idtype

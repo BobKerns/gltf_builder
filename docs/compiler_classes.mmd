@@ -1,5 +1,31 @@
 classDiagram
+
+    class ScopeName {
+        <<enumeration>>
+        ASSET: str
+        PRIMITIVE: str
+        MESH: str
+        NODE: str
+        BUFFER_VIEW: str
+        ACCESSOR: str
+        ACCESSOR_INDEX: str
+        BUFFER: str
+        BUILDER: str
+        IMAGE: str
+        MATERIAL: str
+        TEXTURE: str
+        CAMERA: str
+        SAMPLER: str
+        SKIN: str
+        SCENE: str
+        EXTENSION: str
+        ANIMATION: str
+        ANIMATION_CHANNEL: str
+        ANIMATION_SAMPLER: str
+    }
+
     class _CompileState {
+        <<interface>>
         -name: str
         -_index: int|None
         -_byteOffset: int|None
@@ -15,12 +41,12 @@ classDiagram
         -EXTENSIONS: set[str]|None|Progress
         -BUILD: gltf.GLTF2|gltf.Property|Progress
         +index: int
-        +byteOffset: int
         +__len__(): int
         +__bool__(): bool
     }
 
-    class _GlobalCompileState {
+    class _BinaryCompileState {
+        <<interface>>
         -_len: int|None
         -_byteOffset: int|None
         +byteOffset: int
@@ -29,10 +55,14 @@ classDiagram
     }
 
     class _Compilable {
+        <<interface>>
+        _scope: ScopeName
         -name: str
         -extensions: ExtensionsData
         -extras: ExtrasData
         -extension_objects: set[Extension]
+        +name_scope: bool
+        +view_scope: bool
         +state_type(): type[_STATE]
         +compile(globl: GlobalState, phase): _GLTF|int|_Collected|set[str]|None
         +_do_compile(globl, phase, state): _DoCompileReturn[_GLTF]
@@ -51,10 +81,14 @@ classDiagram
         +build(): gltf.GLTF2
     }
 
-    class _Scope {
-        -globl: GlobalState
+    class _ViewScope {
+        <<interface>>
         -target_buffer: BBuffer
         +_get_view(...): BBufferView
+    }
+    class _NameScope {
+        <<interface>>
+        +get_name(obj: _Compilable, ...): str
     }
 
     class Progress {
@@ -78,7 +112,7 @@ classDiagram
         BUILD
     }
 
-    class _BNodeContainerProtocol {
+    class _NodeContainerProtocol {
         <<interface>>
         +__len__(): int
         +__getitem__(name: str): BNode
@@ -87,11 +121,11 @@ classDiagram
         +__iter__(): Iterable[BNode]
     }
 
-    class _GlobalConfiguration {
+    class _GlobalShared {
         <<interface>>
     }
 
-    class _CurrentConfiguration {
+    class _GlobalSharedState {
         <<interface>>
         +buffer: BBuffer
         -_get_index_size(max_value: int): IndexSize
@@ -114,22 +148,25 @@ classDiagram
         requiresPython: Version
     }
     class Extension {
+        <<interface>>
         +name: str
+        +compile_*(...)
     }
     Extension --> Plugin : plugin
     Plugin *--> ExtensionClass : extension_class
     Extension --|> ExtensionClass
 
-    _BNodeContainer <|-- Builder
-    _GlobalConfiguration <|-- Builder
-    _BNodeContainerProtocol <|-- _BNodeContainer
-    _BNodeContainerProtocol <|-- _GlobalConfiguration
-    _GlobalCompileState <|-- GlobalState
-    _BNodeContainer <|-- GlobalState
-    _CurrentConfiguration <|-- GlobalState
-    _CompileState <|-- _GlobalCompileState
-    _Scope <|-- _CompileState
-    _GlobalConfiguration <|-- _CurrentConfiguration
+    _NodeContainer <|-- Builder
+    _GlobalShared <|-- Builder
+    _NodeContainerProtocol <|-- _NodeContainer
+    _NodeContainerProtocol <|-- _GlobalShared
+    _BinaryCompileState <|-- GlobalState
+    _NodeContainer <|-- GlobalState
+    _GlobalSharedState <|-- GlobalState
+    _CompileState <|-- _BinaryCompileState
+    _ViewScope <|-- _CompileState
+    _NameScope <|-- _CompileState
+    _GlobalShared <|-- _GlobalSharedState
 
     _Compilable <|-- Element
     Element <|-- BNode
@@ -167,9 +204,10 @@ classDiagram
     Extension ..> _ExtensionState : state_class
 
     _NodeState --|> _CompileState
-    _BufferState --|> _CompileState
-    _BufferViewState --|> _CompileState
-    _AccessorState --|> _CompileState
+    _NodeState --|> _NodeContainer
+    _BufferState --|> _BinaryCompileState
+    _BufferViewState --|> _BinaryCompileState
+    _AccessorState --|> _BinaryCompileState
     _TextureState --|> _CompileState
     _ImageState --|> _CompileState
     _SamplerState --|> _CompileState
@@ -182,6 +220,23 @@ classDiagram
     _AnimationChannelState --|> _CompileState
     _AnimationSamplerState --|> _CompileState
     _ExtensionState --|> _CompileState
+
+    _NodeState ..> BNode : proxy-for
+    _BufferState ..> BExtensionState_Buffer : proxy-for
+    _BufferViewState ..> BBufferView : proxy-for
+    _AccessorState ..> BAccessor : proxy-for
+    _TextureState ..> BTexture : proxy-for
+    _ImageState ..> BImage : proxy-for
+    _SamplerState ..> BSampler : proxy-for
+    _MaterialState ..> BMaterial : proxy-for
+    _MeshState ..> BMesh : proxy-for
+    _CameraState ..> BCamera : proxy-for
+    _SceneState ..> BScene : proxy-for
+    _SkinState ..> BSkin : proxy-for
+    _AnimationState ..> BAnimation : proxy-for
+    _AnimationChannelState ..> BAnimationChannel : proxy-for
+    _AnimationSamplerState ..> BAnimationSampler : proxy-for
+    _ExtensionState ..> BExtension : proxy-for
 
     _NodeState --> BNode : element
     _BufferState --> BBuffer : element
@@ -234,7 +289,7 @@ classDiagram
     _CompileState --> Element : element
     _CompileState --> "*" Extension: extension_objects
 
-    _BNodeContainerProtocol <|-- BNode
+    _NodeContainerProtocol <|-- BNode
     BNode "1" -- "*" BNode : nodes, parent
     BScene "*" o--> "*" BNode : nodes
 
@@ -261,7 +316,3 @@ classDiagram
     BAnimation --> "*" BAnimationChannel : channels
     BAnimation --> "*" BAnimationSampler : samplers
 
-
-    %% _CompileState <|-- _Compilable
-    %% _Scope <|-- GlobalState
-    %% GlobalState <|-- _GlobalCompileState
