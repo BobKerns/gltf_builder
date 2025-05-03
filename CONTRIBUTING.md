@@ -5,7 +5,7 @@ Contributions are welcome!
 - Use spaces, not tabs!
 - Don't use auto-formatters on existing files. I have not seen
   one that handles complex comprehensions well.
-- My only formatting/style rule is, strive for readabilty.
+- My only formatting/style rule is, strive for readability.
 - Documentation improvements are especially welcome.
 - Merges are acceptable in the git history, but whether by merge
   or rebase, bring your submissions up-to-date.
