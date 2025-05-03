@@ -28,5 +28,8 @@ A clear and concise description of what you expected to happen.
 **Additional context**
 Add any other context about the problem here.
 
-- Python version
+- Python version (e.g., "Python 3.9.7 (64-bit)"). Please specify:
+  - Full version string (e.g., output of `python --version` or `python3 --version`)
+  - Source of the Python installation (e.g., system Python, virtual environment, Anaconda)
+  - Any relevant environment details (e.g., operating system, architecture)
 - Is this running in another tool, such as Houdini?
