@@ -57,7 +57,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
         self.__nodes = _Holder(BNode, *nodes)
         self.descendants: dict[str, BNode] = {}
 
-    def create_node(self,
+    def node(self,
                 name: str='',
                 /, *,
                 children: Iterable[BNode]=(),
@@ -131,7 +131,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
                     extensions: Optional[ExtensionsData]=None,
                 ) -> BNode:
         if isinstance(node_or_mesh, BMesh):
-            return self.create_node(
+            return self.node(
                 name,
                 mesh=node_or_mesh.clone(),
                 translation=translation,
@@ -141,7 +141,7 @@ class _BNodeContainer(_BNodeContainerProtocol):
                 extras=extras,
                 extensions=extensions,
             )
-        return self.create_node(
+        return self.node(
             name,
             children=[node_or_mesh.clone()],
             translation=translation,
@@ -284,7 +284,7 @@ class _Node(_BNodeContainer, BNode):
 
 
 
-    def create_mesh(self,
+    def add_mesh(self,
                  name: str='',
                   /, *,
                  primitives: Optional[Iterable['BPrimitive']]=None,

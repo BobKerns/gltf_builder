@@ -11,6 +11,8 @@ The [WebGL 2.0 Specification](https://registry.khronos.org/webgl/specs/latest/2.
 
 The glTF model, at different levels of abstraction.
 
+This is the abstract model on which our objects are based. We have a few differences, taking advantage of language capabilities such as subclassing to present a [slightly simpler user model](compiler.md).
+
 - [Geometry model](#geometry-model)
 - [User model](#user-model)
 - [Full glTF model](#full-gltf-model)

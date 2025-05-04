@@ -217,7 +217,7 @@ class Builder(_BNodeContainer, _GlobalShared):
         self.define_attrib('WEIGHTS', ElementType.VEC4, ComponentType.FLOAT, Weight)
         self._id_counters = {}
 
-    def create_mesh(self,
+    def add_mesh(self,
                 name: str='',
                 primitives: Optional[Iterable[BPrimitive]]=None,
                 weights: Optional[Iterable[float]]=None,

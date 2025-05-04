@@ -88,7 +88,7 @@ class _Image(BImage):
                 globl.add(self)
                 if self.blob is not None:
                     name=globl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
-                    state.view = globl._get_view(globl.buffer,
+                    state.view = globl.get_view(globl.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,
                     )

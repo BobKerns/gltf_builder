@@ -15,8 +15,8 @@ def test_create_skin():
     '''
 
     skel = node('Test Skeleton')
-    j1 = skel.create_node('Joint 1')
-    j2 = skel.create_node('Joint 2')
+    j1 = skel.node('Joint 1')
+    j2 = skel.node('Joint 2')
 
     s = skin(skel, 'Test Skin',
              inverseBindMatrices=IDENTITY4,

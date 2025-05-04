@@ -510,15 +510,15 @@ class GeometryData:
 @pytest.fixture(scope='function')
 def cube(save):
     b = Builder()
-    m = b.create_mesh('CUBE_MESH')
+    m = b.add_mesh('CUBE_MESH')
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE1))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE2))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE3))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE4))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE5))
     m.add_primitive(PrimitiveMode.LINE_LOOP, *(_CUBE[i] for i in _CUBE_FACE6))
-    top = b.create_node('TOP')
-    top.create_node('CUBE', mesh=m)
+    top = b.node('TOP')
+    top.node('CUBE', mesh=m)
     yield GeometryData(builder=b,
                    meshes={'CUBE_MESH': m},
                    nodes={'TOP': top},

@@ -82,10 +82,10 @@ def test_faces(DEBUG, index_sizes, save):
     index_size, idx_bytes, idx_buffers = index_sizes
     b = Builder(index_size=index_size)
     def face(name, indices: Iterable[int]):
-        m = b.create_mesh(name)
+        m = b.add_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
-        return b.create_node(name, mesh=m)
-    b.create_node('CUBE',
+        return b.node(name, mesh=m)
+    b.node('CUBE',
                 children=[
                     face('FACE1', _CUBE_FACE1),
                     face('FACE2', _CUBE_FACE2),
@@ -105,11 +105,11 @@ def test_faces(DEBUG, index_sizes, save):
 def test_faces2(index_sizes, save):
     index_size, idx_bytes, idx_buffers = index_sizes
     b = Builder()
-    cube = b.create_node('CUBE')
+    cube = b.node('CUBE')
     def face(name, indices: Iterable[int]):
-        m = b.create_mesh(name)
+        m = b.add_mesh(name)
         m.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE[i] for i in indices])
-        return cube.create_node(name, mesh=m)
+        return cube.node(name, mesh=m)
     face('FACE1', _CUBE_FACE1)
     face('FACE2', _CUBE_FACE2)
     face('FACE3', _CUBE_FACE3)
@@ -145,7 +145,7 @@ def test_instances_mesh(index_sizes, cube):
     m = cube.meshes['CUBE_MESH']
 
     n = cube.nodes['TOP']
-    n2 = n.create_node('CUBE1', mesh=m)
+    n2 = n.node('CUBE1', mesh=m)
     n2.translation = (1.25, 0, 0)
     assert len(n.children) == 2
     g = cube.build()
@@ -158,7 +158,7 @@ def test_instances_mesh(index_sizes, cube):
 def test_instances(index_sizes, cube):
     index_size, idx_bytes, idx_views = index_sizes
     cube.index_size = index_size
-    c = cube.builder.create_node('CUBE', mesh=cube.meshes['CUBE_MESH'])
+    c = cube.builder.node('CUBE', mesh=cube.meshes['CUBE_MESH'])
     n = cube.nodes['TOP']
     n.instantiate(c,
                   translation=(1.25, 1, 0),
@@ -179,7 +179,7 @@ def test_instances(index_sizes, cube):
 def test_normal(index_sizes, save):
     index_size, idx_bytes, idx_views = index_sizes
     b = Builder(index_size=index_size)
-    m = b.create_mesh('CUBE_MESH')
+    m = b.add_mesh('CUBE_MESH')
     m.add_primitive(PrimitiveMode.LINE_LOOP,
                     *[_CUBE[i] for i in _CUBE_FACE1],
                     NORMAL=4 *(_CUBE_NORMAL1,))
@@ -198,7 +198,7 @@ def test_normal(index_sizes, save):
     m.add_primitive(PrimitiveMode.LINE_LOOP,
                     *[_CUBE[i] for i in _CUBE_FACE6],
                     NORMAL=4 *(_CUBE_NORMAL6,))
-    top = b.create_node('TOP')
+    top = b.node('TOP')
     cube = node('CUBE', mesh=m)
     top.instantiate(cube)
     g = b.build()
@@ -217,7 +217,7 @@ def test_root_fn():
 
 def test_root_builder_create():
     b = Builder()
-    n = b.create_node('root')
+    n = b.node('root')
     assert n.root is True
     assert n.parent is None
 
@@ -238,7 +238,7 @@ def test_child_fn():
 
 def test_child_node_create():
     n = node('root')
-    c = n.create_node('child')
+    c = n.node('child')
     assert c.root is False
     assert c.parent is n
 
