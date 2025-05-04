@@ -123,7 +123,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 vname = globl._gen_name(self,
                                           scope=ScopeName.BUFFER_VIEW,
                                           suffix='/view')
-                state.view = globl._get_view(buffer,
+                state.view = globl.get_view(buffer,
                                               self.target,
                                               byteStride=self.byteStride,
                                               name=vname)

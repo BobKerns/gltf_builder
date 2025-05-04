@@ -312,7 +312,7 @@ class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol):
     camera: Optional[BCamera]
 
     @abstractmethod
-    def create_mesh(self,
+    def add_mesh(self,
                 name: str='',
                 /, *,
                 primitives: Optional[Iterable['BPrimitive']]=None,

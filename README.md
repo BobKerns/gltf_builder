@@ -64,7 +64,7 @@ mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE3])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE4])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
 mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
-top = builder.create_node('TOP')
+top = builder.node('TOP')
 cube = node('CUBE',
     mesh=mesh,
     translation=(-0.5, -0.5, -0.5),
@@ -85,14 +85,14 @@ Notes:
 
 - The `builder.build()` method produces a regular `pygltflib.GLTF2` instance.
 - To create hierarchy, use the `add_node()` method on a parent node.
-- Using `Builder.create_mesh()` rather than `mesh` associates it with the builder immediately
+- Using `Builder.add_mesh()` rather than `mesh` associates it with the builder immediately
   - This allows you to retrieve it with `builder.meshes[`_name_`]`.
   - `mesh()` produces a detached mesh, which can used for one or more nodes.
-- Using `Builder.create_node()` rather than `node()` associates it with the builder immediately.
+- Using `Builder.node()` rather than `node()` associates it with the builder immediately.
   - This allows you to retrieve it with `builder.nodes[`_name_`]`.
   - `node()` produces a detached node, which can instantiated or added later.
 - Objects do not need to be added to the builder explicitly if they are referenced by other objects.
-- Using `Builder.create_mesh()` or `Builder.create_node()` adds the resulting mesh to the file, even if not referenced. They are otherwise equivalent to `mesh()` or `node()`.
+- Using `Builder.add_mesh()` or `Builder.node()` adds the resulting mesh to the file, even if not referenced. They are otherwise equivalent to `mesh()` or `node()`.
 
 ## Instancing
 
@@ -228,7 +228,7 @@ See [quaternions.md](quaternions.md) or [quaternions.py](src/gltf_builder/quater
 
 `direnv` enables automatic switching of environments when you cd into a directory. An alternative is to use `oh-my-zsh` with the `virtualenv` plugin, but it doesn't handle other tasks such as setting PATH.
 
-### 
+###
 
 ### Testing
 

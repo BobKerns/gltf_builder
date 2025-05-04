@@ -95,7 +95,7 @@ def test_camera_node(cube: GeometryData,
     '''
     index_size, idx_bytes, idx_views = index_sizes
     with test_builder() as tb:
-        tb.create_node('CameraNode',
+        tb.node('CameraNode',
                     translation=(0, 0, -10),
                     camera=test_camera,
                     )

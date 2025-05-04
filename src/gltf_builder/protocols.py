@@ -70,7 +70,7 @@ class _BNodeContainerProtocol(Protocol):
         return self.nodes
 
     @abstractmethod
-    def create_node(self,
+    def node(self,
                 name: str='',
                 /, *,
                 children: Iterable['BNode']=(),

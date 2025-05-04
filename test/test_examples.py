@@ -26,7 +26,7 @@ def test_example1(test_builder):
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE5])
     msh.add_primitive(PrimitiveMode.LINE_LOOP, *[CUBE[i] for i in CUBE_FACE6])
     with test_builder() as tb:
-        top = tb.create_node('TOP')
+        top = tb.node('TOP')
         cube = node('CUBE',
                     mesh=msh,
                     translation=(-0.5, -0.5, -0.5),

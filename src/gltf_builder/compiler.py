@@ -130,7 +130,7 @@ class _Scope:
         self.__views = {}
 
 
-    def _get_view(self,
+    def get_view(self,
                 buffer: 'BBuffer',
                 target: BufferViewTarget,
                 byteStride: int=0,

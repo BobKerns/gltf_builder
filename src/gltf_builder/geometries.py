@@ -188,8 +188,8 @@ def _cube(cube: BNode):
     '''
     for i, (face, normal) in enumerate(_CUBE_FACES):
         name = f'FACE{i+1}'
-        node = cube.create_node(name)
-        mesh = node.create_mesh(name)
+        node = cube.node(name)
+        mesh = node.add_mesh(name)
 
         mesh.add_primitive(PrimitiveMode.LINE_LOOP, *[_CUBE_VERTICES[i] for i in face],)
 

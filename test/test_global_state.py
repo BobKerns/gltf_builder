@@ -9,7 +9,7 @@ def test_create_global_state(test_builder, builder_extras):
     Test that a global state can be created with the default parameters.
     '''
     with test_builder() as tb:
-        tb.create_node('Test Node')
+        tb.node('Test Node')
         gs = GlobalState(tb)
         assert gs.nodes['Test Node'] is not None
         assert gs.nodes['Test Node'].name == 'Test Node'
