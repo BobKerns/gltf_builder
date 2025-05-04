@@ -19,7 +19,8 @@ bstate
 btype
 BUFFERVIEW
 bytelen
-CALMULLROMSPLINE
+Catmull
+CATMULLROMSPLINE
 cnst
 conftest
 contextmanager
