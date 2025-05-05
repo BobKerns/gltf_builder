@@ -2,7 +2,7 @@
 
 - [Compiler](compiler.md)
 - [Quaternions](quaternions.md)
-- [glTF Model](glTF.md
+- [glTF Model](glTF.md)
 
 ## Quaternions (Rotations)
 

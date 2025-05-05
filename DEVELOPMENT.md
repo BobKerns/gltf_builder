@@ -13,7 +13,7 @@
 
 If you have ever installed [git-lfs](https://git-lfs.com), you are all set.
 
-If not, you will need to download and install it, and execute `git lfs install` once. You only need to do this once for each user account on each machine that you use it. It configure's per-user global settings to support git-lfs.
+If not, you will need to download and install it, and execute `git lfs install` once. You only need to do this once for each user account on each machine that you use it. It configures per-user global settings to support git-lfs.
 
 ### [uv](https://docs.astral.sh/uv/)
 
