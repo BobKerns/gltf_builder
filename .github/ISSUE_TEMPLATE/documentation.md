@@ -14,6 +14,6 @@ A clear and concise description of what the issue is.
 - Unclear or confusing
 - Incorrect.
 
-** Where ***
+**Where**
 
 A link to the relevant documentation, or a description of the topic and area of the problem.
