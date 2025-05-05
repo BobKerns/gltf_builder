@@ -79,8 +79,6 @@ def check_pid(pid):
     Returns:
         bool: True if the process is running, False otherwise.
     """
-    if not psutil:
-        return False
     with suppress(Exception):
         return psutil.pid_exists(pid)
     return False
