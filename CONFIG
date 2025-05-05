@@ -1,0 +1,28 @@
+# Configuration Files
+
+To declutter the explorer view following files are grouped in the Visual Studio Code Explorer view under this file.
+
+These are controlled by this [VSCode workspace setting](vscode://settings/explorer.fileNesting.patterns)
+
+| File          | Description                          |
+|---------------|--------------------------------------|
+| [.codeqlignore](.codeqlignore) | Ignored files for the GitHub CodeQL scanner. |
+| [.cspell.txt](.cspell.txt) | Workspace dictionary for cspell spell checker. |
+| [.envrc](.envrc) | Auto-configure script for `direnv`. |
+| [.gitattributes](.gitattributes) | Defines attributes for pathnames. |
+| [.gitignore](.gitignore) | Specifies files and directories to ignore in git. |
+| [pyrightconfig.json](pyrightconfig.json) | Configuration for Pyright static type checker. |
+
+## Other Explorer Groupings
+
+### README.md
+
+All root `*.md` files (except this file, CONFIG.md) are grouped under [README.md](README.md), so they are all found in one place.
+
+### [docs/README.md](docs/README.md)
+
+Groups all the markdown files in the docs/ directory
+
+### Mermaid Diagrams
+
+The output from Mermaid diagrams are folded under the Mermaid `.mmd` file
