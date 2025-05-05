@@ -29,6 +29,7 @@
         "timonwong.shellcheck",
         "the0807.uv-toolkit",
         "ms-vscode.copilot-mermaid-diagram",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "corschenzi.mermaid-graphical-editor"
     ]
 }
