@@ -246,9 +246,11 @@ def browse_docs() -> None:
         '-p', str(html_port),
         '-b', str(reload_port),
         'README.md',
+        stderr=subprocess.PIPE,
         )
     if proc.returncode:
-        print(f"Failed to start the server: {proc.stderr}", file=sys.stderr)
+        error_message = proc.stderr.read().decode() if proc.stderr else "Unknown error"
+        print(f"Failed to start the server: {error_message}", file=sys.stderr)
         sys.exit(proc.returncode)
     pid = proc.pid
     if not pid:
