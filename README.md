@@ -210,7 +210,7 @@ Read the [documentation](docs/README.md), and file a [documentation issue](https
 
 ## Development
 
-There's several pages relating to [development](DEVELOPMENT.md), [release](RELEASE.md), and [internals](docs/README.md#internals)
+There are several pages relating to [development](DEVELOPMENT.md), [release](RELEASE.md), and [internals](docs/README.md#internals)
 
 ### Still Needed
 
