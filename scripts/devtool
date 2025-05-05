@@ -36,14 +36,16 @@ verbose_on: bool = False
 def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
     "Run the given command."
     cmd = [str(arg) for arg in cmds]
-    print(f"Running command: {' '.join(cmd)}")
+    if debug_on:
+        print(f"Running command: {' '.join(cmd)}")
     result: subprocess.CompletedProcess = subprocess.run(cmd,
                                                          cwd=str(ROOT),
                                                          **kwargs
                                                          )
     if result.returncode != 0:
         raise RuntimeError(f"Command exited with return code {result.returncode}.")
-    print("Command completed successfully.")
+    if debug_on:
+        print("Command completed successfully.")
     return result
 
 def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
@@ -175,25 +177,27 @@ DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
         (IMGS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
 ]
 
-@click.command(name='update_diagram')
+@main.command(name='update-diagram')
 @click.argument('diagram', type=click.Path(exists=True))
-def update_diagram(diagram: Path|str) -> None:
+def update_diagram(diagram: Path|str, *params: str) -> None:
     "Update the given diagram."
 
-    infile = SRC / diagram
+    if not params:
+        diagram_spec = next((d for d in DIAGRAMS if d[0] == diagram), None)
+        if diagram_spec is None:
+            print(f"Diagram {diagram} not found in the list of diagrams, using defaults", file=sys.stderr)
+            params = ('-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1')
+        else:
+            params = diagram_spec[1:]
+
+    infile = ROOT / diagram
     outfile = infile.with_suffix('.svg')
     if not infile.exists():
         raise FileNotFoundError(f"Diagram {diagram} not found.")
-    cmd = [
-        str(arg)
-        for arg in ('npx', 'mmdc', '-i', infile, '-o', outfile)
-    ]
     if verbose_on:
         print(f"Updating {diagram}...")
-    if debug_on:
-        print(f"Running command: {' '.join(cmd)}")
     try:
-        run('npx', 'mmdc', '-i', infile, '-o', outfile)
+        run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
     except Exception as e:
         raise RuntimeError(f"Failed to update {diagram}.") from e
 
