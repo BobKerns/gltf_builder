@@ -25,6 +25,7 @@ import webbrowser
 
 ROOT = Path(__file__).parent.parent
 DOCS = ROOT / 'docs'
+IMGS = DOCS / 'img'
 SRC = ROOT / 'src'
 NODE_BIN = ROOT / 'node_modules/.bin'
 MARKSERV = NODE_BIN / 'markserv'
@@ -71,7 +72,7 @@ def run_all():
     lock_dependencies()
     update_version()
 
-def check_pid(pid):
+def check_pid(pid: int|None):
     """
     Check if a process with the given PID is running using psutil.
     Args:
@@ -79,6 +80,8 @@ def check_pid(pid):
     Returns:
         bool: True if the process is running, False otherwise.
     """
+    if pid is None or pid <= 0:
+        return False
     with suppress(Exception):
         return psutil.pid_exists(pid)
     return False
@@ -112,7 +115,7 @@ def find_free_port():
     sock.close()
     return port
 
-def check_port(port):
+def check_port(port: int|None):
     """Check if a port is in use on the system.
 
     Args:
@@ -121,8 +124,13 @@ def check_port(port):
     Returns:
         bool: True if the port is in use (a connection can be established), False otherwise.
     """
+    if port is None or port <= 0:
+        return False
     with suppress(Exception):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = None
+        with suppress(Exception):
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        sock = sock or socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1)  # Set a timeout value (in seconds)
         sock.connect(("localhost", port))
         sock.close()
@@ -217,17 +225,14 @@ def browse_docs() -> None:
     html_port = read_id_file(PORT_FILE)
     reload_port = read_id_file(RELOAD_FILE)
     pid = read_id_file(PID_FILE)
-    print(f'{html_port=} {reload_port=} {pid=}')
+    html_port_ok = check_port(html_port)
+    reload_port_ok = check_port(reload_port)
+    pid_ok = check_pid(pid)
+    print(f'{html_port=} {html_port_ok=}')
+    print(f'{reload_port=} {reload_port_ok=}')
+    print(f'{pid=} {pid_ok=}')
     print(f'{check_port(html_port)=} {check_port(reload_port)=} {check_pid(pid)=}')
-    if (
-        html_port is not None
-        and reload_port is not None
-        and pid is not None
-        and pid > 0
-        and check_port(html_port)
-        and check_port(reload_port)
-        and check_pid(pid)
-    ):
+    if html_port_ok and reload_port_ok and pid_ok:
         webbrowser.open(f'http://localhost:{html_port}/README.md')
         return
     if pid is not None and check_pid(pid):
