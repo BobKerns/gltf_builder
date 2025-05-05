@@ -93,6 +93,22 @@ def find_free_port():
         int: An available port number.
     """
     sock = socket.socket()
+    # We are binding on all interfaces, to find a port that is completely free.
+    # We do not communicate with the socket, and immediately discard it, and
+    # we never listen on it, so we do not need to worry about it being an exposed
+    # interface.
+    #
+    # We also want to avoid creating a situation where we get a port that is in
+    # the process of being opened by another process, but not yet bound. We are
+    # not in charge of the eventual binding and listen; we cannot just bind to
+    # one interface. We would have to predict and enumerate the interfaces that the
+    # server will bind to, and then bind to all of them, which is not reliably
+    # possible.
+    #
+    # Race conditions here are unavoidable, but this should be a good enough
+    # approximation. We pass the port off to the server, which will then bind to it
+    # with localhost, so it will be bound to the correct interface, and we can't do
+    # anything about the race condition. The user can retry if they get an error.
     sock.bind(('', 0))  # Bind to all interfaces on a random available port
     port = sock.getsockname()[1]
     sock.close()
