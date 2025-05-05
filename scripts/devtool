@@ -37,7 +37,7 @@ def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
                                                          cwd=str(ROOT),
                                                          **kwargs
                                                          )
-    if result.returncode is not None:
+    if result.returncode != 0:
         raise RuntimeError(f"Command exited prematurely with return code {result.returncode}.")
     print("Command completed successfully.")
     return result
