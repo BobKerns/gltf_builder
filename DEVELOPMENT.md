@@ -24,7 +24,7 @@
 
 ### [devtool](scripts/devtool)
 
-There is a python script in [scripts/devtool](scripts/devtool) that handles man development tasks. It can be run via `uv run scripts/devtool`, or if your environment is properly set up, just `devtool`.
+There is a python script in [scripts/devtool](scripts/devtool) that handles main development tasks. It can be run via `uv run scripts/devtool`, or if your environment is properly set up, just `devtool`.
 
 ```bash
 rwk──> devtool
