@@ -47,8 +47,11 @@ def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
     cmd = [str(arg) for arg in cmds]
     print(f"Running command: {' '.join(cmd)}")
     proc = subprocess.Popen(cmd, **kwargs, cwd=str(ROOT))
-    if proc.returncode:
-        raise RuntimeError(f"Command failed with return code {proc.returncode}.")
+    # In the expected case, the process will not have terminated,
+    # and the return code will be None. If the process has already terminated,
+    # (whether with "success" or otherwise) we raise an error.
+    if proc.returncode is not None:
+        raise RuntimeError(f"Command exited prematurely with return code {proc.returncode}.")
     print("Command started successfully.")
     return proc
 
