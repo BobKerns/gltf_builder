@@ -7,11 +7,15 @@
         "**/Thumbs.db": true,
         "**/CVS": true,
         "**/.ruby-lsp": true,
+        ".clj-kondo/": true,
         ".coverage": true,
+        ".lsp/": true,
         ".venv/*": true,
         "**/__pycache__": true,
         "**/.pytest_cache/": true,
-        "**/node_modules/": true
+        "**/node_modules/": true,
+        "dist/": true,
+        "typings/": true
     },
     "hide-files.files": [],
     "cSpell.words": [
@@ -52,5 +56,29 @@
         "python",
         "game-development",
         "python-common"
-    ]
+    ],
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.patterns": {
+        "*.mmd": "${capture}.svg,${capture}.png,${capture}Thumbnail.png",
+        "*.glb": "${capture}.gltf,${capture}.json,${capture.bin}",
+        "*.gltf": "${capture}.json,${capture.bin}",
+        "glTF_RGB_*.svg": "glTF_*px_${capture}.png",
+        "pyproject.toml": "requirements.txt,uv.lock,.python-version",
+        ".browse.pid": ".browse.*",
+        ".gitignore": ".gitignore,.gitattributes",
+        "WebGL_RGB_*.svg": "WebGL_*px_${capture}.png",
+        "README.md": "*.md",
+        "CONFIG": ".gitignore,.gitattributes,package.json,package.lock,.codeqlignore,.cspell.txt,.envrc,pyrightconfig.json,.readthedocs.yaml"
+    },
+    "explorer.fileNesting.expand": false,
+    "npm.scriptExplorerExclude": [
+        ".*|.*"
+    ],
+    "explorer.sortOrder": "foldersNestsFiles",
+    "testExplorer.mergeSuites": false,
+    "markdownlint.config": {
+
+        "MD009": false
+
+    }
 }

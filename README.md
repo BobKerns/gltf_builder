@@ -202,47 +202,13 @@ Nodes represent hierarchical geometry.
 
 ...
 
-## Quaternions (Rotations)
+## Documentation
 
-Because `pygltflib` uses quaternions of the form (X, Y, Z, W) instead of the form (W, X, Y, Z) used by `scipy`, and to avoid introducing heavyweight and potentially incompatible libraries, we provide (courtesy of ChatGPT to my specifications) an implementation of various quaternion routines relating to rotations.
+Documentation is an ongoing effort, and presently disorganized, but improvement and examples are a priority once key functionality is working.
 
-Basic usage
-
-```python
-import gltf_builder.quaternion as Q
-
-# Rotate around Z axis by pi/4
-rotation = Q.from_axis_angle((0, 0, 1), math.py / 4)
-# Instantiate a geometry, rotated.
-root_node.instantiate(cube, rotation=rotation)
-```
-
-See [quaternions.md](quaternions.md) or [quaternions.py](src/gltf_builder/quaternions.py) for more information.
+Read the [documentation](docs/README.md), and file a [documentation issue](https://github.com/BobKerns/gltf_builder/issues/new?template=documentation.md).
 
 ## Development
-
-### Prerequisites
-
-- \[For testing] [`node`, `npm`](https://nodejs.org/)
-- \[Recommended] [`direnv](https://direnv.net/docs/installation.html)
-
-`direnv` enables automatic switching of environments when you cd into a directory. An alternative is to use `oh-my-zsh` with the `virtualenv` plugin, but it doesn't handle other tasks such as setting PATH.
-
-###
-
-### Testing
-
-The unit tests and their organization are described in the [Testing README](testing/README.md). Files created by the tests are automatically validated using the official Khronos validator.
-
-### Release process
-
-See [RELEASE.md](RELEASE.md) for how to create a new release.
-
-### The Compiler
-
-This is basically a compiler, translating from an input representation to the final product.
-
-A bit of documentation [here](docs/compiler.md).
 
 ### Still Needed
 

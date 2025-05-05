@@ -1,0 +1,283 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "click",
+#     "tomlkit",
+# ]
+# ///
+
+from contextlib import suppress
+from pathlib import Path
+import subprocess
+from typing import Any, cast
+import psutil
+import socket
+import sys
+
+import click
+from semver import Version
+import tomlkit
+import tomlkit.container
+from tomlkit.toml_file import TOMLFile
+import webbrowser
+
+
+ROOT = Path(__file__).parent.parent
+DOCS = ROOT / 'docs'
+SRC = ROOT / 'src'
+NODE_BIN = ROOT / 'node_modules/.bin'
+MARKSERV = NODE_BIN / 'markserv'
+
+def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
+    "Run the given command."
+    cmd = [str(arg) for arg in cmds]
+    print(f"Running command: {' '.join(cmd)}")
+    result: subprocess.CompletedProcess = subprocess.run(cmd,
+                                                         cwd=str(ROOT),
+                                                         **kwargs
+                                                         )
+    if result.returncode != 0:
+        raise RuntimeError(f"Command exited with return code {result.returncode}.")
+    print("Command completed successfully.")
+    return result
+
+def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
+    "Spawn the given command."
+    cmd = [str(arg) for arg in cmds]
+    print(f"Running command: {' '.join(cmd)}")
+    proc = subprocess.Popen(cmd, **kwargs, cwd=str(ROOT))
+    # In the expected case, the process will not have terminated,
+    # and the return code will be None. If the process has already terminated,
+    # (whether with "success" or otherwise) we raise an error.
+    if proc.returncode is not None:
+        raise RuntimeError(f"Command exited prematurely with return code {proc.returncode}.")
+    print("Command started successfully.")
+    return proc
+
+@click.group()
+def main() -> None:
+    """
+    Update and generate documentation and other files.
+
+    Supply the --help option for more information on a specific command.
+    """
+    ...
+
+@main.command(name='release')
+def run_all():
+    "Run all commands in preparation for release."
+    update_diagrams()
+    lock_dependencies()
+    update_version()
+
+def check_pid(pid):
+    """
+    Check if a process with the given PID is running using psutil.
+    Args:
+        pid (int): The process ID to check.
+    Returns:
+        bool: True if the process is running, False otherwise.
+    """
+    with suppress(Exception):
+        return psutil.pid_exists(pid)
+    return False
+
+
+def find_free_port():
+    """Finds an available port on the system.
+
+    Returns:
+        int: An available port number.
+    """
+    sock = socket.socket()
+    # We are binding on all interfaces, to find a port that is completely free.
+    # We do not communicate with the socket, and immediately discard it, and
+    # we never listen on it, so we do not need to worry about it being an exposed
+    # interface.
+    #
+    # We also want to avoid creating a situation where we get a port that is in
+    # the process of being opened by another process, but not yet bound. We are
+    # not in charge of the eventual binding and listen; we cannot just bind to
+    # one interface. We would have to predict and enumerate the interfaces that the
+    # server will bind to, and then bind to all of them, which is not reliably
+    # possible.
+    #
+    # Race conditions here are unavoidable, but this should be a good enough
+    # approximation. We pass the port off to the server, which will then bind to it
+    # with localhost, so it will be bound to the correct interface, and we can't do
+    # anything about the race condition. The user can retry if they get an error.
+    sock.bind(('', 0))  # Bind to all interfaces on a random available port
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
+
+def check_port(port):
+    """Check if a port is in use on the system.
+
+    Args:
+        port (int): The port number to check.
+
+    Returns:
+        bool: True if the port is in use (a connection can be established), False otherwise.
+    """
+    with suppress(Exception):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)  # Set a timeout value (in seconds)
+        sock.connect(("localhost", port))
+        sock.close()
+        return True
+    return False
+
+def read_id_file(file: Path|str) -> int | None:
+    "Read the id from the given file."
+    file = ROOT / file
+    with suppress(Exception):
+        if not file.exists():
+            return None
+        with file.open('r') as f:
+            return int(f.read().strip())
+    return None
+
+def save_id_file(file: Path|str, value: int) -> None:
+    "Save the id to the given file."
+    file = ROOT / file
+    with file.open('w') as f:
+        f.write(str(value))
+
+
+BACKGROUND_COLOR = 'ffeecc'
+DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
+        (DOCS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (DOCS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (DOCS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (DOCS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+]
+
+def update_diagram(diagram: Path|str, *params: str) -> None:
+    "Update the given diagram."
+
+    infile = SRC / diagram
+    outfile = infile.with_suffix('.svg')
+    if not infile.exists():
+        raise FileNotFoundError(f"Diagram {diagram} not found.")
+    cmd = [
+        str(arg)
+        for arg in ('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
+    ]
+    print(f"Updating {diagram}...")
+    print(f"Running command: {' '.join(cmd)}")
+    try:
+        run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
+    except Exception as e:
+        raise RuntimeError(f"Failed to update {diagram}.") from e
+
+@main.command(name='diagrams')
+def update_diagrams() -> None:
+    "Update all diagrams."
+
+    excs = []
+    for diagram, *params in DIAGRAMS:
+        try:
+            update_diagram(diagram, *params)
+        except Exception as e:
+            excs.append(e)
+    if excs:
+        raise ExceptionGroup("Failed to update some diagrams", excs)
+
+@main.command(name='update_version')
+def update_version() -> None:
+    "Update the version in the pyproject.toml file."
+
+    pyproject = ROOT / 'pyproject.toml'
+    if not pyproject.exists():
+        raise FileNotFoundError("pyproject.toml not found.")
+    file = TOMLFile(pyproject)
+    toml = file.read()
+    project = cast(tomlkit.container.Container, toml['project'])
+    version = Version.parse(str(project['version']))
+    version = version.bump_patch()
+    project['version'] = str(version)
+    print(f"Updating version to {version}...")
+    file.write(toml)
+
+
+PORT_FILE = ROOT / '.browse.html.port'
+RELOAD_FILE = ROOT / '.browse.reload.port'
+PID_FILE = ROOT / '.browse.pid'
+
+
+@main.command(name='browse')
+def browse_docs() -> None:
+    "Open the documentation in a browser."
+
+    if not MARKSERV.exists():
+        print(f"Markserv not found at {MARKSERV}. Please run 'build setup' first.", file=sys.stderr)
+        sys.exit(1)
+    html_port = read_id_file(PORT_FILE)
+    reload_port = read_id_file(RELOAD_FILE)
+    pid = read_id_file(PID_FILE)
+    print(f'{html_port=} {reload_port=} {pid=}')
+    print(f'{check_port(html_port)=} {check_port(reload_port)=} {check_pid(pid)=}')
+    if (
+        html_port is not None
+        and reload_port is not None
+        and pid is not None
+        and pid > 0
+        and check_port(html_port)
+        and check_port(reload_port)
+        and check_pid(pid)
+    ):
+        webbrowser.open(f'http://localhost:{html_port}/README.md')
+        return
+    if pid is not None and check_pid(pid):
+        with suppress(Exception):
+            p = psutil.Process(pid)
+            p.terminate()
+    save_id_file(PORT_FILE, 0)
+    save_id_file(RELOAD_FILE, 0)
+    save_id_file(PID_FILE, 0)
+    html_port = find_free_port()
+    reload_port = find_free_port()
+    save_id_file(PORT_FILE, html_port)
+    save_id_file(RELOAD_FILE, reload_port)
+    save_id_file(PID_FILE, 77)
+    proc: subprocess.Popen = spawn(MARKSERV,
+        '-p', str(html_port),
+        '-b', str(reload_port),
+        'README.md',
+        stderr=subprocess.PIPE,
+        )
+    if proc.returncode:
+        error_message = proc.stderr.read().decode() if proc.stderr else "Unknown error"
+        print(f"Failed to start the server: {error_message}", file=sys.stderr)
+        sys.exit(proc.returncode)
+    pid = proc.pid
+    if not pid:
+        print("Failed to get the process ID.", file=sys.stderr)
+        sys.exit(1)
+    save_id_file(PID_FILE, pid)
+    print(f"Server started with PID {pid}.")
+    print(f"Opening documentation in browser at http://localhost:{html_port}/README.md")
+
+
+@main.command(name='lock')
+def lock_dependencies() -> None:
+    "Update the requirements.txt and uv.lock files."
+    run('uv', 'sync')
+    run('uv', 'pip', 'compile', 'pyproject.toml', "-o", 'requirements.txt')
+
+
+@main.command(name='setup')
+def setup() -> None:
+    "Set up the project."
+
+    run('npm', 'install')
+    run('uv', 'sync')
+    run('uv', 'pip', 'compile', 'pyproject.toml', "-o", 'requirements.txt')
+    run('uv', 'pip', 'compile', 'pyproject.toml', "-o", 'requirements-dev.txt')
+    update_diagrams()
+
+
+if __name__ == "__main__":
+    main()

@@ -40,3 +40,13 @@ node_modules/
 # Windows
 Thumbs.db
 
+# Process ID and ports and lock files
+*.pid
+*.port
+*.lock
+
+# Calva//Clojure (not used n this project)
+
+.lsp/
+.clj-kondo/
+

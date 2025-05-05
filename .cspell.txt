@@ -33,6 +33,7 @@ DATAURI
 declutter
 direnv
 envrc
+excs
 ffeecc
 fileuri
 frombuffer
@@ -50,6 +51,7 @@ idtype
 iflen
 IMAGEJPEG
 IMAGEPNG
+infile
 instancable
 ipykernel
 ipython

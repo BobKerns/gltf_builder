@@ -4,9 +4,12 @@
     "description": "Development tooling for glTF builder",
     "private": true,
     "scripts": {
-        "build": "uv run build",
-        "browse": "markserv README.md",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "devtool": "uv run devtool",
+        "browse:run": "markserv",
+        "browse": "npm run browse:run -- -p 18899 -a 127.0.0.1 -b 9922 README.md",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "bash": "bash",
+        "path": "echo $PATH"
     },
     "devDependencies": {
         "@mermaid-js/mermaid-cli": "^11.4.2",
