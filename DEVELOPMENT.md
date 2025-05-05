@@ -2,18 +2,61 @@
 
 ## Prerequisites
 
-- [VCS] [git](https://git-scm.com)
-- [Binary files] [git-lfs](https://git-lfs.com)
-- [Project management] [`uv`](https://docs.astral.sh/uv/)
+- [VCS] [git](#git-git-lfs)
+- [Binary files] [git-lfs](#git-git-lfs)
+- [Project management] [`uv`](#uv)
 - \[For testing] [`node`, `npm`](https://nodejs.org/)
 - \[Recommended] [`direnv](https://direnv.net/docs/installation.html)
 - \[IDE] [`Visual Studio Code](https://code.visualstudio.com/)
+
+### Getting started
+
+- Clone this repo into your local environment
+- Install any prerequisites you are missing.
+  - Consider updating to the latest versions.
+- Type `direnv allow`
+  - If not using `direnv`:
+    - `uv sync`
+    - `npm install`
+    - Examine [.envrc](.envrc) for other steps, such as adding to your PATH or other environment variables.
+- Launch Visual Studio Code
+  - Select the appropriate python environment (i.e. the .venv for the project).
+
+### [devtool](scripts/devtool)
+
+There is a python script in [scripts/devtool](scripts/devtool) that handles man development tasks. It can be run via `uv run scripts/devtool`, or if your environment is properly set up, just `devtool`.
+
+```bash
+rwk──> devtool
+Usage: devtool [OPTIONS] COMMAND [ARGS]...
+
+  Update and generate documentation and other files, and perform other
+  project-specific tasks.
+
+  Supply the --help option for more information on a specific command.
+
+Options:
+  --debug    Enable debug mode.
+  --verbose  Enable verbose mode.
+  --help     Show this message and exit.
+
+Commands:
+  browse  [<PATH>] Open the documentation in a browser.
+  server  <CMD> Operations on the local documentation server.
+  setup   Set up the project.
+  sync    Update the requirements.txt and uv.lock files.
+  update  <CMD> Operations that update the project.
+```
+
+`devtool browse`_`[path]`_ will start a local webserver (if it is not already running),and watch for changes, updating whenever a file is modified.
+
+## Detailed prerequisites
 
 ### [git](<https://git-scm.com)>), [git-lfs](https://git-lfs.com)
 
 If you have ever installed [git-lfs](https://git-lfs.com), you are all set.
 
-If not, you will need to download and install it, and execute `git lfs install` once. You only need to do this once for each user account on each machine that you use it. It configures per-user global settings to support git-lfs.
+If not, you will need to download and install it, and execute `git lfs install` once. You only need to do this once for each user account on each machine that you use it. It configures per-user global settings to support `git-lfs`.
 
 ### [uv](https://docs.astral.sh/uv/)
 
@@ -22,6 +65,10 @@ If not, you will need to download and install it, and execute `git lfs install` 
 The familiar `pip` interface is there via `uv pip ...`, but is not generally needed.
 
 Add project dependencies via `uv add`. Create the virtual environment and install dependencies with `uv sync`. But see the next section for how to automate this further.
+
+### [node](https://nodejs.org/), [npm](https://nodejs.org/)
+
+ [node](https://nodejs.org/) and [npm](https://nodejs.org/) are used only for the test suite (to run the official glTF validator), and a local dev webserver to view the rendered Markdown files.
 
 ### [direnv](https://direnv.net)
 
@@ -92,6 +139,9 @@ The project recommends the following extensions grouped by category:
 |-----------|-------------|
 | Markdown All in One | Keyboard shortcuts, TOC, auto preview for Markdown |
 | Mermaid Preview | Preview Mermaid diagrams in Markdown documents |
+| Mermaid Graphical Editor | Create Mermaid diagrams with an interactive GUI |
+| Mermaid Chart | The "official" mermaid extension from mermaidchart.com |
+| vscode-mermAid | Microsoft's Copilot plugin to generate Mermaid diagrams from Copilot chats |
 | Markdown Preview Enhanced | More powerful Markdown previewer |
 | markdownlint | Linting and style checking for Markdown |
 

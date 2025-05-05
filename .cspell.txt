@@ -32,6 +32,7 @@ contin
 CUBICSPLINE
 DATAURI
 declutter
+declutters
 direnv
 envrc
 excs
@@ -63,9 +64,11 @@ Khronos
 KOEPF
 ldata
 linalg
+logstream
 markserv
 mathbf
 memview
+mermaidchart
 mmdc
 multiparent
 namespec

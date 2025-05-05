@@ -50,3 +50,6 @@ Thumbs.db
 .lsp/
 .clj-kondo/
 
+# Server logs
+*.log
+

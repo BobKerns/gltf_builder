@@ -6,11 +6,15 @@
 #     "tomlkit",
 # ]
 # ///
+# The above comment is managed by uv, do not edit it manually.
+# It enables uv to manage the dependencies and the Python version.
+# See PEP 723 for more information.
+# https://peps.python.org/pep-0723/
 
 from contextlib import suppress
 from pathlib import Path
 import subprocess
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 import psutil
 import socket
 import sys
@@ -51,14 +55,16 @@ def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
 def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
     "Spawn the given command."
     cmd = [str(arg) for arg in cmds]
-    print(f"Running command: {' '.join(cmd)}")
+    if debug_on:
+       print(f"Running command: {' '.join(cmd)}")
     proc = subprocess.Popen(cmd, **kwargs, cwd=str(ROOT))
     # In the expected case, the process will not have terminated,
     # and the return code will be None. If the process has already terminated,
     # (whether with "success" or otherwise) we raise an error.
     if proc.returncode is not None:
         raise RuntimeError(f"Command exited prematurely with return code {proc.returncode}.")
-    print("Command started successfully.")
+    if debug_on:
+        print("Command started successfully.")
     return proc
 
 
@@ -67,7 +73,8 @@ def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
 @click.option('--verbose', is_flag=True, help="Enable verbose mode.")
 def main(debug: bool=False, verbose: bool=False) -> None:
     """
-    Update and generate documentation and other files.
+    Update and generate documentation and other files, and perform
+    other project-specific tasks.
 
     Supply the --help option for more information on a specific command.
     """
@@ -75,19 +82,46 @@ def main(debug: bool=False, verbose: bool=False) -> None:
     verbose_on = verbose
     debug_on = verbose_on = debug
 
+@main.group(name='server')
+def server() -> None:
+    """
+    <CMD> Operations on the local documentation server.
+    Use the --help option for more information on a specific command.
+    """
+    pass
 
-@main.command(name='release')
+@main.group(name='update')
+def update() -> None:
+    """
+    <CMD> Operations that update the project.
+    Use the --help option for more information on a specific command.
+    """
+    pass
+
+@update.group('all')
+def update_all() -> None:
+    """
+    <CMD> Operations that update an entire set of files.
+    Use the --help option for more information on a specific command.
+
+    Example:
+      devtool update all diagrams
+    """
+    pass
+
+@update_all.command(name='release')
 def run_all():
     "Run all commands in preparation for release."
     update_diagrams()
-    lock_dependencies()
+    sync_dependencies()
     update_version()
+
 
 def check_pid(pid: int|None):
     """
     Check if a process with the given PID is running using psutil.
     Args:
-        pid (int): The process ID to check.
+        pid (int|None): The process ID to check.
     Returns:
         bool: True if the process is running, False otherwise.
     """
@@ -96,6 +130,81 @@ def check_pid(pid: int|None):
     with suppress(Exception):
         return psutil.pid_exists(pid)
     return False
+
+
+BACKGROUND_COLOR = 'fdf2e4'
+DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
+        (IMGS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'input_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+]
+
+@update.command(name='diagram')
+@click.argument('diagram', type=click.Path(exists=True))
+@click.option('--png', is_flag=True, help="Generate a PNG file instead of an SVG file.")
+def update_diagram(diagram: Path|str, *params: str,
+                   png: bool=False) -> None:
+    "<PATH> Update the given diagram."
+
+    fmt = '.svg'
+    if png:
+        fmt = '.png'
+    if not params:
+        diagram_spec = next((d for d in DIAGRAMS if d[0] == diagram), None)
+        if diagram_spec is None:
+            print(f"Diagram {diagram} not found in the list of diagrams, using defaults", file=sys.stderr)
+            params = ('-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1')
+        else:
+            params = diagram_spec[1:]
+
+    infile = ROOT / diagram
+    outfile = infile.with_suffix(fmt)
+    if not infile.exists():
+        raise FileNotFoundError(f"Diagram {diagram} not found.")
+    if verbose_on:
+        print(f"Updating {diagram}...")
+    try:
+        run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
+    except Exception as e:
+        raise RuntimeError(f"Failed to update {diagram}.") from e
+
+
+@update_all.command(name='diagrams')
+def update_diagrams() -> None:
+    "Update all diagrams."
+
+    excs = []
+    for diagram, *params in DIAGRAMS:
+        try:
+            update_diagram(diagram, *params)
+        except Exception as e:
+            excs.append(e)
+    if excs:
+        raise ExceptionGroup("Failed to update some diagrams", excs)
+
+@update.command(name='version')
+def update_version() -> None:
+    "Update the version in the pyproject.toml file."
+
+    pyproject = ROOT / 'pyproject.toml'
+    if not pyproject.exists():
+        raise FileNotFoundError("pyproject.toml not found.")
+    file = TOMLFile(pyproject)
+    toml = file.read()
+    project = cast(tomlkit.container.Container, toml['project'])
+    version = Version.parse(str(project['version']))
+    version = version.bump_patch()
+    project['version'] = str(version)
+    print(f"Updating version to {version}...")
+    file.write(toml)
+
+
+PORT_FILE = ROOT / '.browse.html.port'
+RELOAD_FILE = ROOT / '.browse.reload.port'
+PID_FILE = ROOT / '.browse.pid'
+LOG_FILE = ROOT / '.browse.log'
 
 
 def find_free_port():
@@ -162,115 +271,36 @@ def save_id_file(file: Path|str, value: int|None) -> None:
     "Save the id to the given file."
     file = ROOT / file
     if value is None or value <= 0:
-        file.unlink(missing_ok=True)
-        return
+        value = 0
     with file.open('w') as f:
         f.write(str(value))
 
-
-BACKGROUND_COLOR = 'fdf2e4'
-DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
-        (IMGS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (IMGS / 'input_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (IMGS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (IMGS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (IMGS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-]
-
-@main.command(name='update-diagram')
-@click.argument('diagram', type=click.Path(exists=True))
-def update_diagram(diagram: Path|str, *params: str) -> None:
-    "Update the given diagram."
-
-    if not params:
-        diagram_spec = next((d for d in DIAGRAMS if d[0] == diagram), None)
-        if diagram_spec is None:
-            print(f"Diagram {diagram} not found in the list of diagrams, using defaults", file=sys.stderr)
-            params = ('-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1')
-        else:
-            params = diagram_spec[1:]
-
-    infile = ROOT / diagram
-    outfile = infile.with_suffix('.svg')
-    if not infile.exists():
-        raise FileNotFoundError(f"Diagram {diagram} not found.")
-    if verbose_on:
-        print(f"Updating {diagram}...")
-    try:
-        run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
-    except Exception as e:
-        raise RuntimeError(f"Failed to update {diagram}.") from e
+class ServerStatus(NamedTuple):
+    """
+    A named tuple representing the status of the server.
+    The first value is a boolean indicating if the server is running.
+    The second value is a tuple containing the pid, html port, and reload port.
+    The pid will be None if the server is not running.
+    The html port and reload port will be None if they are not set, otherwise
+    they will be the port numbers of the last run. This means we will try to
+    reuse the same ports if the server is restarted.
+    """
+    pid: int | None
+    "Will be None if the server is not running."
+    html_port: int | None
+    "Will be None if the server has not been started."
+    reload_port: int | None
+    "Will be None if the server has not been started."
 
 
-@main.command(name='diagrams')
-def update_diagrams() -> None:
-    "Update all diagrams."
+def get_server_status() -> ServerStatus:
+    '''
+    Check the status of the server. Cleans up dead servers and pid/port files
+    if they are found, and returns the status of the server.
 
-    excs = []
-    for diagram, *params in DIAGRAMS:
-        try:
-            update_diagram(diagram, *params)
-        except Exception as e:
-            excs.append(e)
-    if excs:
-        raise ExceptionGroup("Failed to update some diagrams", excs)
-
-@main.command(name='update-version')
-def update_version() -> None:
-    "Update the version in the pyproject.toml file."
-
-    pyproject = ROOT / 'pyproject.toml'
-    if not pyproject.exists():
-        raise FileNotFoundError("pyproject.toml not found.")
-    file = TOMLFile(pyproject)
-    toml = file.read()
-    project = cast(tomlkit.container.Container, toml['project'])
-    version = Version.parse(str(project['version']))
-    version = version.bump_patch()
-    project['version'] = str(version)
-    print(f"Updating version to {version}...")
-    file.write(toml)
-
-
-PORT_FILE = ROOT / '.browse.html.port'
-RELOAD_FILE = ROOT / '.browse.reload.port'
-PID_FILE = ROOT / '.browse.pid'
-
-@main.command(name='kill-server')
-def kill_server() -> None:
-    "Kill the server if it is running."
-    pid = read_id_file(PID_FILE)
-    if pid is not None and check_pid(pid):
-        with suppress(Exception):
-            p = psutil.Process(pid)
-            p.terminate()
-        save_id_file(PORT_FILE, 0)
-        save_id_file(RELOAD_FILE, 0)
-        save_id_file(PID_FILE, 0)
-    print("Server killed.")
-
-@main.command(name='browse')
-@click.argument('file', type=click.Path(exists=True), default=ROOT / 'README.md')
-def browse_docs(file: Path = ROOT / 'README.md') -> None:
-    "Open the documentation in a browser."
-
-    file = Path(file).resolve()
-    if not file.exists():
-        print(f"File {file} not found, browsing directory.", file=sys.stderr)
-        file = file.parent
-
-    if ROOT not in file.parents:
-        # Onn general security principles, we should not allow
-        # browsing outside the project directory. It's not really a
-        # security issue here.
-        print(f"File {file} is not in the project directory.", file=sys.stderr)
-        sys.exit(1)
-
-    file = file.relative_to(ROOT)
-
-    if not MARKSERV.exists():
-        print(f"Markserv not found at {MARKSERV}. Please run 'build setup' first.", file=sys.stderr)
-        sys.exit(1)
+    Returns:
+        ServerStatus: A named tuple containing the status of the server.
+    '''
     html_port = read_id_file(PORT_FILE)
     reload_port = read_id_file(RELOAD_FILE)
     pid = read_id_file(PID_FILE)
@@ -282,32 +312,86 @@ def browse_docs(file: Path = ROOT / 'README.md') -> None:
         print(f'{reload_port=} {reload_port_ok=}')
         print(f'{pid=} {pid_ok=}')
         print(f'{check_port(html_port)=} {check_port(reload_port)=} {check_pid(pid)=}')
-    if html_port_ok and reload_port_ok and pid_ok:
-        webbrowser.open(f'http://localhost:{html_port}/{file}')
-        return
-    # If the server is not running, we need to start it.
-    # If it's just hung, we should kill it and start a new one.
+    status = html_port_ok and reload_port_ok and pid_ok
+    if not status:
+        stop_server(pid)
+        return ServerStatus(None, html_port, reload_port)
+    return ServerStatus(pid, html_port, reload_port)
+
+
+@server.command(name='status')
+def server_status(silent: bool=False) -> None:
+    "Check the status of the server."
+    pid, html_port, reload_port = get_server_status()
+    if not silent:
+        if pid is not None:
+            print(f"Server is running, {pid=}, {html_port=}, {reload_port=}")
+            print(f"Server is running on http://localhost:{html_port}")
+        else:
+            print("Server is not running.")
+            print(f'Last used ports: {html_port=} {reload_port=}')
+    if pid is None:
+        sys.exit(1)
+
+def stop_server(pid: int|None) -> None:
+    """
+    Stop the server if it is running.
+
+    Args:
+        pid (int|None): The process ID of the server.
+    """
     if pid is not None and check_pid(pid):
         with suppress(Exception):
             p = psutil.Process(pid)
             p.terminate()
-    save_id_file(PORT_FILE, 0)
-    save_id_file(RELOAD_FILE, 0)
-    save_id_file(PID_FILE, 0)
-    html_port = find_free_port()
-    reload_port = find_free_port()
+        # If the server is not running, we clear the pid file. We leave it in place because
+        # it is the key for the VSCode Explorer's collapsing related files together, so it
+        # declutters the explorer view. We keep the port files in place so that we can
+        # reuse the ports if the server is restarted, allowing stale browser tabs to reconnect.
+        save_id_file(PID_FILE, 0)
+
+
+@server.command(name='stop')
+def stop_server_command() -> None:
+    "Stop the server if it is running."
+    pid = read_id_file(PID_FILE)
+    stop_server(pid)
+    print("Server killed.")
+
+
+def start_server() -> ServerStatus:
+    """
+    Start the server if it is not running.
+
+    Returns:
+        ServerStatus: A named tuple containing the status of the server.
+    """
+    (pid, html_port, reload_port) = get_server_status()
+    if pid is not None:
+        if debug_on:
+            print("Server is already running.")
+        return ServerStatus(pid, html_port, reload_port)
+    if not html_port:
+        html_port = find_free_port()
+    if not reload_port:
+        reload_port = find_free_port()
     save_id_file(PORT_FILE, html_port)
     save_id_file(RELOAD_FILE, reload_port)
-    save_id_file(PID_FILE, 77)
     if debug_on:
+        print(f"Starting server on port {html_port} with reload port {reload_port}.")
         silent_flag = ()
         output_flags = {'stderr': subprocess.PIPE}
     else:
         silent_flag = ('--silent',)
-        output_flags = {'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL}
+        # Open a stream to the log file. We don't close it as we pass ownership to the spawned
+        # process. We don't want to close it, as the process will be writing to it.
+        logstream = open(LOG_FILE, 'w')
+
+        output_flags = {'stdout': logstream, 'stderr': logstream}
     proc: subprocess.Popen = spawn(MARKSERV,
         '-p', str(html_port),
         '-b', str(reload_port),
+        '--browser', 'false',
         *silent_flag,
         'README.md',
         **output_flags
@@ -319,16 +403,63 @@ def browse_docs(file: Path = ROOT / 'README.md') -> None:
     pid = proc.pid
     if not pid:
         print("Failed to get the process ID.", file=sys.stderr)
-        sys.exit(1)
+        save_id_file(PID_FILE, 0)
+        return ServerStatus(None, html_port, reload_port)
     save_id_file(PID_FILE, pid)
-    if debug_on:
-        print(f"Server started with PID {pid}.")
+    return ServerStatus(pid, html_port, reload_port)
+
+@server.command(name='start')
+def start_server_command() -> None:
+    "Start the server if it is not running."
+    pid, html_port, reload_port = get_server_status()
+    if pid is not None:
+        print(f"Server is running on http://localhost:{html_port}")
+        sys.exit(0)
+    status = start_server()
+    if status.pid is not None:
+        print(f"Server started on http://localhost:{status.html_port}")
+    else:
+        print("Failed to start the server.", file=sys.stderr)
+        sys.exit(1)
+
+
+@main.command(name='browse')
+@click.argument('file', type=click.Path(exists=True), default=ROOT / 'README.md')
+def browse_docs(file: Path = ROOT / 'README.md') -> None:
+    "[<PATH>] Open the documentation in a browser."
+
+    file = Path(file).resolve()
+    if not file.exists():
+        print(f"File {file} not found, browsing directory.", file=sys.stderr)
+        file = file.parent
+
+    if ROOT not in file.parents and file != ROOT:
+        # Onn general security principles, we should not allow
+        # browsing outside the project directory. It's not really a
+        # security issue here.
+        print(f"File {file} is not in the project directory.", file=sys.stderr)
+        sys.exit(1)
+
+    file = file.relative_to(ROOT)
+
+    if not MARKSERV.exists():
+        print(f"Markserv not found at {MARKSERV}. Please run 'build setup' first.", file=sys.stderr)
+        sys.exit(1)
+
+    (pid, html_port, reload_port) = get_server_status()
+    if pid is None:
+        (pid, html_port, reload_port) = start_server()
+    if not pid:
+        print("Failed to start the server.", file=sys.stderr)
+        sys.exit(1)
+    assert html_port is not None
     if verbose_on:
         print(f"Opening documentation in browser at http://localhost:{html_port}/{file}")
+    webbrowser.open(f'http://localhost:{html_port}/{file}')
 
 
-@main.command(name='lock')
-def lock_dependencies() -> None:
+@main.command(name='sync')
+def sync_dependencies() -> None:
     "Update the requirements.txt and uv.lock files."
     run('uv', 'sync')
     run('uv', 'pip', 'compile', 'pyproject.toml', "-o", 'requirements.txt')
