@@ -36,14 +36,16 @@ verbose_on: bool = False
 def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
     "Run the given command."
     cmd = [str(arg) for arg in cmds]
-    print(f"Running command: {' '.join(cmd)}")
+    if debug_on:
+        print(f"Running command: {' '.join(cmd)}")
     result: subprocess.CompletedProcess = subprocess.run(cmd,
                                                          cwd=str(ROOT),
                                                          **kwargs
                                                          )
     if result.returncode != 0:
         raise RuntimeError(f"Command exited with return code {result.returncode}.")
-    print("Command completed successfully.")
+    if debug_on:
+        print("Command completed successfully.")
     return result
 
 def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
@@ -175,21 +177,25 @@ DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
         (IMGS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
 ]
 
+@main.command(name='update-diagram')
+@click.argument('diagram', type=click.Path(exists=True))
 def update_diagram(diagram: Path|str, *params: str) -> None:
     "Update the given diagram."
 
-    infile = SRC / diagram
+    if not params:
+        diagram_spec = next((d for d in DIAGRAMS if d[0] == diagram), None)
+        if diagram_spec is None:
+            print(f"Diagram {diagram} not found in the list of diagrams, using defaults", file=sys.stderr)
+            params = ('-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1')
+        else:
+            params = diagram_spec[1:]
+
+    infile = ROOT / diagram
     outfile = infile.with_suffix('.svg')
     if not infile.exists():
         raise FileNotFoundError(f"Diagram {diagram} not found.")
-    cmd = [
-        str(arg)
-        for arg in ('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
-    ]
     if verbose_on:
         print(f"Updating {diagram}...")
-    if debug_on:
-        print(f"Running command: {' '.join(cmd)}")
     try:
         run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
     except Exception as e:
@@ -209,7 +215,7 @@ def update_diagrams() -> None:
     if excs:
         raise ExceptionGroup("Failed to update some diagrams", excs)
 
-@main.command(name='update_version')
+@main.command(name='update-version')
 def update_version() -> None:
     "Update the version in the pyproject.toml file."
 
@@ -244,8 +250,23 @@ def kill_server() -> None:
     print("Server killed.")
 
 @main.command(name='browse')
-def browse_docs() -> None:
+@click.argument('file', type=click.Path(exists=True), default=ROOT / 'README.md')
+def browse_docs(file: Path = ROOT / 'README.md') -> None:
     "Open the documentation in a browser."
+
+    file = Path(file).resolve()
+    if not file.exists():
+        print(f"File {file} not found, browsing directory.", file=sys.stderr)
+        file = file.parent
+
+    if ROOT not in file.parents:
+        # Onn general security principles, we should not allow
+        # browsing outside the project directory. It's not really a
+        # security issue here.
+        print(f"File {file} is not in the project directory.", file=sys.stderr)
+        sys.exit(1)
+
+    file = file.relative_to(ROOT)
 
     if not MARKSERV.exists():
         print(f"Markserv not found at {MARKSERV}. Please run 'build setup' first.", file=sys.stderr)
@@ -262,7 +283,7 @@ def browse_docs() -> None:
         print(f'{pid=} {pid_ok=}')
         print(f'{check_port(html_port)=} {check_port(reload_port)=} {check_pid(pid)=}')
     if html_port_ok and reload_port_ok and pid_ok:
-        webbrowser.open(f'http://localhost:{html_port}/README.md')
+        webbrowser.open(f'http://localhost:{html_port}/{file}')
         return
     # If the server is not running, we need to start it.
     # If it's just hung, we should kill it and start a new one.

@@ -1,5 +1,38 @@
+---
+id: b3a4cd18-1305-488d-ba20-9ee71f002f60
+title: "Classes and functions"
+config:
+    layout: elk
+    elk:
+        mergeEdges: true
+        nodePlacementStrategy: BRANDES_KOEPF
+    theme: base
+    themeVariables:
+        darkMode: false
+        darkModeBackground: "#000000"
+        primaryColor: "#e0ffe0"
+        primaryTextColor: "#000000"
+        secondaryColor: "#e0d9ef"
+        secondaryTextColor: "#0000ff"
+        tertiaryColor: "#f8f9fa"
+        tertiaryTextColor: "#00ff00"
+        borderRadius: "0.25rem"
+        fontSize: "1rem"
+        fontFamily: "Arial, sans-serif"
+        background: "#00ff00"
+        lineColor: "#0000cc"
+        nodeBorder: "#0000ff"
+---
 classDiagram
-
+    note for BBuffer "The BBuffer is what ultimately holds all the binary data.\nThis note is strangely placed."
+    note for Element "This is all the items which can be added to a glTF file at top level."
+    class BBuffer {
+        bytes: bytes
+        byteLength: int
+        byteOffset: int
+        name: str
+    }
+    classDef Final fill:#f9f,stroke:#000,stroke-width:8px;
     class ScopeName {
         <<enumeration>>
         ASSET: str
@@ -22,7 +55,182 @@ classDiagram
         ANIMATION: str
         ANIMATION_CHANNEL: str
         ANIMATION_SAMPLER: str
+
     }
+
+    class _Compilable {
+        <<interface>>
+        _scope: ScopeName
+        -name: str
+        -extensions: ExtensionsData
+        -extras: ExtrasData
+        -extension_objects: set[Extension]
+        +name_scope: bool
+        +view_scope: bool
+        +state_type(): type[_STATE]
+    }
+
+    class Builder:::User {
+        -index_size: Optional[IndexSize]
+        -name_policy: Optional[NamePolicy]
+        -extras: Optional[dict]
+        -extensions: Optional[dict]
+        +build(): gltf.GLTF2
+    }
+
+    class _ViewScope {
+        <<interface>>
+        -target_buffer: BBuffer
+        +get_view(...): BBufferView
+    }
+    class _NameScope {
+        <<interface>>
+        +get_name(obj: _Compilable, ...): str
+    }
+
+    class _NodeContainerProtocol {
+        <<interface>>
+        +__len__(): int
+        +__getitem__(name: str): BNode
+        +__setitem__(name: str, node: BNode)
+        +__contains__(name: str): bool
+        +__iter__(): Iterable[BNode]
+    }
+
+    class _GlobalShared {
+        <<interface>>
+    }
+    _NodeContainer <|-- Builder
+    _GlobalShared <|-- Builder
+    _NodeContainerProtocol <|-- _NodeContainer
+    _NodeContainerProtocol <|-- _GlobalShared
+
+    class _GlobalSharedState {
+        <<interface>>
+        +buffer: BBuffer
+        -_get_index_size(max_value: int): IndexSize
+        -_gen_name(obj: _Compilable, ...): str
+        -_create_accessor(...: BAccessor
+        +state(elt: Element): _STATE
+        +idx(elt: Element): int
+    }
+    class Element:::User {
+        <<interface>>
+
+        -name: str  　　　　　　　　　　　　　　　　.
+    }
+
+    class Plugin:::User {
+        +name: str
+        +version: str
+        semver: Version
+        +author: str
+        summary: str
+        requiresPython: Version
+    }
+    class Extension:::User {
+        <<interface>>
+        +name: str
+        +compile_*(...)
+    }
+    Extension --> Plugin : plugin
+    Plugin *--> ExtensionClass : extension_class
+    Extension --|> ExtensionClass
+
+    _Compilable <|-- Element
+    Element <|-- BNode
+    Element <|-- BBuffer
+    Element <|-- BBufferView
+    Element <|-- BAccessor
+    Element <|-- BTexture
+    Element <|-- BImage
+    Element <|-- BSampler
+    Element <|-- BMaterial
+    Element <|-- BMesh
+    Element <|-- BCamera
+    Element <|-- BScene
+    Element <|-- BSkin
+    Element <|-- BAnimation
+    Element <|-- BAnimationChannel
+    Element <|-- BAnimationSampler
+    Element <|-- Extension
+
+
+    BSkin --> "1" BNode : skeleton
+    BSkin --> "*" BNode : joints
+    BSkin *--> "0..1" BAccessor : inverseBindMatrices
+    class BSkin:::User
+    class BTexture:::User {
+        <<interface>>
+        " 　　　　　　　　　　　　　　　　"
+    }
+    class BImage:::User {
+        <<interface>>
+        -uri: str
+        -mimeType: str
+        -bufferView: BBufferView
+        +name: str
+    }
+    BTexture --> BImage : source
+    BTexture --> BSampler : sampler
+
+    class BMaterial:::User
+    BMaterial --> "0..1" BTexture : baseColorTexture
+    BMaterial --> "0..1" BTexture : metallicRoughnessTexture
+    BMaterial --> "0..1" BTexture : normalTexture
+    BMaterial --> "0..1" BTexture : occlusionTexture
+    BMaterial --> "0..1" BTexture : emissiveTexture
+
+
+    _NodeContainerProtocol <|-- BNode
+    class BNode:::User
+    class BScene:::User
+    class BCamera:::User
+    class BAccessor:::User
+    class BBufferView:::User
+    class BAnimation:::User
+    class BAnimationChannel:::User
+    class BAnimationSampler:::User
+    class BSampler:::User
+    class BExtension:::User
+    class BExtensionState_Buffer:::User
+    class BMesh:::User
+    class BPrimitive:::User
+    BNode "1" -- "*" BNode : nodes, parent
+    BScene "*" o--> "*" BNode : nodes
+
+    BNode o--> "0..1" BCamera : camera
+
+    BNode "1" *--> "0..1" BMesh : mesh
+    BMesh "1" *--> "0..1" BPrimitive : primitives
+    BMesh "1" *--> "0..1" BAccessor : weights
+
+    class BPrimitive:::User {
+        <<interface>>
+        -mode: PrimitiveMode
+        -indices: BAccessor
+        -material: BMaterial
+        -targets: list[BAccessor]
+        +name: str
+    }
+    BPrimitive --> "0..1" BMaterial : material
+    BPrimitive o--> "0..1" BAccessor : in
+
+
+    BAccessor --> BBufferView : bufferview
+
+    BBufferView --> BBuffer : buffer
+
+    BPrimitive --> "0..1" BMaterial : material
+
+    BImage "1" *--> "1" BBufferView : bufferView
+
+    BAnimationChannel --> BSampler : sampler
+    BAnimationChannel --> BNode : target
+
+    BAnimation --> "*" BAnimationChannel : channels
+    BAnimation --> "*" BAnimationSampler : samplers
+
 
     class _CompileState {
         <<interface>>
@@ -54,41 +262,9 @@ classDiagram
         +__bool__(): bool
     }
 
-    class _Compilable {
-        <<interface>>
-        _scope: ScopeName
-        -name: str
-        -extensions: ExtensionsData
-        -extras: ExtrasData
-        -extension_objects: set[Extension]
-        +name_scope: bool
-        +view_scope: bool
-        +state_type(): type[_STATE]
-        +compile(globl: GlobalState, phase): _GLTF|int|_Collected|set[str]|None
-        +_do_compile(globl, phase, state): _DoCompileReturn[_GLTF]
-    }
-
     class GlobalState {
         +do_compile(phase: Phase)
         +state(element: Element): _CompileState
-    }
-
-    class Builder {
-        -index_size: Optional[IndexSize]
-        -name_policy: Optional[NamePolicy]
-        -extras: Optional[dict]
-        -extensions: Optional[dict]
-        +build(): gltf.GLTF2
-    }
-
-    class _ViewScope {
-        <<interface>>
-        -target_buffer: BBuffer
-        +get_view(...): BBufferView
-    }
-    class _NameScope {
-        <<interface>>
-        +get_name(obj: _Compilable, ...): str
     }
 
     class Progress {
@@ -112,54 +288,7 @@ classDiagram
         BUILD
     }
 
-    class _NodeContainerProtocol {
-        <<interface>>
-        +__len__(): int
-        +__getitem__(name: str): BNode
-        +__setitem__(name: str, node: BNode)
-        +__contains__(name: str): bool
-        +__iter__(): Iterable[BNode]
-    }
 
-    class _GlobalShared {
-        <<interface>>
-    }
-
-    class _GlobalSharedState {
-        <<interface>>
-        +buffer: BBuffer
-        -_get_index_size(max_value: int): IndexSize
-        -_gen_name(obj: _Compilable, ...): str
-        -_create_accessor(...: BAccessor
-        +state(elt: Element): _STATE
-        +idx(elt: Element): int
-    }
-
-    class Element {
-        <<interface>>
-    }
-
-    class Plugin {
-        +name: str
-        +version: str
-        semver: Version
-        +author: str
-        summary: str
-        requiresPython: Version
-    }
-    class Extension {
-        <<interface>>
-        +name: str
-        +compile_*(...)
-    }
-    Extension --> Plugin : plugin
-    Plugin *--> ExtensionClass : extension_class
-    Extension --|> ExtensionClass
-
-    _NodeContainer <|-- Builder
-    _GlobalShared <|-- Builder
-    _NodeContainerProtocol <|-- _NodeContainer
-    _NodeContainerProtocol <|-- _GlobalShared
     _BinaryCompileState <|-- GlobalState
     _NodeContainer <|-- GlobalState
     _GlobalSharedState <|-- GlobalState
@@ -168,23 +297,6 @@ classDiagram
     _NameScope <|-- _CompileState
     _GlobalShared <|-- _GlobalSharedState
 
-    _Compilable <|-- Element
-    Element <|-- BNode
-    Element <|-- BBuffer
-    Element <|-- BBufferView
-    Element <|-- BAccessor
-    Element <|-- BTexture
-    Element <|-- BImage
-    Element <|-- BSampler
-    Element <|-- BMaterial
-    Element <|-- BMesh
-    Element <|-- BCamera
-    Element <|-- BScene
-    Element <|-- BSkin
-    Element <|-- BAnimation
-    Element <|-- BAnimationChannel
-    Element <|-- BAnimationSampler
-    Element <|-- Extension
 
     BNode ..> _NodeState : state_class
     BBuffer ..> _BufferState : state_class
@@ -255,19 +367,6 @@ classDiagram
     _AnimationSamplerState --> BAnimationSampler : element
     _ExtensionState --> Extension : element
 
-    BSkin --> "1" BNode : skeleton
-    BSkin --> "*" BNode : joints
-    BSkin *--> "0..1" BAccessor : inverseBindMatrices
-
-    BTexture --> BImage : source
-    BTexture --> BSampler : sampler
-
-    BMaterial --> "0..1" BTexture : baseColorTexture
-    BMaterial --> "0..1" BTexture : metallicRoughnessTexture
-    BMaterial --> "0..1" BTexture : normalTexture
-    BMaterial --> "0..1" BTexture : occlusionTexture
-    BMaterial --> "0..1" BTexture : emissiveTexture
-
     GlobalState *--> BNode
     GlobalState *--> BBuffer
     GlobalState *--> BBufferView
@@ -289,30 +388,5 @@ classDiagram
     _CompileState --> Element : element
     _CompileState --> "*" Extension: extension_objects
 
-    _NodeContainerProtocol <|-- BNode
-    BNode "1" -- "*" BNode : nodes, parent
-    BScene "*" o--> "*" BNode : nodes
 
-    BNode o--> "0..1" BCamera : camera
-
-    BNode "1" *--> "0..1" BMesh : mesh
-    BMesh "1" *--> "0..1" BPrimitive : primitives
-    BMesh "1" *--> "0..1" BAccessor : weights
-
-    BPrimitive --> "0..1" BMaterial : material
-    BPrimitive o--> "0..1" BAccessor : indices
-
-    BAccessor --> BBufferView : bufferview
-
-    BBufferView --> BBuffer : buffer
-
-    BPrimitive --> "0..1" BMaterial : material
-
-    BImage "1" *--> "1" BufferView : bufferView
-
-    BAnimationChannel --> BSampler : sampler
-    BAnimationChannel --> BNode : target
-
-    BAnimation --> "*" BAnimationChannel : channels
-    BAnimation --> "*" BAnimationSampler : samplers
-
+    classDef User fill:#ffe0ff,stroke:#0a2,stroke-width:2px;

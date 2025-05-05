@@ -15,6 +15,7 @@ avalues
 BINARYBLOB
 bitangent
 bmatrix
+BRANDES
 bstate
 btype
 BUFFERVIEW
@@ -35,6 +36,7 @@ direnv
 envrc
 excs
 ffeecc
+fffeec
 fileuri
 frombuffer
 fromiter
@@ -58,6 +60,7 @@ ipython
 ivalues
 jtype
 Khronos
+KOEPF
 ldata
 linalg
 markserv
