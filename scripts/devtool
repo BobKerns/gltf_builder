@@ -113,7 +113,14 @@ def find_free_port():
     return port
 
 def check_port(port):
-    """Check if a port is available on the system."""
+    """Check if a port is in use on the system.
+
+    Args:
+        port (int): The port number to check.
+
+    Returns:
+        bool: True if the port is in use (a connection can be established), False otherwise.
+    """
     with suppress(Exception):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1)  # Set a timeout value (in seconds)
