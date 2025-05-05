@@ -3,10 +3,10 @@
 * Create a feature branch for the release.
   * No branch names are enforced, but `release/vx.x.x` would be a good choice.
 * Prepare for release:
-  * `uv run scripts/build --all
+  * `uv run scripts/devtool release
   * This:
     * Rebuilds the `.svg` diagrams to ensure they are up to date.
-    * Updates the `uv.lock` and `requirements.txt` files.
+    * Updates the `uv.lock` file.
     * Increments the release number.
 * Commit the changed files.  The `.svg` files are needed for the documentation online
 * [Create a PR](https://github.com/BobKerns/gltf_builder/pulls) for the release

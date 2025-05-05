@@ -50,6 +50,7 @@ idtype
 iflen
 IMAGEJPEG
 IMAGEPNG
+infile
 instancable
 ipykernel
 ipython
