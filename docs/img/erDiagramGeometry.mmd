@@ -1,11 +1,29 @@
 ---
-    config:
-        layout: elk
-    title: glTF 2.0 ER Diagram (User Subset)
-    description: |
-        This is a subset of the glTF 2.0 ER diagram, focusing on the user-facing elements.
-        It includes only the essential components that users typically interact with,
-        omitting internal details and less commonly used features.
+title: glTF 2.0 ER Diagram (Geometry Subset)
+description: |
+    This is a subset of the glTF 2.0 ER diagram, focusing on the geometry-describing elements.
+    It includes only the essential components that users typically interact with,
+    omitting internal details and less commonly used features.
+config:
+    layout: elk
+    elk:
+        mergeEdges: true
+        nodePlacementStrategy: BRANDES_KOEPF
+    theme: base
+    themeVariables:
+        darkMode: false
+        primaryColor: "#88ff88"
+        primaryTextColor: "#000000"
+        secondaryColor: "#e0d9ef"
+        secondaryTextColor: "#0000ff"
+        tertiaryColor: "#f8f9fa"
+        tertiaryTextColor: "#00ff00"
+        borderRadius: "0.25rem"
+        fontSize: "2.0rem"
+        fontFamily: "Arial, sans-serif"
+        background: "#00ff00"
+        lineColor: "#0000cc"
+        nodeBorder: "#0000ff"
 ---
 erDiagram
     direction TB

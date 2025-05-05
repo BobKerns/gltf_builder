@@ -25,21 +25,27 @@ import webbrowser
 
 ROOT = Path(__file__).parent.parent
 DOCS = ROOT / 'docs'
+IMGS = DOCS / 'img'
 SRC = ROOT / 'src'
 NODE_BIN = ROOT / 'node_modules/.bin'
 MARKSERV = NODE_BIN / 'markserv'
 
+debug_on: bool = False
+verbose_on: bool = False
+
 def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
     "Run the given command."
     cmd = [str(arg) for arg in cmds]
-    print(f"Running command: {' '.join(cmd)}")
+    if debug_on:
+        print(f"Running command: {' '.join(cmd)}")
     result: subprocess.CompletedProcess = subprocess.run(cmd,
                                                          cwd=str(ROOT),
                                                          **kwargs
                                                          )
     if result.returncode != 0:
         raise RuntimeError(f"Command exited with return code {result.returncode}.")
-    print("Command completed successfully.")
+    if debug_on:
+        print("Command completed successfully.")
     return result
 
 def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
@@ -55,14 +61,20 @@ def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
     print("Command started successfully.")
     return proc
 
+
 @click.group()
-def main() -> None:
+@click.option('--debug', is_flag=True, help="Enable debug mode.")
+@click.option('--verbose', is_flag=True, help="Enable verbose mode.")
+def main(debug: bool=False, verbose: bool=False) -> None:
     """
     Update and generate documentation and other files.
 
     Supply the --help option for more information on a specific command.
     """
-    ...
+    global debug_on, verbose_on
+    verbose_on = verbose
+    debug_on = verbose_on = debug
+
 
 @main.command(name='release')
 def run_all():
@@ -71,7 +83,7 @@ def run_all():
     lock_dependencies()
     update_version()
 
-def check_pid(pid):
+def check_pid(pid: int|None):
     """
     Check if a process with the given PID is running using psutil.
     Args:
@@ -79,6 +91,8 @@ def check_pid(pid):
     Returns:
         bool: True if the process is running, False otherwise.
     """
+    if pid is None or pid <= 0:
+        return False
     with suppress(Exception):
         return psutil.pid_exists(pid)
     return False
@@ -112,7 +126,7 @@ def find_free_port():
     sock.close()
     return port
 
-def check_port(port):
+def check_port(port: int|None):
     """Check if a port is in use on the system.
 
     Args:
@@ -121,13 +135,18 @@ def check_port(port):
     Returns:
         bool: True if the port is in use (a connection can be established), False otherwise.
     """
-    with suppress(Exception):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)  # Set a timeout value (in seconds)
-        sock.connect(("localhost", port))
-        sock.close()
-        return True
-    return False
+    if port is None or port <= 0:
+        return False
+    def try_AF(af: int):
+        with suppress(Exception):
+            sock = socket.socket(af, socket.SOCK_STREAM)
+            sock.settimeout(1)  # Set a timeout value (in seconds)
+            sock.connect(("localhost", port))
+            sock.close()
+            return True
+        return False
+    return try_AF(socket.AF_INET6) or try_AF(socket.AF_INET)
+
 
 def read_id_file(file: Path|str) -> int | None:
     "Read the id from the given file."
@@ -139,38 +158,49 @@ def read_id_file(file: Path|str) -> int | None:
             return int(f.read().strip())
     return None
 
-def save_id_file(file: Path|str, value: int) -> None:
+def save_id_file(file: Path|str, value: int|None) -> None:
     "Save the id to the given file."
     file = ROOT / file
+    if value is None or value <= 0:
+        file.unlink(missing_ok=True)
+        return
     with file.open('w') as f:
         f.write(str(value))
 
 
-BACKGROUND_COLOR = 'ffeecc'
+BACKGROUND_COLOR = 'fdf2e4'
 DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
-        (DOCS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (DOCS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (DOCS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (DOCS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'input_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
 ]
 
+@main.command(name='update-diagram')
+@click.argument('diagram', type=click.Path(exists=True))
 def update_diagram(diagram: Path|str, *params: str) -> None:
     "Update the given diagram."
 
-    infile = SRC / diagram
+    if not params:
+        diagram_spec = next((d for d in DIAGRAMS if d[0] == diagram), None)
+        if diagram_spec is None:
+            print(f"Diagram {diagram} not found in the list of diagrams, using defaults", file=sys.stderr)
+            params = ('-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1')
+        else:
+            params = diagram_spec[1:]
+
+    infile = ROOT / diagram
     outfile = infile.with_suffix('.svg')
     if not infile.exists():
         raise FileNotFoundError(f"Diagram {diagram} not found.")
-    cmd = [
-        str(arg)
-        for arg in ('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
-    ]
-    print(f"Updating {diagram}...")
-    print(f"Running command: {' '.join(cmd)}")
+    if verbose_on:
+        print(f"Updating {diagram}...")
     try:
         run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
     except Exception as e:
         raise RuntimeError(f"Failed to update {diagram}.") from e
+
 
 @main.command(name='diagrams')
 def update_diagrams() -> None:
@@ -185,7 +215,7 @@ def update_diagrams() -> None:
     if excs:
         raise ExceptionGroup("Failed to update some diagrams", excs)
 
-@main.command(name='update_version')
+@main.command(name='update-version')
 def update_version() -> None:
     "Update the version in the pyproject.toml file."
 
@@ -206,10 +236,37 @@ PORT_FILE = ROOT / '.browse.html.port'
 RELOAD_FILE = ROOT / '.browse.reload.port'
 PID_FILE = ROOT / '.browse.pid'
 
+@main.command(name='kill-server')
+def kill_server() -> None:
+    "Kill the server if it is running."
+    pid = read_id_file(PID_FILE)
+    if pid is not None and check_pid(pid):
+        with suppress(Exception):
+            p = psutil.Process(pid)
+            p.terminate()
+        save_id_file(PORT_FILE, 0)
+        save_id_file(RELOAD_FILE, 0)
+        save_id_file(PID_FILE, 0)
+    print("Server killed.")
 
 @main.command(name='browse')
-def browse_docs() -> None:
+@click.argument('file', type=click.Path(exists=True), default=ROOT / 'README.md')
+def browse_docs(file: Path = ROOT / 'README.md') -> None:
     "Open the documentation in a browser."
+
+    file = Path(file).resolve()
+    if not file.exists():
+        print(f"File {file} not found, browsing directory.", file=sys.stderr)
+        file = file.parent
+
+    if ROOT not in file.parents:
+        # Onn general security principles, we should not allow
+        # browsing outside the project directory. It's not really a
+        # security issue here.
+        print(f"File {file} is not in the project directory.", file=sys.stderr)
+        sys.exit(1)
+
+    file = file.relative_to(ROOT)
 
     if not MARKSERV.exists():
         print(f"Markserv not found at {MARKSERV}. Please run 'build setup' first.", file=sys.stderr)
@@ -217,19 +274,19 @@ def browse_docs() -> None:
     html_port = read_id_file(PORT_FILE)
     reload_port = read_id_file(RELOAD_FILE)
     pid = read_id_file(PID_FILE)
-    print(f'{html_port=} {reload_port=} {pid=}')
-    print(f'{check_port(html_port)=} {check_port(reload_port)=} {check_pid(pid)=}')
-    if (
-        html_port is not None
-        and reload_port is not None
-        and pid is not None
-        and pid > 0
-        and check_port(html_port)
-        and check_port(reload_port)
-        and check_pid(pid)
-    ):
-        webbrowser.open(f'http://localhost:{html_port}/README.md')
+    html_port_ok = check_port(html_port)
+    reload_port_ok = check_port(reload_port)
+    pid_ok = check_pid(pid)
+    if debug_on:
+        print(f'{html_port=} {html_port_ok=}')
+        print(f'{reload_port=} {reload_port_ok=}')
+        print(f'{pid=} {pid_ok=}')
+        print(f'{check_port(html_port)=} {check_port(reload_port)=} {check_pid(pid)=}')
+    if html_port_ok and reload_port_ok and pid_ok:
+        webbrowser.open(f'http://localhost:{html_port}/{file}')
         return
+    # If the server is not running, we need to start it.
+    # If it's just hung, we should kill it and start a new one.
     if pid is not None and check_pid(pid):
         with suppress(Exception):
             p = psutil.Process(pid)
@@ -242,11 +299,18 @@ def browse_docs() -> None:
     save_id_file(PORT_FILE, html_port)
     save_id_file(RELOAD_FILE, reload_port)
     save_id_file(PID_FILE, 77)
+    if debug_on:
+        silent_flag = ()
+        output_flags = {'stderr': subprocess.PIPE}
+    else:
+        silent_flag = ('--silent',)
+        output_flags = {'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL}
     proc: subprocess.Popen = spawn(MARKSERV,
         '-p', str(html_port),
         '-b', str(reload_port),
+        *silent_flag,
         'README.md',
-        stderr=subprocess.PIPE,
+        **output_flags
         )
     if proc.returncode:
         error_message = proc.stderr.read().decode() if proc.stderr else "Unknown error"
@@ -257,8 +321,10 @@ def browse_docs() -> None:
         print("Failed to get the process ID.", file=sys.stderr)
         sys.exit(1)
     save_id_file(PID_FILE, pid)
-    print(f"Server started with PID {pid}.")
-    print(f"Opening documentation in browser at http://localhost:{html_port}/README.md")
+    if debug_on:
+        print(f"Server started with PID {pid}.")
+    if verbose_on:
+        print(f"Opening documentation in browser at http://localhost:{html_port}/{file}")
 
 
 @main.command(name='lock')
