@@ -342,11 +342,11 @@ def normalize(vec: VectorSpec|Tangent, /) -> Vector2|Vector3|Vector4|Tangent:
             total = sum(v*v for v in vec) ** 0.5
             match len(vec):
                 case 2:
-                    return Vector2(*(v / total for v in vec))
+                    return Vector2(vec[0] / total, vec[1] / total)
                 case 3:
-                    return Vector3(*(v / total for v in vec))
+                    return Vector3(vec[0] / total, vec[1] / total, vec[2] / total)
                 case 4:
-                    return Vector4(*(v / total for v in vec))
+                    return Vector4(vec[0] / total, vec[1] / total, vec[2] / total, vec[3] / total)
                 case _:
                     raise ValueError(f'Unsupported vector length: {len(vec)}')
             raise ValueError(f'{type(vec).__name__} is not a vector-like value.')
