@@ -154,12 +154,13 @@ def save_id_file(file: Path|str, value: int) -> None:
         f.write(str(value))
 
 
-BACKGROUND_COLOR = 'ffeecc'
+BACKGROUND_COLOR = 'fdf2e4'
 DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
-        (DOCS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (DOCS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (DOCS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
-        (DOCS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'compiler_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'input_classes.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagram.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagramUserSubset.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
+        (IMGS / 'erDiagramGeometry.mmd', '-t', 'default', '--backgroundColor', BACKGROUND_COLOR, '-s', '1'),
 ]
 
 def update_diagram(diagram: Path|str, *params: str) -> None:
