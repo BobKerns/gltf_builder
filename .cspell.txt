@@ -33,6 +33,7 @@ DATAURI
 declutter
 direnv
 envrc
+excs
 ffeecc
 fileuri
 frombuffer
