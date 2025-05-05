@@ -1,7 +1,7 @@
 # glTF
 
-[![glTF Logo](glTF_100px_June16.png)](https://www.khronos.org/gltf/)
-[![WebGL Logo](WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
+[![glTF Logo](img/glTF_100px_June16.png)](https://www.khronos.org/gltf/)
+[![WebGL Logo](img/WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
 
 glTF™ is the WebGL-oriented "WebGL Transfer Format", a format designed consumption by WebGL™. It is standardized by the [The Khronos® 3D Formats Working Group](https://www.khronos.org/gltf/). For technical details, see [the glTF 2.0 standard](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)
 
@@ -26,7 +26,7 @@ In addition, it shows where the BCamera instances attach, and how materials atta
 Layered on top of the geometry model are materials, skins, morphing, and animation. There is a mechanism for applying extensions to bring additional features.
 
 Click the image for a full-sized SVG version.
-[![erDiagram](erDiagramGeometry.svg)](erDiagramGeometry.svg)
+[![erDiagram](img/erDiagramGeometry.svg)](img/erDiagramGeometry.svg)
 
 ### User model
 
@@ -36,14 +36,14 @@ As a user building geometry, we don't want to deal with low-level details. The f
 - Internal optional subfields are collapsed into their owning objects.
 
 Click the image for a full-sized SVG version.
-[![erDiagram](docs/erDiagramUserSubsetThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagramUserSubset.svg)
+[![erDiagram](img/erDiagramUserSubset.svg)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagramUserSubset.svg)
 
 ### full glTF model
 
 Here is the full glTF model.
 
 Click the image for a full-sized SVG version.
-[![erDiagram](docs/erDiagramThumbnail.png)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagram.svg)
+[![erDiagram](img/erDiagram.svg)](https://raw.githubusercontent.com/BobKerns/gltf_builder/refs/heads/main/docs/erDiagram.svg)
 
 Notes:
 

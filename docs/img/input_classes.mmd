@@ -1,5 +1,36 @@
+---
+id: 32ebe867-fd1e-4736-a01e-b6dd7512fc13
+title: Input Classes
+description: |
+  This diagram shows the input classes used in the glTF 2.0 specification.
+  It includes the main classes and their relationships, as well as the
+  extensions and plugins used in the specification.
+config:
+    layout: elk
+    elk:
+        mergeEdges: true
+        nodePlacementStrategy: BRANDES_KOEPF
+    theme: base
+    themeVariables:
+        darkMode: false
+        darkModeBackground: "#000000"
+        primaryColor: "#e0ffe0"
+        primaryTextColor: "#000000"
+        secondaryColor: "#f0d0ff"
+        secondaryTextColor: "#0000ff"
+        tertiaryColor: "#00ffff"
+        tertiaryTextColor: "#00ff00"
+        borderRadius: "0.25rem"
+        fontSize: "1rem"
+        fontFamily: "Arial, sans-serif"
+        background: "#00ff00"
+        lineColor: "#0000cc"
+        nodeBorder: "#0000ff"
+        noteColor: "#00ffff"
+---
 classDiagram
 
+    note for BBuffer "Buffers hold the binary data arrays, such as vertices, attributes, and texture images."
     class ScopeName {
         <<enumeration>>
         ASSET: str
@@ -34,8 +65,6 @@ classDiagram
         +name_scope: bool
         +view_scope: bool
         +state_type(): type[_STATE]
-        +compile(globl: GlobalState, phase): _GLTF|int|_Collected|set[str]|None
-        +_do_compile(globl, phase, state): _DoCompileReturn[_GLTF]
     }
 
     class Builder {
@@ -116,6 +145,23 @@ classDiagram
     BMaterial --> "0..1" BTexture : occlusionTexture
     BMaterial --> "0..1" BTexture : emissiveTexture
 
+    class BMesh:::User
+    class BScene:::User
+    class BNode:::User
+    class BCamera:::User
+    class BBuffer:::User
+    class BBufferView:::User
+    class BAccessor:::User
+    class BTexture:::User
+    class BImage:::User
+    class BSampler:::User
+    class BMaterial:::User
+    class BSkin:::User
+    class BAnimation:::User
+    class BAnimationChannel:::User
+    class BAnimationSampler:::User
+    class Extension:::User
+    class Builder:::User
 
     _NodeContainerProtocol <|-- BNode
     BNode "1" -- "*" BNode : nodes, parent
@@ -136,7 +182,7 @@ classDiagram
 
     BPrimitive --> "0..1" BMaterial : material
 
-    BImage "1" *--> "1" BufferView : bufferView
+    BImage "1" *--> "1" BBufferView : bufferView
 
     BAnimationChannel --> BSampler : sampler
     BAnimationChannel --> BNode : target
@@ -144,4 +190,6 @@ classDiagram
     BAnimation --> "*" BAnimationChannel : channels
     BAnimation --> "*" BAnimationSampler : samplers
 
+
+    classDef User fill:#ffe0ff,stroke:#0a2,stroke-width:2px;
 

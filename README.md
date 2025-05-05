@@ -1,7 +1,7 @@
 # glLF Builder
 
-[![glTF Logo](docs/glTF_100px_June16.png)](https://www.khronos.org/gltf/)
-[![WebGL Logo](docs/WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
+[![glTF Logo](docs/img/glTF_100px_June16.png)](https://www.khronos.org/gltf/)
+[![WebGL Logo](docs/img/WebGL_100px_June16.png)](https://www.khronos.org/webgl/)
 
 This library wraps the [`pygltflib`](https://github.com/lukas-shawford/gltflib) library to handle the low-level details of managing buffers, buffer views, and accessors.
 
@@ -209,6 +209,8 @@ Documentation is an ongoing effort, and presently disorganized, but improvement 
 Read the [documentation](docs/README.md), and file a [documentation issue](https://github.com/BobKerns/gltf_builder/issues/new?template=documentation.md).
 
 ## Development
+
+There's several pages relating to [development](DEVELOPMENT.md), [release](RELEASE.md), and [internals](docs/README.md#internals)
 
 ### Still Needed
 

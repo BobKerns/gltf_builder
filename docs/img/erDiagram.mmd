@@ -1,6 +1,24 @@
 ---
-    config:
-        layout: elk
+config:
+    layout: elk
+    elk:
+        mergeEdges: true
+        nodePlacementStrategy: BRANDES_KOEPF
+    theme: base
+    themeVariables:
+        darkMode: false
+        primaryColor: "#88ff88"
+        primaryTextColor: "#000000"
+        secondaryColor: "#e0d9ef"
+        secondaryTextColor: "#0000ff"
+        tertiaryColor: "#f8f9fa"
+        tertiaryTextColor: "#00ff00"
+        borderRadius: "0.25rem"
+        fontSize: "2.0rem"
+        fontFamily: "Arial, sans-serif"
+        background: "#00ff00"
+        lineColor: "#0000cc"
+        nodeBorder: "#0000ff"
     title: glTF 2.0 ER Diagram
     description: |
         This is the full version of the glTF 2.0 ER diagram.
@@ -205,7 +223,7 @@ erDiagram
         dict extensions
         dict extras
     }
-    BSparse ||--o| BSparseIndicies : indices
+    BSparse ||--o| BSparseIndices : indices
     BSparse ||--o| BSparseValues : values
     BSparseValues {
         int byteOffset "Byte offset into the buffer view"
@@ -213,13 +231,13 @@ erDiagram
         dict extras
     }
     BSparseValues ||..|| BBufferView : bufferView
-    BSparseIndicies {
+    BSparseIndices {
         int byteOffset "Byte offset into the buffer view"
         ComponentType componentType "Component type of the indices"
         dict extensions
         dict extras
     }
-    BSparseIndicies ||..|| BBufferView : bufferView
+    BSparseIndices ||..|| BBufferView : bufferView
     BAccessor ||..o| BBufferView : bufferView
     BBufferView ||..|| BBuffer : buffer
     BBufferView {
