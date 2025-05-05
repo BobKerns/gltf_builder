@@ -14,7 +14,7 @@ Basic usage
 import gltf_builder.quaternion as Q
 
 # Rotate around Z axis by pi/4
-rotation = Q.from_axis_angle((0, 0, 1), math.py / 4)
+rotation = Q.from_axis_angle((0, 0, 1), math.pi / 4)
 # Instantiate a geometry, rotated.
 root_node.instantiate(cube, rotation=rotation)
 ```
