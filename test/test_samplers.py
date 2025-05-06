@@ -3,7 +3,7 @@ Tests for the sampler module in the glTF builder package.
 '''
 
 from gltf_builder import (
-    MagFilter, MinFilter, ScopeName, WrapMode,
+    MagFilter, MinFilter, EntityType, WrapMode,
     sampler,
 )
 
@@ -30,5 +30,5 @@ def test_create_sampler():
     assert s.minFilter == MinFilter.LINEAR_MIPMAP_LINEAR
     assert s.extras == TEST_EXTRAS
     assert s.extensions == TEST_EXTENSIONS
-    assert s._scope_name == ScopeName.SAMPLER
+    assert s._scope_name == EntityType.SAMPLER
 

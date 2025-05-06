@@ -25,7 +25,7 @@ from pathlib import Path
 from gltf_builder import Builder
 from gltf_builder.compiler import ExtensionsData, ExtrasData
 from gltf_builder.core_types import IndexSize, JsonObject, NamePolicy, PrimitiveMode
-from gltf_builder.elements import GLTF_LOG, BMesh, BNode
+from gltf_builder.entities import GLTF_LOG, BMesh, BNode
 from gltf_builder.extensions import load_extensions, _EXTENSION_PLUGINS
 from gltf_builder.geometries import _CUBE, _CUBE_FACE1, _CUBE_FACE2, _CUBE_FACE3, _CUBE_FACE4, _CUBE_FACE5, _CUBE_FACE6
 

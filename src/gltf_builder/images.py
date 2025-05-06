@@ -11,9 +11,9 @@ import numpy as np
 
 from gltf_builder.compiler import _DoCompileReturn, _GlobalCompileState
 from gltf_builder.core_types import (
-    BufferViewTarget, ExtensionsData, ExtrasData, ImageType, Phase, ScopeName
+    BufferViewTarget, ExtensionsData, ExtrasData, ImageType, Phase, EntityType
 )
-from gltf_builder.elements import BBufferView, BImage
+from gltf_builder.entities import BBufferView, BImage
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
@@ -87,7 +87,7 @@ class _Image(BImage):
             case Phase.COLLECT:
                 globl.add(self)
                 if self.blob is not None:
-                    name=globl._gen_name(self, scope=ScopeName.BUFFER_VIEW)
+                    name=globl._gen_name(self, scope=EntityType.BUFFER_VIEW)
                     state.view = globl.get_view(globl.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,

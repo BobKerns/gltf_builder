@@ -55,6 +55,6 @@ With the recommended VSCode plugins, `.glb` files can be viewed directly within 
 * [glTF Model Viewer](https://marketplace.visualstudio.com/items/?itemName=cloudedcat.vscode-model-viewer)
   * This uses google's model viewer
 
-These provide inline validation of the `.gltf` JSON data, mouseover hover information, navigation by clicking on element IDs, and more.
+These provide inline validation of the `.gltf` JSON data, mouseover hover information, navigation by clicking on entity IDs, and more.
 
 The tests are set up to generate `.glb`, and `.gltf`, and a `.json` validation report. These appear in the [test/out](test/out) directory. A small [`pytest`](https://docs.pytest.org/en/stable/index.html#) is often the best way to dig into a problem.

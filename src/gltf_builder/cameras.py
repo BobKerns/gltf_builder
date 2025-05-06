@@ -7,7 +7,7 @@ from typing import Any, Literal, Optional, TypeVar, overload, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.core_types import CameraType, Phase
-from gltf_builder.elements import BCamera, BOrthographicCamera, BPerspectiveCamera
+from gltf_builder.entities import BCamera, BOrthographicCamera, BPerspectiveCamera
 from gltf_builder.utils import std_repr
 from gltf_builder.compiler import _CompileState, ExtensionsData, ExtrasData
 if TYPE_CHECKING:

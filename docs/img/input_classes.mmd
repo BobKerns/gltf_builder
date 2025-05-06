@@ -88,7 +88,7 @@ classDiagram
         <<interface>>
     }
 
-    class Element {
+    class Entity {
         <<interface>>
     }
 
@@ -114,23 +114,23 @@ classDiagram
     _NodeContainerProtocol <|-- _GlobalShared
     _GlobalShared <|-- _CurrentConfiguration
 
-    _Compilable <|-- Element
-    Element <|-- BNode
-    Element <|-- BBuffer
-    Element <|-- BBufferView
-    Element <|-- BAccessor
-    Element <|-- BTexture
-    Element <|-- BImage
-    Element <|-- BSampler
-    Element <|-- BMaterial
-    Element <|-- BMesh
-    Element <|-- BCamera
-    Element <|-- BScene
-    Element <|-- BSkin
-    Element <|-- BAnimation
-    Element <|-- BAnimationChannel
-    Element <|-- BAnimationSampler
-    Element <|-- Extension
+    _Compilable <|-- Entity
+    Entity <|-- BNode
+    Entity <|-- BBuffer
+    Entity <|-- BBufferView
+    Entity <|-- BAccessor
+    Entity <|-- BTexture
+    Entity <|-- BImage
+    Entity <|-- BSampler
+    Entity <|-- BMaterial
+    Entity <|-- BMesh
+    Entity <|-- BCamera
+    Entity <|-- BScene
+    Entity <|-- BSkin
+    Entity <|-- BAnimation
+    Entity <|-- BAnimationChannel
+    Entity <|-- BAnimationSampler
+    Entity <|-- Extension
 
     BSkin --> "1" BNode : skeleton
     BSkin --> "*" BNode : joints

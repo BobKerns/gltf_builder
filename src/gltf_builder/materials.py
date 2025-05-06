@@ -8,7 +8,7 @@ import pygltflib as gltf
 
 from gltf_builder.compiler import _CompileState, _DoCompileReturn, _ReturnCollect, ExtensionsData, ExtrasData
 from gltf_builder.core_types import AlphaMode, Phase
-from gltf_builder.elements import BMaterial, BTexture
+from gltf_builder.entities import BMaterial, BTexture
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 

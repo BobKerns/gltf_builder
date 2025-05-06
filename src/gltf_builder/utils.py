@@ -179,7 +179,7 @@ from gltf_builder.core_types import (
 
 
 
-    ComponentSize, ElementSize, IndexSize, NPTypes,
+    ComponentSize, EntitySize, IndexSize, NPTypes,
 )
 from gltf_builder.attribute_types import (
     AttributeData, VectorSpec, Vector4Spec, Vector3Spec, Vector2Spec, Vector4, Vector3, Vector2, VectorLike,
@@ -199,7 +199,7 @@ COMPONENT_SIZES: dict[ComponentType|IndexSize, tuple[ComponentSize, type[NPTypes
     ComponentType.FLOAT: (4, np.float32, 'f'),
 }
 
-ELEMENT_TYPE_SIZES: dict[ElementType, ElementSize] = {
+ELEMENT_TYPE_SIZES: dict[ElementType, EntitySize] = {
     ElementType.SCALAR: 1,
     ElementType.VEC2: 2,
     ElementType.VEC3: 3,

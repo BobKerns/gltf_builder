@@ -111,7 +111,7 @@ class BufferViewTarget(IntEnum):
 
 class ElementType(StrEnum):
     '''
-    glTF element types—the composite group of values that live in the accessors.
+    glTF entity types—the composite group of values that live in the accessors.
     '''
     SCALAR = "SCALAR"
     VEC2 = "VEC2"
@@ -133,7 +133,7 @@ The values are:
 
 class ComponentType(IntEnum):
     '''
-    glTF component types—the size of the values that live in the elements.
+    glTF component types—the size of the values that live in the entities.
     '''
     BYTE = gltf.BYTE
     UNSIGNED_BYTE = gltf.UNSIGNED_BYTE
@@ -152,9 +152,9 @@ class IndexSize(IntEnum):
     UNSIGNED_SHORT = gltf.UNSIGNED_SHORT
     UNSIGNED_INT = gltf.UNSIGNED_INT
 
-ElementSize: TypeAlias = Literal[1, 2, 3, 4, 9, 16]
+EntitySize: TypeAlias = Literal[1, 2, 3, 4, 9, 16]
 '''
-The number of components in an element.
+The number of components in an entity.
 The values are:
 - 1: 1 component (e.g. scalar)
 - 2: 2 components (e.g. vec2)
@@ -164,9 +164,9 @@ The values are:
 - 16: 4x4 matrix
 '''
 
-class ElementFlags(IntFlag):
+class EntityFlags(IntFlag):
     '''
-    Flags that apply to the elements in the glTF file.
+    Flags that apply to the entities in the glTF file.
     '''
     NONE = 0
     '''
@@ -174,12 +174,12 @@ class ElementFlags(IntFlag):
     '''
     NAME_SCOPE = 1
     '''
-    Names should be unique within the scope of this element.
+    Names should be unique within the scope of this entity.
     '''
     VIEW_SCOPE = 2
     '''
     `BufferView` instances should be shared where possible within the
-    scope of this element.
+    scope of this entity.
     '''
 
 BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
@@ -208,7 +208,7 @@ NPDType: TypeAlias = np.dtype[np.int8]|np.dtype[np.int16]|NPAttrDType
 The numpy dtypes used in the glTF file
 '''
 
-class ScopeName(StrEnum):
+class EntityType(StrEnum):
     '''
     Enum for the scope of a policy.
     '''
@@ -346,7 +346,7 @@ ExtensionsData: TypeAlias = dict[str, ExtensionData]
 A dictionary of extensions to be stored with the object.
 '''
 
-NamePolicy: TypeAlias = dict[ScopeName, NameMode]
+NamePolicy: TypeAlias = dict[EntityType, NameMode]
 '''
 A policy for how to handle or generate names for objects.
 The keys are the scope names, and the values are the name modes.

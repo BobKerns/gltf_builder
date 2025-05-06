@@ -12,14 +12,14 @@ from gltf_builder.compiler import (
 )
 from gltf_builder.core_types import (
     ExtensionsData, ExtrasData, IndexSize, NPTypes,
-    Phase, PrimitiveMode, BufferViewTarget, ScopeName,
+    Phase, PrimitiveMode, BufferViewTarget, EntityType,
 )
 from gltf_builder.attribute_types import (
     BTYPE, AttributeData, AttributeDataIterable, AttributeDataList,
     point, Point, PointSpec,
 )
-from gltf_builder.elements import (
-    BAccessor, BPrimitive, BMesh, Element,
+from gltf_builder.entities import (
+    BAccessor, BPrimitive, BMesh, Entity,
 )
 from gltf_builder.accessors import _Accessor
 from gltf_builder.utils import decode_dtype
@@ -101,7 +101,7 @@ class _Primitive(BPrimitive):
                     state: _PrimitiveState,
                     /
                 ) -> _DoCompileReturn[gltf.Primitive]:
-        def _compile(elt: Element[_GLTF, _STATE]):
+        def _compile(elt: Entity[_GLTF, _STATE]):
             return elt.compile(globl, phase)
 
         mesh = self.mesh
@@ -113,7 +113,7 @@ class _Primitive(BPrimitive):
             index = mesh.primitives.index(self)
             aname = globl._gen_name(self,
                                         prefix=f'{mesh.name}:{self.mode.name}/',
-                                        scope=ScopeName.ACCESSOR,
+                                        scope=EntityType.ACCESSOR,
                                         index=index,
                                     )
             attr_type = globl.get_attribute_type(name)
@@ -138,7 +138,7 @@ class _Primitive(BPrimitive):
                     index = mesh.primitives.index(self)
                     name = globl._gen_name(self,
                                             prefix=f'{mesh.name}:{self.mode.name}/',
-                                            scope=ScopeName.ACCESSOR_INDEX,
+                                            scope=EntityType.ACCESSOR_INDEX,
                                             index=index,
                                             suffix='/indices',
                                         )

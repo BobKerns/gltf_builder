@@ -21,7 +21,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.matrix import Matrix4
 from gltf_builder.quaternions import QuaternionSpec, Quaternion as Q
 if TYPE_CHECKING:
-    from gltf_builder.elements import(
+    from gltf_builder.entities import(
         BNode, BMesh, BBuffer,
     )
 
@@ -98,7 +98,7 @@ class _BNodeContainerProtocol(Protocol):
 
     def print_hierarchy(self, indent:int=0):
         """Prints the node hierarchy in a readable format."""
-        from gltf_builder.elements import BNode
+        from gltf_builder.entities import BNode
         pre = '| ' * indent
         print(f'{pre}Node: {self}')
         if isinstance(self, BNode):
