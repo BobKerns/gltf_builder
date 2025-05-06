@@ -11,7 +11,7 @@ from gltf_builder.compiler import (
     _CompileState, ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import Phase
-from gltf_builder.elements import BNode, BScene
+from gltf_builder.entities import BNode, BScene
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState

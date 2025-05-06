@@ -13,7 +13,7 @@ from gltf_builder.nodes import node
 from gltf_builder.vertices import vertex
 from gltf_builder.attribute_types import color, point, uv, vector3
 from gltf_builder.core_types import IndexSize, NamePolicy, PrimitiveMode
-from gltf_builder.elements import BNode
+from gltf_builder.entities import BNode
 
 
 @contextmanager

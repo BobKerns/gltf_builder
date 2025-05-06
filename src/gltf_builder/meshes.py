@@ -15,7 +15,7 @@ from gltf_builder.attribute_types import (
     AttributeDataIterable, PointSpec, Vector3Spec,
     TangentSpec, ColorSpec, UvSpec, color, point, tangent, uv, vector3,
 )
-from gltf_builder.elements import BMesh, BPrimitive
+from gltf_builder.entities import BMesh, BPrimitive
 from gltf_builder.primitives import _Primitive
 from gltf_builder.utils import std_repr
 from gltf_builder.vertices import Vertex

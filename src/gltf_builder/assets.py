@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.compiler import _CompileState, Phase
 from gltf_builder.core_types import ExtensionsData, ExtrasData
-from gltf_builder.elements import BAsset
+from gltf_builder.entities import BAsset
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 

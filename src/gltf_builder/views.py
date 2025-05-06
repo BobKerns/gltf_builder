@@ -11,7 +11,7 @@ from gltf_builder.attribute_types import AttributeData
 from gltf_builder.core_types import (
     BufferViewTarget, ExtensionsData, ExtrasData, NPTypes, Phase,
 )
-from gltf_builder.elements import (
+from gltf_builder.entities import (
     BAccessor, BBuffer, BBufferView,
 )
 from gltf_builder.compiler import _GlobalCompileState

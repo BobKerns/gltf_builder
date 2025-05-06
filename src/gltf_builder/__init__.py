@@ -2,7 +2,7 @@
 from gltf_builder.core_types import (
     Scalar, ByteSize, ByteSizeAuto, BufferViewTarget, Phase,
     PrimitiveMode, ElementType,  ComponentType, IndexSize,
-    NameMode, ScopeName, NamePolicy,
+    NameMode, EntityType, NamePolicy,
     ImageType, JsonObject, JsonArray, JsonData, JsonAtomic,
     CameraType, AlphaMode, WrapMode, MagFilter, MinFilter,
     AnimationInterpolation, AnimationSamplerInterpolation, AnimationTargetPath,
@@ -19,7 +19,7 @@ from gltf_builder.attribute_types import (
     AttributeDataSpec,
     EPSILON, EPSILON2,
 )
-from gltf_builder.elements import (
+from gltf_builder.entities import (
     BPrimitive, BMesh, BNode, BBuffer, BBufferView, BAccessor, BImage,
     BSampler, BScene, BTexture, BSkin, BAsset,
     BCamera, BPerspectiveCamera, BOrthographicCamera,
@@ -165,7 +165,7 @@ __all__ = [
     'ScaleSpec',
     'scale',
     'scene',
-    'ScopeName',
+    'EntityType',
     'skin',
     'Tangent',
     'TangentSpec',

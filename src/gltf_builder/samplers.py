@@ -8,7 +8,7 @@ import pygltflib as gltf
 
 from gltf_builder.compiler import _CompileState
 from gltf_builder.core_types import MagFilter, MinFilter, Phase, WrapMode
-from gltf_builder.elements import BSampler
+from gltf_builder.entities import BSampler
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState

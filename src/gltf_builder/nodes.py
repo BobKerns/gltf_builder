@@ -15,8 +15,8 @@ from gltf_builder.attribute_types import (
     Vector3Spec, vector3, scale as to_scale,
 )
 from gltf_builder.matrix import Matrix4Spec, matrix as to_matrix
-from gltf_builder.elements import (
-    BBufferView, BCamera, Element, BNode, BMesh, BPrimitive,
+from gltf_builder.entities import (
+    BBufferView, BCamera, Entity, BNode, BMesh, BPrimitive,
 )
 from gltf_builder.meshes import mesh
 from gltf_builder.quaternions import QuaternionSpec, quaternion
@@ -197,7 +197,7 @@ class _Node(_BNodeContainer, BNode):
                  extras: Optional[ExtrasData]=None,
                  extensions: Optional[ExtensionsData]=None,
                  ):
-        super(Element, self).__init__(
+        super(Entity, self).__init__(
                          name,
                          extras=extras,
                          extensions=extensions,
@@ -260,7 +260,7 @@ class _Node(_BNodeContainer, BNode):
             case Phase.BUILD:
                 if self.mesh is not None:
                     self.mesh.compile(globl, phase)
-                def idx(c: Element[_GLTF, _STATE]) -> int:
+                def idx(c: Entity[_GLTF, _STATE]) -> int:
                     return globl.idx(c)
                 mesh_idx = idx(self.mesh) if self.mesh else None
                 cam_idx = idx(self.camera) if self.camera else None

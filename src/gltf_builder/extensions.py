@@ -23,9 +23,9 @@ from typing import Generic, Optional, TypeVar, cast
 from gltf_builder.accessors import Phase
 from gltf_builder.compiler import _CompileState, _Collected, _DoCompileReturn
 from gltf_builder.core_types import(
-    ExtensionData, JsonData, ScopeName,
+    ExtensionData, JsonData, EntityType,
 )
-from gltf_builder.elements import Element
+from gltf_builder.entities import Entity
 from gltf_builder.global_state import GlobalState
 from gltf_builder.plugin_loader import Plugin, load_plugins
 
@@ -67,7 +67,7 @@ class ExtensionState(Generic[_EXT, _EXT_DATA], _CompileState[_EXT_DATA, 'Extensi
         '''
         Return the extension object that this state is for.
         '''
-        return cast(_EXT, self.element)
+        return cast(_EXT, self.entity)
 
 
     @property
@@ -78,10 +78,10 @@ class ExtensionState(Generic[_EXT, _EXT_DATA], _CompileState[_EXT_DATA, 'Extensi
 
         For user-supplied extensions, this may be `None`.
         '''
-        return cast(_EXT_DATA|None, self.element.data)
+        return cast(_EXT_DATA|None, self.entity.data)
 
 
-class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, _EXT_STATE]):
+class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Entity[_EXT_DATA, _EXT_STATE]):
     '''
     Implementation class for `Extension`.
     '''
@@ -94,7 +94,7 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
         '''
         ...
 
-    _scope_name = ScopeName.EXTENSION
+    _scope_name = EntityType.EXTENSION
 
     plugin: _EXT_PLUGIN
     __data: Optional[_EXT_DATA]
@@ -124,7 +124,7 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
 
     def collect(self, globl: GlobalState, state: _EXT_STATE) -> list[_Collected]:
         '''
-        Collect any additional elements that the extension needs to add
+        Collect any additional entities that the extension needs to add
         to the global state.
 
         Parameters
@@ -134,7 +134,7 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
         scope : _Scope
             The scope of the compilation process. It should be ignored
             for now, but it may be used in the future to manage the sharing
-            of data and names between different elements.
+            of data and names between different entities.
         '''
         return []
 
@@ -148,15 +148,15 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Element[_EXT_DATA, 
         This is called by the compiler in each phase of the compilation
         process. The extension should return the JSON data for the
         extension in the `BUILD` phase. In the `COLLECT` phase, it
-        should return a list of the additional elements that it has
+        should return a list of the additional entities that it has
         added to the global state.
         '''
         match phase:
             case Phase.COLLECT:
-                # If the extension needs to add additional elements to the
+                # If the extension needs to add additional entities to the
                 # global state, it should add them, and return them here.
-                # If it needs to keep track of the elements it has added,
-                # it should subclass _ExtensionState and add the elements
+                # If it needs to keep track of the entities it has added,
+                # it should subclass _ExtensionState and add the entities
                 # to the state.
                 return self.collect(globl, state)
             case Phase.SIZES|Phase.OFFSETS:
@@ -207,11 +207,11 @@ class ExtensionPlugin(Generic[_EXT], Plugin):
     and attach it to the initial data.  This replaces the `parse` phase,
     and the plugin is only invoked in the `compile` and `build` phases.
 
-    In the `COLLECT` compilation phase, the plugin can add additional elements
+    In the `COLLECT` compilation phase, the plugin can add additional entities
     to the global state. This is useful for extensions that need to add
-    additional elements to the glTF file, such as additional nodes or
-    materials. The plugin should return a list of the additional elements
-    that it has added to the global state. These elements will be
+    additional entities to the glTF file, such as additional nodes or
+    materials. The plugin should return a list of the additional entities
+    that it has added to the global state. These entities will be
     '''
 
     @classmethod

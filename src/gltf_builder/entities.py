@@ -18,7 +18,7 @@ from gltf_builder.core_types import (
     AlphaMode, CameraType, ComponentType,
     ExtensionsData, ExtrasData, ImageType,
     MagFilter, MinFilter, PrimitiveMode,
-    BufferViewTarget, ElementType, NPTypes, ScopeName, WrapMode
+    BufferViewTarget, ElementType, NPTypes, EntityType, WrapMode
 )
 from gltf_builder.attribute_types import (
     AttributeDataIterable, AttributeDataList, BTYPE_co,
@@ -56,9 +56,9 @@ if TYPE_CHECKING:
 LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
 
-class Element(_Compilable[_GLTF, _STATE]):
+class Entity(_Compilable[_GLTF, _STATE]):
     '''
-    A fundamental element of a glTF model.
+    A fundamental entity of a glTF model.
     '''
 
     def __init__(self,
@@ -90,15 +90,15 @@ class Element(_Compilable[_GLTF, _STATE]):
         return f'{typ}-{self.name or "?"}'
 
 
-class BBuffer(Element[gltf.Buffer, '_BufferState']):
+class BBuffer(Entity[gltf.Buffer, '_BufferState']):
     '''
     Buffer interface.
     '''
-    _scope_name = ScopeName.BUFFER
+    _scope_name = EntityType.BUFFER
 
 
-class BBufferView(Element[gltf.BufferView, '_BufferViewState']):
-    _scope_name = ScopeName.BUFFER_VIEW
+class BBufferView(Entity[gltf.BufferView, '_BufferViewState']):
+    _scope_name = EntityType.BUFFER_VIEW
     buffer: BBuffer
     target: BufferViewTarget
     byteStride: int
@@ -107,8 +107,8 @@ NP = TypeVar('NP', bound=NPTypes)
 NUM = TypeVar('NUM', bound=float|int, covariant=True)
 
 
-class BAccessor(Element[gltf.Accessor, '_AccessorState'], Generic[NP, BTYPE_co]):
-    _scope_name = ScopeName.ACCESSOR
+class BAccessor(Entity[gltf.Accessor, '_AccessorState'], Generic[NP, BTYPE_co]):
+    _scope_name = EntityType.ACCESSOR
     count: int
     elementType: ElementType
     componentType: ComponentType
@@ -127,11 +127,11 @@ class BAccessor(Element[gltf.Accessor, '_AccessorState'], Generic[NP, BTYPE_co])
     '''The buffer type char for `memoryview.cast()`.'''
 
 
-class BPrimitive(Element[gltf.Primitive, '_PrimitiveState']):
+class BPrimitive(Entity[gltf.Primitive, '_PrimitiveState']):
     '''
     Base class for primitives
     '''
-    _scope_name = ScopeName.PRIMITIVE
+    _scope_name = EntityType.PRIMITIVE
     mode: PrimitiveMode
     points: list[Point]
     attribs: dict[str, AttributeDataList]
@@ -139,8 +139,8 @@ class BPrimitive(Element[gltf.Primitive, '_PrimitiveState']):
     mesh: Optional['BMesh']
 
 
-class BMesh(Element[gltf.Mesh, '_MeshState']):
-    _scope_name = ScopeName.MESH
+class BMesh(Entity[gltf.Mesh, '_MeshState']):
+    _scope_name = EntityType.MESH
     primitives: list[BPrimitive]
     weights: list[float]
 
@@ -183,11 +183,11 @@ class BMesh(Element[gltf.Mesh, '_MeshState']):
         ...
 
 
-class BCamera(Element[gltf.Camera, '_CameraState']):
+class BCamera(Entity[gltf.Camera, '_CameraState']):
     '''
     Camera for glTF.
     '''
-    _scope_name = ScopeName.CAMERA
+    _scope_name = EntityType.CAMERA
     @property
     @abstractmethod
     def type(self) -> CameraType: ...
@@ -285,8 +285,8 @@ class BPerspectiveCamera(BCamera):
         self.aspectRatio = aspectRatio
 
 
-class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol):
-    _scope_name = ScopeName.NODE
+class BNode(Entity[gltf.Node, '_NodeState'], _BNodeContainerProtocol):
+    _scope_name = EntityType.NODE
     mesh: BMesh|None
 
     @property
@@ -343,11 +343,11 @@ class BNode(Element[gltf.Node, '_NodeState'], _BNodeContainerProtocol):
         ...
 
 
-class BImage(Element[gltf.Image, '_ImageState']):
+class BImage(Entity[gltf.Image, '_ImageState']):
     '''
     Image for glTF.
     '''
-    _scope_name = ScopeName.IMAGE
+    _scope_name = EntityType.IMAGE
     imageType: ImageType
     blob: Optional[bytes] = None
     uri: Optional[str|Path] = None
@@ -365,31 +365,31 @@ class BImage(Element[gltf.Image, '_ImageState']):
                 return 'image/png'
 
 
-class BSampler(Element[gltf.Sampler, '_SamplerState']):
+class BSampler(Entity[gltf.Sampler, '_SamplerState']):
     '''
     Texture samplers for glTF.
     '''
-    _scope_name = ScopeName.SAMPLER
+    _scope_name = EntityType.SAMPLER
     magFilter: Optional[MagFilter]
     minFilter: Optional[MinFilter]
     wrapS: Optional[WrapMode]
     wrapT: Optional[WrapMode]
 
 
-class BTexture(Element[gltf.Texture, '_TextureState']):
+class BTexture(Entity[gltf.Texture, '_TextureState']):
     '''
     Texture for glTF.
     '''
-    _scope_name = ScopeName.TEXTURE
+    _scope_name = EntityType.TEXTURE
     sampler: BSampler
     source: BImage
 
 
-class BMaterial(Element[gltf.Material, '_MaterialState']):
+class BMaterial(Entity[gltf.Material, '_MaterialState']):
     '''
     Material for glTF.
     '''
-    _scope_name = ScopeName.MATERIAL
+    _scope_name = EntityType.MATERIAL
     baseColorFactor: Optional[tuple[float, float, float, float]]
     baseColorTexture: Optional[BTexture]
     metallicFactor: Optional[float]
@@ -404,26 +404,26 @@ class BMaterial(Element[gltf.Material, '_MaterialState']):
     doubleSided: bool
 
 
-class BScene(Element[gltf.Scene, '_SceneState']):
+class BScene(Entity[gltf.Scene, '_SceneState']):
     '''
     Scene for glTF.
     '''
-    _scope_name = ScopeName.SCENE
+    _scope_name = EntityType.SCENE
     nodes: list[BNode]
 
 
-class BSkin(Element[gltf.Skin, '_SkinState']):
+class BSkin(Entity[gltf.Skin, '_SkinState']):
     '''
     Skin for a glTF model.
     '''
-    _scope_name = ScopeName.SKIN
+    _scope_name = EntityType.SKIN
     inverseBindMatrices: Optional[Matrix4]
     skeleton: BNode
     joints: list[BNode]
 
 
-class BAsset(Element[gltf.Asset, '_AssetState']):
-    _scope_name = ScopeName.ASSET
+class BAsset(Entity[gltf.Asset, '_AssetState']):
+    _scope_name = EntityType.ASSET
     generator: Optional[str] = None
     version: str = '2.0'
     minVersion: Optional[str] = None

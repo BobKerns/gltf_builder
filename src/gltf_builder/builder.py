@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.core_types import (
      ExtensionsData, ExtrasData, ImageType, IndexSize, JsonObject,
      NameMode, NamePolicy,
-     ElementType, ComponentType, ScopeName,
+     ElementType, ComponentType, EntityType,
 )
 from gltf_builder.extensions import Extension, load_extensions
 from gltf_builder.global_state import GlobalState
@@ -33,7 +33,7 @@ from gltf_builder.images import _Image
 from gltf_builder.protocols import (
     _AttributeParser,  AttributeType,
 )
-from gltf_builder.elements import (
+from gltf_builder.entities import (
      BAsset, BBuffer, BCamera, BImage, BMaterial,
      BMesh, BNode, BPrimitive, BSampler, BScene, BSkin, BTexture,
 )
@@ -45,26 +45,26 @@ LOG = GLTF_LOG.getChild(Path(__file__).stem)
 
 DEFAULT_NAME_MODE = NameMode.AUTO
 DEFAULT_NAME_POLICY: NamePolicy = {
-    ScopeName.NODE: NameMode.AUTO,
-    ScopeName.MESH: NameMode.AUTO,
-    ScopeName.PRIMITIVE: NameMode.AUTO,
-    ScopeName.ASSET: NameMode.MANUAL,
-    ScopeName.ACCESSOR: NameMode.NONE,
-    ScopeName.ACCESSOR_INDEX: NameMode.NONE,
-    ScopeName.BUFFER: NameMode.NONE,
-    ScopeName.BUFFER_VIEW: NameMode.NONE,
-    ScopeName.BUILDER: NameMode.NONE,
-    ScopeName.IMAGE: NameMode.AUTO,
-    ScopeName.MATERIAL: NameMode.AUTO,
-    ScopeName.TEXTURE: NameMode.AUTO,
-    ScopeName.SAMPLER: NameMode.AUTO,
-    ScopeName.CAMERA: NameMode.AUTO,
-    ScopeName.SKIN: NameMode.AUTO,
-    ScopeName.SCENE: NameMode.AUTO,
-    ScopeName.ANIMATION: NameMode.AUTO,
-    ScopeName.ANIMATION_SAMPLER: NameMode.AUTO,
-    ScopeName.ANIMATION_CHANNEL: NameMode.AUTO,
-    ScopeName.EXTENSION: NameMode.MANUAL,
+    EntityType.NODE: NameMode.AUTO,
+    EntityType.MESH: NameMode.AUTO,
+    EntityType.PRIMITIVE: NameMode.AUTO,
+    EntityType.ASSET: NameMode.MANUAL,
+    EntityType.ACCESSOR: NameMode.NONE,
+    EntityType.ACCESSOR_INDEX: NameMode.NONE,
+    EntityType.BUFFER: NameMode.NONE,
+    EntityType.BUFFER_VIEW: NameMode.NONE,
+    EntityType.BUILDER: NameMode.NONE,
+    EntityType.IMAGE: NameMode.AUTO,
+    EntityType.MATERIAL: NameMode.AUTO,
+    EntityType.TEXTURE: NameMode.AUTO,
+    EntityType.SAMPLER: NameMode.AUTO,
+    EntityType.CAMERA: NameMode.AUTO,
+    EntityType.SKIN: NameMode.AUTO,
+    EntityType.SCENE: NameMode.AUTO,
+    EntityType.ANIMATION: NameMode.AUTO,
+    EntityType.ANIMATION_SAMPLER: NameMode.AUTO,
+    EntityType.ANIMATION_CHANNEL: NameMode.AUTO,
+    EntityType.EXTENSION: NameMode.MANUAL,
 }
 '''
 Default naming mode for each scope.
@@ -82,7 +82,7 @@ class Builder(_BNodeContainer, _GlobalShared):
     on each build.
     '''
 
-    _scope_name = ScopeName.BUILDER
+    _scope_name = EntityType.BUILDER
 
     __asset: Optional[BAsset]
     @property
@@ -154,7 +154,7 @@ class Builder(_BNodeContainer, _GlobalShared):
     '''
     The mapping of attribute names to their types.
     '''
-    name_policy: dict[ScopeName, NameMode]
+    name_policy: dict[EntityType, NameMode]
     '''
     The mode for handling names, for each `ScopeName`
 
@@ -187,7 +187,7 @@ class Builder(_BNodeContainer, _GlobalShared):
                 extensions: Optional[JsonObject]=None,
                 scene: Optional[BScene]=None,
                 index_size: Optional[IndexSize]=None,
-                name_policy: Mapping[ScopeName, NameMode]|None = None,
+                name_policy: Mapping[EntityType, NameMode]|None = None,
                 extensionsUsed: Optional[list[str]]=None,
                 extensionsRequired: Optional[list[str]]=None,
         ):
@@ -198,7 +198,7 @@ class Builder(_BNodeContainer, _GlobalShared):
         name_policy = name_policy or {}
         self.name_policy = {
             scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
-            for scope in ScopeName
+            for scope in EntityType
         }
         if index_size is None:
             index_size = IndexSize.NONE

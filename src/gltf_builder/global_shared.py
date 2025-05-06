@@ -2,7 +2,7 @@
 Configuration global to the glTF, and shared by `Builder` and `GlobalState`.
 
 This allows adding and retrieving global data that is not specific to a single
-node or other element.
+node or other entity.
 '''
 
 
@@ -11,7 +11,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from gltf_builder.attribute_types import BTYPE, AttributeData, Vector3Spec
 from gltf_builder.compiler import _GLTF, _STATE, _Compilable, _CompileState
-from gltf_builder.core_types import BufferViewTarget, ComponentType, ElementType, ExtensionsData, ExtrasData, IndexSize, NPTypes, ScopeName
+from gltf_builder.core_types import BufferViewTarget, ComponentType, ElementType, ExtensionsData, ExtrasData, IndexSize, NPTypes, EntityType
 from gltf_builder.holders import _RO_Holder, _Holder
 from gltf_builder.matrix import Matrix4
 from gltf_builder.protocols import _BNodeContainerProtocol, AttributeType
@@ -31,9 +31,9 @@ from gltf_builder.textures import _Texture
 from gltf_builder.views import _BufferView
 if TYPE_CHECKING:
     from gltf_builder.extensions import Extension
-    from gltf_builder.elements import (
+    from gltf_builder.entities import (
         BAccessor, BAsset, BBuffer, BBufferView, BCamera, BImage, BMaterial, BMesh, BNode, BSampler,
-        BScene, BTexture, Element, BSkin,
+        BScene, BTexture, Entity, BSkin,
     )
 
 
@@ -226,7 +226,7 @@ class _GlobalShared(_BNodeContainerProtocol):
             The instantiated node.
         '''
     def __init__(self):
-        import gltf_builder.elements as elt
+        import gltf_builder.entities as elt
         import gltf_builder.extensions as ext
         self.__meshes = _Holder(elt.BMesh)
         self.__cameras = _Holder(elt.BCamera)
@@ -248,9 +248,9 @@ class _GlobalShared(_BNodeContainerProtocol):
         global Extension
         from gltf_builder.extensions import Extension
 
-    def add(self, elt: 'Element') -> None:
+    def add(self, elt: 'Entity') -> None:
         '''
-        Add an element to the global state.
+        Add an entity to the global state.
         '''
         match elt:
             # In rough order of frequency of use
@@ -303,7 +303,7 @@ class _GlobalSharedState(_GlobalShared):
 
     _states: dict[int, _CompileState]
     '''
-    The per-element states for the compilation of the glTF file.
+    The per-entity states for the compilation of the glTF file.
     '''
 
     @abstractmethod
@@ -314,7 +314,7 @@ class _GlobalSharedState(_GlobalShared):
     def _gen_name(self,
                   obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str='',
-                  scope: ScopeName|None=None,
+                  scope: EntityType|None=None,
                   index: Optional[int]=None,
                   suffix: str=''
                   ) -> str:
@@ -323,7 +323,7 @@ class _GlobalSharedState(_GlobalShared):
 
         PARAMETERS
         ----------
-        obj: Element
+        obj: Entity
             The object to generate a name for.
         gen_prefix: str|object
             The prefix to use for the generated name.
@@ -366,15 +366,15 @@ class _GlobalSharedState(_GlobalShared):
         ...
 
     @abstractmethod
-    def state(self, elt: 'Element[_GLTF, _STATE]') -> _STATE:
+    def state(self, elt: 'Entity[_GLTF, _STATE]') -> _STATE:
         '''
-        Get the state for the given element.
+        Get the state for the given entity.
         '''
         ...
 
-    def idx(self, elt: 'Element[_GLTF, _STATE]') -> int:
+    def idx(self, elt: 'Entity[_GLTF, _STATE]') -> int:
         '''
-        Get the index of the given element.
+        Get the index of the given entity.
         '''
         return self.state(elt).index
 

@@ -25,7 +25,7 @@ config:
 ---
 classDiagram
     note for BBuffer "The BBuffer is what ultimately holds all the binary data.\nThis note is strangely placed."
-    note for Element "This is all the items which can be added to a glTF file at top level."
+    note for Entity "This is all the items which can be added to a glTF file at top level."
     class BBuffer {
         bytes: bytes
         byteLength: int
@@ -111,10 +111,10 @@ classDiagram
         -_get_index_size(max_value: int): IndexSize
         -_gen_name(obj: _Compilable, ...): str
         -_create_accessor(...: BAccessor
-        +state(elt: Element): _STATE
-        +idx(elt: Element): int
+        +state(elt: Entity): _STATE
+        +idx(elt: Entity): int
     }
-    class Element:::User {
+    class Entity:::User {
         <<interface>>
 
         -name: str  　　　　　　　　　　　　　　　　.
@@ -137,23 +137,23 @@ classDiagram
     Plugin *--> ExtensionClass : extension_class
     Extension --|> ExtensionClass
 
-    _Compilable <|-- Element
-    Element <|-- BNode
-    Element <|-- BBuffer
-    Element <|-- BBufferView
-    Element <|-- BAccessor
-    Element <|-- BTexture
-    Element <|-- BImage
-    Element <|-- BSampler
-    Element <|-- BMaterial
-    Element <|-- BMesh
-    Element <|-- BCamera
-    Element <|-- BScene
-    Element <|-- BSkin
-    Element <|-- BAnimation
-    Element <|-- BAnimationChannel
-    Element <|-- BAnimationSampler
-    Element <|-- Extension
+    _Compilable <|-- Entity
+    Entity <|-- BNode
+    Entity <|-- BBuffer
+    Entity <|-- BBufferView
+    Entity <|-- BAccessor
+    Entity <|-- BTexture
+    Entity <|-- BImage
+    Entity <|-- BSampler
+    Entity <|-- BMaterial
+    Entity <|-- BMesh
+    Entity <|-- BCamera
+    Entity <|-- BScene
+    Entity <|-- BSkin
+    Entity <|-- BAnimation
+    Entity <|-- BAnimationChannel
+    Entity <|-- BAnimationSampler
+    Entity <|-- Extension
 
 
     BSkin --> "1" BNode : skeleton
@@ -264,7 +264,7 @@ classDiagram
 
     class GlobalState {
         +do_compile(phase: Phase)
-        +state(element: Element): _CompileState
+        +state(entity: Entity): _CompileState
     }
 
     class Progress {
@@ -350,22 +350,22 @@ classDiagram
     _AnimationSamplerState ..> BAnimationSampler : proxy-for
     _ExtensionState ..> BExtension : proxy-for
 
-    _NodeState --> BNode : element
-    _BufferState --> BBuffer : element
-    _BufferViewState --> BBufferView : element
-    _AccessorState --> BAccessor : element
-    _TextureState --> BTexture : element
-    _ImageState --> BImage : element
-    _SamplerState --> BSampler : element
-    _MaterialState --> BMaterial : element
-    _MeshState --> BMesh : element
-    _CameraState --> BCamera : element
-    _SceneState --> BScene : element
-    _SkinState --> BSkin : element
-    _AnimationState --> BAnimation : element
-    _AnimationChannelState --> BAnimationChannel : element
-    _AnimationSamplerState --> BAnimationSampler : element
-    _ExtensionState --> Extension : element
+    _NodeState --> BNode : entity
+    _BufferState --> BBuffer : entity
+    _BufferViewState --> BBufferView : entity
+    _AccessorState --> BAccessor : entity
+    _TextureState --> BTexture : entity
+    _ImageState --> BImage : entity
+    _SamplerState --> BSampler : entity
+    _MaterialState --> BMaterial : entity
+    _MeshState --> BMesh : entity
+    _CameraState --> BCamera : entity
+    _SceneState --> BScene : entity
+    _SkinState --> BSkin : entity
+    _AnimationState --> BAnimation : entity
+    _AnimationChannelState --> BAnimationChannel : entity
+    _AnimationSamplerState --> BAnimationSampler : entity
+    _ExtensionState --> Extension : entity
 
     GlobalState *--> BNode
     GlobalState *--> BBuffer
@@ -385,7 +385,7 @@ classDiagram
     GlobalState *--> Extension
     GlobalState "1" --> "0..1" BScene : scene
 
-    _CompileState --> Element : element
+    _CompileState --> Entity : entity
     _CompileState --> "*" Extension: extension_objects
 
 

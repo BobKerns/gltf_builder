@@ -22,10 +22,10 @@ from gltf_builder.compiler import (
 )
 from gltf_builder.core_types import (
     BufferViewTarget, ComponentType, ElementType, IndexSize,
-    JsonObject, NPTypes, NameMode, Phase, ScopeName,
+    JsonObject, NPTypes, NameMode, Phase, EntityType,
 )
-from gltf_builder.elements import (
-    BAccessor, BAsset, BBuffer, BBufferView, BScene, Element,
+from gltf_builder.entities import (
+    BAccessor, BAsset, BBuffer, BBufferView, BScene, Entity,
 )
 from gltf_builder.nodes import _BNodeContainer
 from gltf_builder.protocols import AttributeType
@@ -46,7 +46,7 @@ LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 _imported: bool = False
 
 class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
-    _scope_name: ScopeName = ScopeName.BUILDER
+    _scope_name: EntityType = EntityType.BUILDER
 
     _id_counters: dict[str, count]
     _states: dict[int, _CompileState] = {}
@@ -61,9 +61,9 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
     returns: dict[Phase, _DoCompileReturn]
 
 
-    def state(self, elt: Element[_GLTF, _STATE]) -> _STATE:
+    def state(self, elt: Entity[_GLTF, _STATE]) -> _STATE:
         '''
-        Get the state for the given element.
+        Get the state for the given entity.
         '''
         global ExtensionState, _imported
         if not _imported:
@@ -161,7 +161,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
     def _gen_name(self,
                   obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str|object='',
-                  scope: ScopeName|None=None,
+                  scope: EntityType|None=None,
                   index: int|None=None,
                   suffix: str|None=None,
                   ) -> str:
@@ -180,7 +180,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
             nonlocal prefix, suffix
             name_mode = self.builder.name_policy[scope]
             match obj:
-                case Element() if obj.name and name_mode != NameMode.UNIQUE:
+                case Entity() if obj.name and name_mode != NameMode.UNIQUE:
                     # Increment the count anyway for stability.
                     # Naming one node should not affect the naming of another.
                     get_count(obj)
@@ -199,7 +199,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
             match name:
                 case str():
                     name = name.strip()
-                case Element():
+                case Entity():
                     name = name.name.strip()
                 case _:
                     raise ValueError(f'Invalid name: {name}')
@@ -296,7 +296,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
             if phase != Phase.BUILD:
                self.do_compile(phase)
 
-        def build_list(elt: Iterable[Element[_GLTF, _STATE]]) -> list[_GLTF]:
+        def build_list(elt: Iterable[Entity[_GLTF, _STATE]]) -> list[_GLTF]:
             return [
                 v.compile(self, Phase.BUILD)
                 for v in elt
@@ -361,7 +361,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
     def do_compile(self, phase: Phase):
         def _do_compile(n):
             return n.compile(self, phase)
-        def _do_compile_n(*n: Iterable[Element]):
+        def _do_compile_n(*n: Iterable[Entity]):
             for g in n:
                 for e in g:
                     e.compile(self, phase)
@@ -398,7 +398,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
                 if LOG.isEnabledFor(logging.DEBUG):
                     log_collected(collected)
             case Phase.ENUMERATE:
-                def assign_index(items: Iterable[Element]):
+                def assign_index(items: Iterable[Entity]):
                     for i, n in enumerate(items):
                         s = self.state(n)
                         s.index = i
@@ -421,7 +421,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
             case Phase.EXTENSIONS:
                 actual = {
                             s
-                            for elt in self._elements()
+                            for elt in self._entities()
                             for s in cast(set[str]|None, _do_compile(elt)) or ()
                         }
                 specified = {
@@ -449,31 +449,31 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
                 )
 
     # Currently a placeholder.
-    def compile_extensions_(self, contin: Callable[[Element], set['Extension']|None]):
-        def _do_compile(elt: Element[_GLTF, _STATE]) -> set[Extension]|None:
+    def compile_extensions_(self, contin: Callable[[Entity], set['Extension']|None]):
+        def _do_compile(elt: Entity[_GLTF, _STATE]) -> set[Extension]|None:
             return elt.compile(self, Phase.EXTENSIONS)
         return {
             s
-            for elt in self._elements()
+            for elt in self._entities()
             for s in cast(set[Extension]|None, _do_compile(elt)) or ()
         }
 
     # Currently a placeholder.
     def _do_compile(self, globl: Self, phase: Phase, state: Self):
         '''
-        Compile the given element.
+        Compile the given entity.
         '''
         match phase:
             case Phase.EXTENSIONS:
-                def do_extensions(elt: Element[_GLTF, _STATE]) -> set[Extension]|None:
+                def do_extensions(elt: Entity[_GLTF, _STATE]) -> set[Extension]|None:
                     return elt.compile(self, Phase.EXTENSIONS)
                 return self.compile_extensions_(do_extensions)
             case _: pass
         return None
 
-    def _elements(self) -> Iterable[Element]:
+    def _entities(self) -> Iterable[Entity]:
         '''
-        Get all the elements in the builder.
+        Get all the entities in the builder.
         '''
         yield from self.nodes
         yield from self.meshes

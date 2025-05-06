@@ -9,7 +9,7 @@ import pygltflib as gltf
 
 from gltf_builder.compiler import _CompileState, _DoCompileReturn
 from gltf_builder.core_types import ExtensionsData, ExtrasData, Phase
-from gltf_builder.elements import BNode, BSkin
+from gltf_builder.entities import BNode, BSkin
 from gltf_builder.matrix import Matrix4
 from gltf_builder.utils import std_repr
 if TYPE_CHECKING:

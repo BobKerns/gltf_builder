@@ -15,16 +15,16 @@ from pathlib import Path
 import pygltflib as gltf
 
 from gltf_builder.core_types import (
-    ElementFlags, ExtensionData, ExtensionsData, ExtrasData, Phase,
-    BufferViewTarget, ScopeName
+    EntityFlags, ExtensionData, ExtensionsData, ExtrasData, Phase,
+    BufferViewTarget, EntityType
 )
 from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
     from gltf_builder.protocols import _BufferViewKey
-    from gltf_builder.elements import (
-        Element, BBuffer, BBufferView,
+    from gltf_builder.entities import (
+        Entity, BBuffer, BBufferView,
     )
     from gltf_builder.global_state import GlobalState
     from gltf_builder.extensions import Extension
@@ -35,8 +35,8 @@ LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
 _GLTF = TypeVar('_GLTF', bound=gltf.Property|ExtensionData, covariant=True)
 '''
-Type variable for glTF elements.
-This is used to indicate the type of the gltf element being compiled.
+Type variable for glTF entities.
+This is used to indicate the type of the gltf entity being compiled.
 '''
 
 
@@ -57,7 +57,7 @@ _SLOTS: tuple[str, ...] = tuple(
         (
             'name',
             '_index',
-            'element',
+            'entity',
             '_extension_objects',
             #'__dict__',
         )
@@ -88,7 +88,7 @@ Type variable for the compile state.
 This is used to indicate the type of the compile state.
 '''
 
-_ELEMENT = TypeVar('_ELEMENT', bound='Element')
+_ELEMENT = TypeVar('_ELEMENT', bound='Entity')
 
 
 _STATEX = TypeVar('_STATEX', bound='_CompileState')
@@ -172,7 +172,7 @@ class Progress(StrEnum):
 
 class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[misc]
     '''
-    State for compiling an element.
+    State for compiling an entity.
     '''
     __slots__ = _SLOTS
     name: str
@@ -222,7 +222,7 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
     @property
     def index(self) -> int:
         if self._index is None:
-            raise ValueError(f'Index not set for {type(self.element).__name__!s}')
+            raise ValueError(f'Index not set for {type(self.entity).__name__!s}')
         return self._index
     @index.setter
     def index(self, index: int):
@@ -231,13 +231,13 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         elif self._index != index:
             raise ValueError(f'Index already set, old={self._index}, new={index}')
 
-    element: _ELEMENT
+    entity: _ELEMENT
 
     __extension_objects: _Holder['Extension']|None
     @property
     def extension_objects(self) -> _Holder['Extension']:
         '''
-        The extension objects for the element.
+        The extension objects for the entity.
         '''
         if self.__extension_objects is None:
             from gltf_builder.extensions import Extension
@@ -245,7 +245,7 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         return self.__extension_objects
 
     def __init__(self,
-                 element: _ELEMENT,
+                 entity: _ELEMENT,
                  name: str,
                 byteOffset: int|None=0,
                 ) -> None:
@@ -253,9 +253,9 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         self._byteOffset = byteOffset
         self._index = None
         self._len = None
-        self.element = element
+        self.entity = entity
         self.__extension_objects = None
-        self.extension_objects.add_from(element.extension_objects)
+        self.extension_objects.add_from(entity.extension_objects)
         self.PRIMITIVES: Progress = Progress.NONE
         self.COLLECT: _Collected|Progress = Progress.NONE
         self.ENUMERATE: int|Progress = Progress.NONE
@@ -309,63 +309,63 @@ class _GlobalCompileState(Generic[_GLTF, _STATEX, _ELEMENT],
 
 class _Compilable(Generic[_GLTF, _STATE]):
     '''
-    Base implementation class for all elements that can be
+    Base implementation class for all entities that can be
     compiled into a glTF file.
     '''
     __slots__ = (
         'name', 'extensions', 'extras', 'extension_objects', '_flags'
     )
-    _scope_name: ScopeName
+    _scope_name: EntityType
 
     extensions: ExtensionsData
     '''
-    The JSON extension data supplied for the element.
+    The JSON extension data supplied for the entity.
     '''
     extension_objects: set['Extension']
     '''
     A list of supplied extension instances to be compiled
-    into this element.
+    into this entity.
 
-    This is used to allow extensions to be added to elements
+    This is used to allow extensions to be added to entities
     at a higher level than supplying the JSON data.
     '''
     extras: ExtrasData
     name: str
 
-    _flags: ElementFlags
+    _flags: EntityFlags
 
     @property
     def name_scope(self) -> bool:
         '''
-        Whether element names are scoped within this element.
+        Whether entity names are scoped within this entity.
         '''
-        return bool(self._flags & ElementFlags.NAME_SCOPE)
+        return bool(self._flags & EntityFlags.NAME_SCOPE)
 
     @name_scope.setter
     def name_scope(self, value: bool):
         if value:
-            self._flags |= ElementFlags.NAME_SCOPE
+            self._flags |= EntityFlags.NAME_SCOPE
         else:
-            self._flags &= ~ElementFlags.NAME_SCOPE
+            self._flags &= ~EntityFlags.NAME_SCOPE
 
     @property
     def view_scope(self) -> bool:
         '''
-        Whether buffer views are scoped within this element.
+        Whether buffer views are scoped within this entity.
         '''
-        return bool(self._flags & ElementFlags.VIEW_SCOPE)
+        return bool(self._flags & EntityFlags.VIEW_SCOPE)
 
     @view_scope.setter
     def view_scope(self, value: bool):
         if value:
-            self._flags |= ElementFlags.VIEW_SCOPE
+            self._flags |= EntityFlags.VIEW_SCOPE
         else:
-            self._flags &= ~ElementFlags.VIEW_SCOPE
+            self._flags &= ~EntityFlags.VIEW_SCOPE
 
     @classmethod
     def state_type(cls) -> type[_STATE]:
         '''
-        Create a new compile state for the element.
+        Create a new compile state for the entity.
         '''
         return cast(type[_STATE], _CompileState) # pragma: no cover
 
@@ -448,7 +448,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        state = cast(_STATE, globl.state(cast('Element', self)))
+        state = cast(_STATE, globl.state(cast('Entity', self)))
         progress = getattr(state, phase.name)
         match progress:
             case Progress.IN_PROGRESS:
@@ -539,7 +539,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                         /
                     ) -> set[str]|None:
         '''
-        Compile the extensions for the element.
+        Compile the extensions for the entity.
         '''
         if phase == Phase.EXTENSIONS:
             return self.compile(globl, phase)

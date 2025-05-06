@@ -15,13 +15,13 @@ from collections.abc import Generator, Iterable
 
 from gltf_builder.core_types import (
     Phase,
-    ScopeName,
+    EntityType,
 )
 from gltf_builder.global_state import GlobalState
 
 
 if TYPE_CHECKING:
-    from gltf_builder.elements import Element
+    from gltf_builder.entities import Entity
     from gltf_builder.builder import Builder
     from gltf_builder.compiler import _DoCompileReturn
 
@@ -40,7 +40,7 @@ class VisitFunc(Protocol):
 
     Parameters:
     -----------
-    node: Element
+    node: Entity
         The node being visited.
     to_scope: ScopeName
         The scope to which the node is being visited.
@@ -55,8 +55,8 @@ class VisitFunc(Protocol):
     @abstractmethod
     def __call__(self,
                 globl: 'GlobalState',
-                node: 'Element',
-                to_scope: ScopeName,
+                node: 'Entity',
+                to_scope: EntityType,
                 phase: Phase,
             /):
         ...
@@ -68,7 +68,7 @@ class OrderFunc(Protocol):
 
     Parameters:
     -----------
-    node: Element
+    node: Entity
         The node being visited.
     to_scope: ScopeName
         The scope to which the node is being visited.
@@ -76,16 +76,16 @@ class OrderFunc(Protocol):
         The phase of the compilation process.
     Returns:
     -------
-    Generator[Element, None, None]
+    Generator[Entity, None, None]
         An iteration over the nodes to be processed.
     '''
 
     def __call__(self,
                 globl: 'GlobalState',
-                node: 'Element',
-                to_scope: ScopeName,
+                node: 'Entity',
+                to_scope: EntityType,
                 phase: Phase,
-                /) -> Generator['Element', None, None]:
+                /) -> Generator['Entity', None, None]:
         '''
         Return the order of traversal for the node.
         '''
@@ -100,8 +100,8 @@ class AggregateFunc(Protocol):
 
     def __call__(self,
                 globl: 'GlobalState',
-                element: 'Element',
-                to_scope: ScopeName,
+                entity: 'Entity',
+                to_scope: EntityType,
                 phase: Phase,
                 this_value: _DoCompileReturn,
                 values: Iterable[_DoCompileReturn],
@@ -167,34 +167,34 @@ class TreeWalker(Generic[_T_Return]):
         self.aggregate = aggregate
         self.phase = phase
 
-    def walk_element(self,
+    def walk_entity(self,
                     globl: 'GlobalState',
-                    element: 'Element',\
+                    entity: 'Entity',\
                     /) -> _DoCompileReturn:
         '''
         Walk the node and return the result of the traversal.
         '''
-        phase, to_scope = globl.phase, ScopeName.BUILDER
+        phase, to_scope = globl.phase, EntityType.BUILDER
         assert phase is not None
-        state = globl.state(element)
+        state = globl.state(entity)
         this_value = self.visit(
             globl,
-            element,
+            entity,
             to_scope,
             phase)
         order = self.order(
             globl,
-            element,
+            entity,
             to_scope,
             phase)
         values = (
-            self.walk_element(globl, n)
+            self.walk_entity(globl, n)
             for n in order
         )
         if self.aggregate:
             result = self.aggregate(
                 globl,
-                element,
+                entity,
                 to_scope,
                 phase,
                 this_value,
@@ -215,12 +215,12 @@ class TreeWalker(Generic[_T_Return]):
         # The order function should just return the root node itself.
         # ordered = self.order(globl, globl, ScopeName.BUILDER, self.phase)
         # But globl stands in for the builder root.
-        this_value = self.walk_element(globl,globl.element)
+        this_value = self.walk_entity(globl,globl.entity)
         if self.aggregate:
             ret = self.aggregate(
                 globl,
-                globl.element,
-                ScopeName.BUILDER,
+                globl.entity,
+                EntityType.BUILDER,
                 self.phase,
                 this_value,
                 (),

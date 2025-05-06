@@ -12,11 +12,11 @@ from gltf_builder.compiler import (
     ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import (
-    Phase, ScopeName,
+    Phase, EntityType,
 )
 from gltf_builder.protocols import _BufferViewKey
-from gltf_builder.elements import (
-    BBuffer, BBufferView, Element,
+from gltf_builder.entities import (
+    BBuffer, BBufferView, Entity,
 )
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
@@ -65,7 +65,7 @@ class _Buffer(BBuffer):
     '''
     Implementation class for `BBuffer`.
     '''
-    _scope_name = ScopeName.BUFFER
+    _scope_name = EntityType.BUFFER
 
     @classmethod
     def state_type(cls):
@@ -90,7 +90,7 @@ class _Buffer(BBuffer):
                     state: _BufferState,
                     /
                 ) -> _DoCompileReturn[gltf.Buffer]:
-        def _compile1(elt: Element[_GLTF, _STATE]):
+        def _compile1(elt: Entity[_GLTF, _STATE]):
             return elt.compile(globl, phase)
         def _compile_views():
             for view in state.views:

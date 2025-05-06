@@ -10,12 +10,12 @@ import pygltflib as gltf
 import numpy as np
 from gltf_builder.core_types import (
     ComponentType, ElementType, ExtensionsData, ExtrasData,
-    Phase, BufferViewTarget, ScopeName,
+    Phase, BufferViewTarget, EntityType,
 )
 from gltf_builder.attribute_types import (
     BTYPE, AttributeData, BTYPE_co, BType,
 )
-from gltf_builder.elements import (
+from gltf_builder.entities import (
     BAccessor, BBuffer, NP, BBufferView
 )
 from gltf_builder.compiler import _GlobalCompileState, _DoCompileReturn
@@ -121,7 +121,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
             case Phase.COLLECT:
                 buffer = globl.buffer
                 vname = globl._gen_name(self,
-                                          scope=ScopeName.BUFFER_VIEW,
+                                          scope=EntityType.BUFFER_VIEW,
                                           suffix='/view')
                 state.view = globl.get_view(buffer,
                                               self.target,

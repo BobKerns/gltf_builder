@@ -1,5 +1,5 @@
 '''
-A container for `Element` objects, indexable by name or index.
+A container for `Entity` objects, indexable by name or index.
 '''
 
 from collections.abc import Iterable
@@ -7,14 +7,14 @@ from typing import TypeVar, Any, TYPE_CHECKING, overload
 
 
 if TYPE_CHECKING:
-    from gltf_builder.elements import Element
-    T = TypeVar('T', bound=Element[Any, Any])
+    from gltf_builder.entities import Entity
+    T = TypeVar('T', bound=Entity[Any, Any])
 else:
     T = TypeVar('T')
 
 class _RO_Holder(Iterable[T]):
     '''
-    A read-only container for `Element` instances, indexable by index or name.
+    A read-only container for `Entity` instances, indexable by index or name.
     '''
     __type: type[T]
     @property
@@ -83,7 +83,7 @@ class _RO_Holder(Iterable[T]):
 
 class _Holder(_RO_Holder[T]):
     '''
-    A container for `Element` instances, indexable by index or name.
+    A container for `Entity` instances, indexable by index or name.
     This also guarantees an item is added only once.
     '''
     def __init__(self, type_: type[T], *items: T):

@@ -14,7 +14,7 @@ from gltf_builder import (
 
 from conftest import TEST_EXTRAS, TEST_EXTENSIONS, BuilderContext, GeometryData
 from gltf_builder.core_types import IndexSize
-from gltf_builder.elements import BOrthographicCamera, BPerspectiveCamera
+from gltf_builder.entities import BOrthographicCamera, BPerspectiveCamera
 from gltf_builder.utils import count_iter, first, index_of
 
 
