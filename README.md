@@ -173,7 +173,7 @@ These take the expected values, with the following notes:
     - But you can subtract points to get a vector.
     - You can add a point and a vector to get a new point.
 
-## Graphic Entitys: Nodes, Meshes, Primitives,and more
+## Graphic Entities: Nodes, Meshes, Primitives, and more
 
 | Constructor               | Type          | Description           |
 |---------------------------|---------------|-----------------------|
