@@ -62,6 +62,7 @@ ivalues
 jtype
 Khronos
 KOEPF
+kondo
 ldata
 linalg
 logstream

@@ -11,13 +11,16 @@
 # See PEP 723 for more information.
 # https://peps.python.org/pep-0723/
 
+from collections.abc import Sequence
 from contextlib import suppress
+from os import PathLike
 from pathlib import Path
 import subprocess
-from typing import Any, NamedTuple, cast
+from typing import Any, Collection, NamedTuple, cast
 import psutil
 import socket
 import sys
+from shutil import which
 
 import click
 from semver import Version
@@ -27,7 +30,7 @@ from tomlkit.toml_file import TOMLFile
 import webbrowser
 
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent.resolve()
 DOCS = ROOT / 'docs'
 IMGS = DOCS / 'img'
 SRC = ROOT / 'src'
@@ -51,6 +54,27 @@ def run(*cmds: Any, **kwargs) -> subprocess.CompletedProcess:
     if debug_on:
         print("Command completed successfully.")
     return result
+
+def capture(*cmds: Any, **kwargs) -> str:
+    "Capture the output of the given command."
+    cmd = [str(arg) for arg in cmds]
+    if debug_on:
+        print(f"Running command: {' '.join(cmd)}")
+    result: subprocess.CompletedProcess = subprocess.run(cmd,
+                                                         cwd=str(ROOT),
+                                                         capture_output=True,
+                                                         text=True,
+                                                         **kwargs
+                                                         )
+    if result.returncode != 0:
+        raise RuntimeError(f"Command exited with return code {result.returncode}.")
+    if debug_on:
+        print("Command completed successfully.")
+    text = result.stdout
+    if debug_on:
+        print(f"Command output: '{text}'")
+    return text
+
 
 def spawn(*cmds: Any, **kwargs) -> subprocess.Popen:
     "Spawn the given command."
@@ -80,7 +104,8 @@ def main(debug: bool=False, verbose: bool=False) -> None:
     """
     global debug_on, verbose_on
     verbose_on = verbose
-    debug_on = verbose_on = debug
+    if debug:
+        debug_on = verbose_on = debug
 
 @main.group(name='server')
 def server() -> None:
@@ -144,10 +169,22 @@ DIAGRAMS: list[tuple[Path, *tuple[str,...]]] = [
 @update.command(name='diagram')
 @click.argument('diagram', type=click.Path(exists=True))
 @click.option('--png', is_flag=True, help="Generate a PNG file instead of an SVG file.")
-def update_diagram(diagram: Path|str, *params: str,
+def update_diagram_command(diagram: PathLike|str, png: bool=False) -> None:
+    "[<PATH>] Update the given diagram."
+    try:
+        update_diagram(diagram, png=png)
+    except* Exception as e:
+        for exc in e.exceptions:
+            print(f"Failed to update diagram: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print("Diagram updated successfully.")
+    sys.exit(0)
+
+
+def update_diagram(diagram: PathLike|str, *params: str,
                    png: bool=False) -> None:
     "<PATH> Update the given diagram."
-
+    diagram = Path(diagram).resolve()
     fmt = '.svg'
     if png:
         fmt = '.png'
@@ -168,17 +205,146 @@ def update_diagram(diagram: Path|str, *params: str,
     try:
         run('npx', 'mmdc', '-i', infile, '-o', outfile, *params)
     except Exception as e:
-        raise RuntimeError(f"Failed to update {diagram}.") from e
+        raise RuntimeError(f"Failed to update {diagram}: {e}.") from e
 
 
 @update_all.command(name='diagrams')
-def update_diagrams() -> None:
+@click.option('--force', is_flag=True, help="Force update all diagrams.")
+@click.option('--suffixes',
+              type=click.STRING,
+              default='.svg',
+              help="Comma-separated list of suffixes.")
+def update_diagrams_command(force: bool=False, suffixes: str='') -> None:
     "Update all diagrams."
+    try:
+        if verbose_on:
+            print(f"Updating diagrams with suffixes {suffixes}...")
+        suffixes_ = [
+            s2
+            for s2 in (
+                s.strip()
+                for s in suffixes.split(',')
+            )
+            if s2
+        ]
+        update_diagrams(suffixes=suffixes_, force=force)
 
+    except* Exception as e:
+        for exc in e.exceptions:
+            print(f"Failed to update diagrams: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print("Diagrams updated successfully.")
+    sys.exit(0)
+
+
+def repo_relative(f: PathLike|str) -> Path:
+    '''
+    Return a path relative to the repository root.
+    '''
+    f = ROOT / f
+    f = f.resolve()
+    f = f.relative_to(ROOT)
+    return f
+
+_git: Path|None = None
+
+def find_git() -> Path:
+    """
+    Find the git executable in the system PATH.
+    Returns:
+        Path to the git executable.
+    """
+    global _git
+    if _git is None:
+        g = which('git')
+        if g is None:
+            raise RuntimeError("git not found in PATH.")
+        _git = Path(g)
+    return _git
+
+def same_commit(files: Sequence[PathLike|str]) -> bool:
+    '''
+    Check if all files are at the same commit.
+    Args:
+        files (Sequence[PathLike|str]): A sequence of file paths.
+    Returns:
+        bool: True if all files are at the same commit, False otherwise.
+    '''
+    git = find_git()
+    matches  = capture(git, 'log', '--name-only', '-n', 1, '--format=', '--',
+                       *(repo_relative(f) for f in files)).strip()
+    return len(files) == matches.count('\n') + 1
+
+def is_clean(file: PathLike|str) -> bool:
+    '''
+    Check if the file is clean (not modified).
+    Args:
+        file (PathLike|str): The file path.
+    Returns:
+        bool: True if the file is clean, False otherwise.
+    '''
+    git = find_git()
+    matches  = capture(git, 'status', '--porcelain', '--', repo_relative(file))
+    return not matches.strip()
+
+def needs_update(*files: PathLike|str) -> bool:
+    '''
+    Check if any of the files need to be updated.
+    Args:
+        files PathLike|str]: 2 or more file paths.
+    Returns:
+        bool: True if any of the files need to be updated, False otherwise.
+    '''
+    if len(files) < 2:
+        if debug_on:
+            print("Nothing to update, only one file.")
+        # Nothing to update.
+        return False
+    # Check 1, if all the files exist.
+    if not all((ROOT / f).exists() for f in files):
+        if debug_on:
+            print("Not all files exist, rebuilding")
+        return True
+    # Check 2, if all the files are at the same commit.
+    if not same_commit(files):
+        if debug_on:
+            print("Files are not at the same commit, rebuilding")
+        return True
+    # Check 3, if all the files are clean.
+    if not all(is_clean(f) for f in files):
+        if debug_on:
+            print("Files are not clean, rebuilding")
+        return True
+    if debug_on:
+        print("Files are clean, no need to update.")
+    return False
+
+
+def update_diagrams(suffixes: Collection[str]=('.svg'),
+                    force: bool=False,
+                    ) -> None:
+    '''
+    Update all diagrams, collecting errors into a single ExceptionGroup.
+
+    Parameters:
+        suffixes (Collection[str]): A collection of suffixes to check for.
+        force (bool): If True, force update all diagrams, even if they are up to date.
+    '''
+    def replace_suffix(f: PathLike|str, suffix: str) -> Path:
+        "Replace the suffix of a file, but add more to the stem."
+        f = Path(f)
+        f = f.with_suffix('')
+        return f.with_name(f.stem + suffix)
     excs = []
     for diagram, *params in DIAGRAMS:
         try:
-            update_diagram(diagram, *params)
+            files =[
+                                replace_suffix(diagram, suffix)
+                                for suffix in suffixes
+                            ]
+            if force or needs_update(diagram, *files):
+                update_diagram(diagram, *params)
+
         except Exception as e:
             excs.append(e)
     if excs:
@@ -257,7 +423,7 @@ def check_port(port: int|None):
     return try_AF(socket.AF_INET6) or try_AF(socket.AF_INET)
 
 
-def read_id_file(file: Path|str) -> int | None:
+def read_id_file(file: PathLike|str) -> int | None:
     "Read the id from the given file."
     file = ROOT / file
     with suppress(Exception):
@@ -267,7 +433,7 @@ def read_id_file(file: Path|str) -> int | None:
             return int(f.read().strip())
     return None
 
-def save_id_file(file: Path|str, value: int|None) -> None:
+def save_id_file(file: PathLike|str, value: int|None) -> None:
     "Save the id to the given file."
     file = ROOT / file
     if value is None or value <= 0:
@@ -425,7 +591,7 @@ def start_server_command() -> None:
 
 @main.command(name='browse')
 @click.argument('file', type=click.Path(exists=True), default=ROOT / 'README.md')
-def browse_docs(file: Path = ROOT / 'README.md') -> None:
+def browse_docs(file: PathLike|str = ROOT / 'README.md') -> None:
     "[<PATH>] Open the documentation in a browser."
 
     file = Path(file).resolve()
