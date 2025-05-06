@@ -87,7 +87,7 @@ class _Image(BImage):
             case Phase.COLLECT:
                 globl.add(self)
                 if self.blob is not None:
-                    name=globl._gen_name(self, scope=EntityType.BUFFER_VIEW)
+                    name=globl._gen_name(self, entity_type=EntityType.BUFFER_VIEW)
                     state.view = globl.get_view(globl.buffer,
                                       BufferViewTarget.ARRAY_BUFFER,
                                       name=name,

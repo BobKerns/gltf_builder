@@ -131,10 +131,8 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Entity[_EXT_DATA, _
         ----------
         globl : _GlobalState
             The global state of the compilation process.
-        scope : _Scope
-            The scope of the compilation process. It should be ignored
-            for now, but it may be used in the future to manage the sharing
-            of data and names between different entities.
+        state : ExtensionState
+            The state of the compilation process.
         '''
         return []
 
@@ -185,7 +183,7 @@ class ExtensionPlugin(Generic[_EXT], Plugin):
        and can parse it to create a `Extension` object.
     2. `compile`: The `Extension` object is invoked with each
         phase of the compilation process. `_do_compile()` method
-        is called with the global state, scope, phase, and state.
+        is called with the global state and state.
     3. `build`: This occurs in the `BUILD` phase of the compilation process.
        The plugin should return the JSON data for the extension.
 

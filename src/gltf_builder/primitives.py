@@ -113,7 +113,7 @@ class _Primitive(BPrimitive):
             index = mesh.primitives.index(self)
             aname = globl._gen_name(self,
                                         prefix=f'{mesh.name}:{self.mode.name}/',
-                                        scope=EntityType.ACCESSOR,
+                                        entity_type=EntityType.ACCESSOR,
                                         index=index,
                                     )
             attr_type = globl.get_attribute_type(name)
@@ -138,7 +138,7 @@ class _Primitive(BPrimitive):
                     index = mesh.primitives.index(self)
                     name = globl._gen_name(self,
                                             prefix=f'{mesh.name}:{self.mode.name}/',
-                                            scope=EntityType.ACCESSOR_INDEX,
+                                            entity_type=EntityType.ACCESSOR_INDEX,
                                             index=index,
                                             suffix='/indices',
                                         )

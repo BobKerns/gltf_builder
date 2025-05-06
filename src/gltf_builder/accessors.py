@@ -126,7 +126,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
             case Phase.COLLECT:
                 buffer = globl.buffer
                 vname = globl._gen_name(self,
-                                          scope=EntityType.BUFFER_VIEW,
+                                          entity_type=EntityType.BUFFER_VIEW,
                                           suffix='/view')
                 state.view = globl.get_view(buffer,
                                               self.target,

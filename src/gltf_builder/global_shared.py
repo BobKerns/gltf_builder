@@ -314,7 +314,7 @@ class _GlobalSharedState(_GlobalShared):
     def _gen_name(self,
                   obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str='',
-                  scope: EntityType|None=None,
+                  entity_type: EntityType|None=None,
                   index: Optional[int]=None,
                   suffix: str=''
                   ) -> str:

@@ -181,6 +181,11 @@ class EntityFlags(IntFlag):
     `BufferView` instances should be shared where possible within the
     scope of this entity.
     '''
+    VERTEX_SCOPE = 4
+    '''
+    Vertices should be shared where possible within the
+    scope of this entity.
+    '''
 
 BufferType: TypeAlias = Literal['b', 'B', 'h', 'H', 'l', 'L', 'f']
 '''
@@ -210,7 +215,7 @@ The numpy dtypes used in the glTF file
 
 class EntityType(StrEnum):
     '''
-    Enum for the scope of a policy.
+    Enum for the scope of a policy, selection of per-entity type actions, etc.
     '''
 
     ASSET = 'asset'''
@@ -349,7 +354,7 @@ A dictionary of extensions to be stored with the object.
 NamePolicy: TypeAlias = dict[EntityType, NameMode]
 '''
 A policy for how to handle or generate names for objects.
-The keys are the scope names, and the values are the name modes.
+The keys are the `Entity` type names, and the values are the name modes.
 '''
 
 

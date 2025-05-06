@@ -67,7 +67,7 @@ DEFAULT_NAME_POLICY: NamePolicy = {
     EntityType.EXTENSION: NameMode.MANUAL,
 }
 '''
-Default naming mode for each scope.
+Default naming mode for each entity type.
 '''
 
 _RE_ATTRIB_NAME = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(?:_\d+)$')
@@ -197,8 +197,8 @@ class Builder(_BNodeContainer, _GlobalShared):
 
         name_policy = name_policy or {}
         self.name_policy = {
-            scope: name_policy.get(scope, DEFAULT_NAME_POLICY[scope])
-            for scope in EntityType
+            entity_type: name_policy.get(entity_type, DEFAULT_NAME_POLICY[entity_type])
+            for entity_type in EntityType
         }
         if index_size is None:
             index_size = IndexSize.NONE

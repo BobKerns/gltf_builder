@@ -42,8 +42,8 @@ class VisitFunc(Protocol):
     -----------
     node: Entity
         The node being visited.
-    to_scope: ScopeName
-        The scope to which the node is being visited.
+    entity_type: EntityType
+        The type to which the node is being visited.
     phase: Phase
         The phase of the compilation process.
 
@@ -56,7 +56,7 @@ class VisitFunc(Protocol):
     def __call__(self,
                 globl: 'GlobalState',
                 node: 'Entity',
-                to_scope: EntityType,
+                to_type: EntityType,
                 phase: Phase,
             /):
         ...
@@ -70,8 +70,8 @@ class OrderFunc(Protocol):
     -----------
     node: Entity
         The node being visited.
-    to_scope: ScopeName
-        The scope to which the node is being visited.
+    to_type: EntityType
+        The type to which the node is being visited.
     phase: Phase
         The phase of the compilation process.
     Returns:
@@ -83,7 +83,7 @@ class OrderFunc(Protocol):
     def __call__(self,
                 globl: 'GlobalState',
                 node: 'Entity',
-                to_scope: EntityType,
+                to_type: EntityType,
                 phase: Phase,
                 /) -> Generator['Entity', None, None]:
         '''
@@ -101,7 +101,7 @@ class AggregateFunc(Protocol):
     def __call__(self,
                 globl: 'GlobalState',
                 entity: 'Entity',
-                to_scope: EntityType,
+                to_type: EntityType,
                 phase: Phase,
                 this_value: _DoCompileReturn,
                 values: Iterable[_DoCompileReturn],
@@ -174,18 +174,18 @@ class TreeWalker(Generic[_T_Return]):
         '''
         Walk the node and return the result of the traversal.
         '''
-        phase, to_scope = globl.phase, EntityType.BUILDER
+        phase, to_type = globl.phase, EntityType.BUILDER
         assert phase is not None
         state = globl.state(entity)
         this_value = self.visit(
             globl,
             entity,
-            to_scope,
+            to_type,
             phase)
         order = self.order(
             globl,
             entity,
-            to_scope,
+            to_type,
             phase)
         values = (
             self.walk_entity(globl, n)
@@ -195,7 +195,7 @@ class TreeWalker(Generic[_T_Return]):
             result = self.aggregate(
                 globl,
                 entity,
-                to_scope,
+                to_type,
                 phase,
                 this_value,
                 values)

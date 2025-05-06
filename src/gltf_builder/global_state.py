@@ -161,14 +161,14 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
     def _gen_name(self,
                   obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str|object='',
-                  scope: EntityType|None=None,
+                  entity_type: EntityType|None=None,
                   index: int|None=None,
                   suffix: str|None=None,
                   ) -> str:
         '''
         Generate a name according to the current name mode policy
         '''
-        scope = scope or obj._entity_type
+        entity_type = entity_type or obj._entity_type
         def get_count(obj: object) -> int:
             tname = type(obj).__name__[1:]
             counters = self._id_counters
@@ -178,7 +178,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
 
         def gen(obj: _Compilable[_GLTF, _STATE]) -> str:
             nonlocal prefix, suffix
-            name_mode = self.builder.name_policy[scope]
+            name_mode = self.builder.name_policy[entity_type]
             match obj:
                 case Entity() if obj.name and name_mode != NameMode.UNIQUE:
                     # Increment the count anyway for stability.
@@ -207,7 +207,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
                 return ''
             self.__names.add(name)
             return name
-        name_mode = self.builder.name_policy[scope]
+        name_mode = self.builder.name_policy[entity_type]
         match name_mode:
             case NameMode.AUTO:
                 return register(gen(obj))
