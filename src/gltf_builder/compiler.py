@@ -291,10 +291,8 @@ class _CompileState(Generic[_GLTF, _STATE, _ENTITY], _Scope): # type: ignore[mis
     def __init__(self,
                  entity: _ENTITY,
                  name: str,
-                byteOffset: int|None=0,
                 ) -> None:
         self.name = name
-        self._byteOffset = byteOffset
         self._index = None
         self._len = None
         self.entity = entity
@@ -318,11 +316,74 @@ class _CompileState(Generic[_GLTF, _STATE, _ENTITY], _Scope): # type: ignore[mis
         return std_repr(self, (
             'name',
             ('index', self._index),
-            ('byteOffset', self._byteOffset, "offset"),
             ('len', self._len),
             'phase',
         ))
 
+_BIN = TypeVar('_BIN')
+
+class _BinaryCompileState(Generic[_BIN, _GLTF, _STATE, _ENTITY], _CompileState[_GLTF, '_STATE', '_ENTITY']):
+    '''
+    State for Entities that hold binary data.
+    '''
+    __slots__ = (
+        *_CompileState.__slots__,
+        'data'
+        '_len', '_byteOffset',
+    )
+    data: _BIN
+    _byteOffset: int|None
+    @property
+    def byteOffset(self) -> int:
+        if self._byteOffset is None:
+            raise ValueError(f'Byte offset not set for {type(self)}')
+        return self._byteOffset
+
+    @byteOffset.setter
+    def byteOffset(self, offset: int):
+        if self._byteOffset is None:
+            self._byteOffset = offset
+        elif self._byteOffset != offset:
+            raise ValueError(f'Byte offset already set, old={self._byteOffset}, new={offset}')
+
+    def __init__(self,
+                    entity: _ENTITY,
+                    data: _BIN,
+                    name: str = '',
+                    /,
+                    byteOffset: Optional[int] = None,
+                    len: Optional[int] = None,
+                    ) -> None:
+        super().__init__(entity, name)
+        self.data = data
+        if byteOffset is not None:
+            self._byteOffset = byteOffset
+        else:
+            self._byteOffset = None
+        if len is not None:
+            self._len = len
+        else:
+            self._len = None
+
+
+    def __len__(self) -> int:
+        if self._len is None:
+            raise ValueError(f'Length not set for {self}')
+        return self._len
+
+    def __bool__(self) -> bool:
+        if self._len is None:
+            return False
+        return bool(self._len)
+
+    def __repr__(self):
+        return std_repr(self, (
+            'name',
+            ('index', self._index),
+            ('byteOffset', self._byteOffset, "offset"),
+            ('len', self._len),
+            'phase',
+        ))
 
 class _GlobalCompileState(Generic[_GLTF, _STATEX, _ENTITY],
                           _CompileState[_GLTF, _STATEX, _ENTITY]):
@@ -362,6 +423,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
     __slots__ = (
         '_name',  '_flags',
         '_initial_state',
+        
     )
     _entity_type: EntityType
     '''
@@ -589,7 +651,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                         state.COLLECT = result
                         return result
                     case Phase.SIZES:
-                        assert isinstance(state, _GlobalCompileState)
+                        assert isinstance(state, _BinaryCompileState)
                         bytelen = cast(_ReturnSizes, _do_compile() or 0)
                         assert bytelen is not None
                         state._len = bytelen
@@ -597,7 +659,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                         state.SIZES = bytelen
                         return bytelen
                     case Phase.OFFSETS:
-                        assert isinstance(state, _GlobalCompileState)
+                        assert isinstance(state, _BinaryCompileState)
                         _do_compile()
                         if state.byteOffset >= 0:
                             if LOG.isEnabledFor(DEBUG):
