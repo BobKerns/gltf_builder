@@ -14,6 +14,6 @@ def test_create_global_state(test_builder, builder_extras):
         assert gs.nodes['Test Node'] is not None
         assert gs.nodes['Test Node'].name == 'Test Node'
         assert gs.asset is tb.asset
-        assert gs._scope_name == EntityType.BUILDER
+        assert gs._entity_type == EntityType.BUILDER
         assert gs.extras == builder_extras
         assert gs.extensions == {}

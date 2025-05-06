@@ -65,7 +65,7 @@ class _Buffer(BBuffer):
     '''
     Implementation class for `BBuffer`.
     '''
-    _scope_name = EntityType.BUFFER
+    _entity_type = EntityType.BUFFER
 
     @classmethod
     def state_type(cls):

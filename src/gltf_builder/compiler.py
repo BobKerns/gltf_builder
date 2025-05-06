@@ -315,7 +315,12 @@ class _Compilable(Generic[_GLTF, _STATE]):
     __slots__ = (
         'name', 'extensions', 'extras', 'extension_objects', '_flags'
     )
-    _scope_name: EntityType
+    _entity_type: EntityType
+    '''
+    CLASS VARIABLE
+
+    The type of entity that this class represents.
+    '''
 
     extensions: ExtensionsData
     '''

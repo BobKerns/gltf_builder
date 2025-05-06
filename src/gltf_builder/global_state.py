@@ -46,7 +46,7 @@ LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 _imported: bool = False
 
 class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
-    _scope_name: EntityType = EntityType.BUILDER
+    _entity_type: EntityType = EntityType.BUILDER
 
     _id_counters: dict[str, count]
     _states: dict[int, _CompileState] = {}
@@ -168,7 +168,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
         '''
         Generate a name according to the current name mode policy
         '''
-        scope = scope or obj._scope_name
+        scope = scope or obj._entity_type
         def get_count(obj: object) -> int:
             tname = type(obj).__name__[1:]
             counters = self._id_counters

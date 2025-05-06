@@ -94,7 +94,7 @@ class Extension(Generic[_EXT_DATA, _EXT_STATE, _EXT_PLUGIN], Entity[_EXT_DATA, _
         '''
         ...
 
-    _scope_name = EntityType.EXTENSION
+    _entity_type = EntityType.EXTENSION
 
     plugin: _EXT_PLUGIN
     __data: Optional[_EXT_DATA]

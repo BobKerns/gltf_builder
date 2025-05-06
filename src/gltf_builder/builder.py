@@ -82,7 +82,7 @@ class Builder(_BNodeContainer, _GlobalShared):
     on each build.
     '''
 
-    _scope_name = EntityType.BUILDER
+    _entity_type = EntityType.BUILDER
 
     __asset: Optional[BAsset]
     @property

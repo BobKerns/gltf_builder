@@ -31,7 +31,7 @@ def test_camera_perspective(test_builder: BuilderContext):
                     extensions=TEST_EXTENSIONS,
                     )
     assert cam.name == 'Camera'
-    assert cam._scope_name == 'camera'
+    assert cam._entity_type == 'camera'
     assert cam.aspectRatio == 1.0
     assert cam.yfov == math.pi / 6
     assert cam.znear == 0.01
@@ -63,7 +63,7 @@ def test_camera_orthographic(test_builder: BuilderContext):
                     extensions=TEST_EXTENSIONS,
                     )
     assert cam.name == 'Camera'
-    assert cam._scope_name == 'camera'
+    assert cam._entity_type == 'camera'
     assert cam.xmag == 1.0
     assert cam.ymag == 1.0
     assert cam.znear == 0.01
