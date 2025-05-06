@@ -163,7 +163,6 @@ class _Primitive(BPrimitive):
                     istate = globl.state(state.indices_accessor)
                     istate.add_data(indices)
             case Phase.COLLECT:
-                mesh.name = mesh.name or globl._gen_name(mesh)
                 state.accessors = {
                     name: compile_attrib(name, cast(Sequence[AttributeData], data))
                     for name, data in self.attribs.items()

@@ -102,7 +102,6 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.dtype = cast(type[NP], decode_dtype(elementType, componentType))
         self.count = count
         self.elementType = elementType
-        self.name = name
         self.componentType = componentType
         self.normalized = normalized
         self.max = max

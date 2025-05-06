@@ -58,6 +58,8 @@ _SLOTS: tuple[str, ...] = tuple(
             'name',
             '_index',
             'entity',
+            '__extensions',
+            '__extras',
             '_extension_objects',
             #'__dict__',
         )
@@ -88,7 +90,7 @@ Type variable for the compile state.
 This is used to indicate the type of the compile state.
 '''
 
-_ELEMENT = TypeVar('_ELEMENT', bound='Entity')
+_ENTITY = TypeVar('_ENTITY', bound='Entity')
 
 
 _STATEX = TypeVar('_STATEX', bound='_CompileState')
@@ -170,7 +172,7 @@ class Progress(StrEnum):
     Indicates that a compilation phase is complete.
     '''
 
-class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[misc]
+class _CompileState(Generic[_GLTF, _STATE, _ENTITY], _Scope): # type: ignore[misc]
     '''
     State for compiling an entity.
     '''
@@ -178,6 +180,42 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
     name: str
     _index: int|None
     phase: Phase
+    __extensions: ExtensionsData|None
+
+    @property
+    def extensions(self) -> ExtensionsData:
+        '''
+        The JSON extension data supplied for the entity.
+        '''
+        if self.__extensions is None:
+            self.__extensions = {}
+        return self.__extensions
+
+    @extensions.setter
+    def extensions(self, value: ExtensionsData):
+        '''
+        Individual extension keys are independent, so assignment merges.
+        '''
+        self.extensions.update(value)
+
+
+    __extras: ExtrasData|None
+    @property
+    def extras(self) -> ExtrasData:
+        '''
+        The JSON extra data supplied for the entity.
+        '''
+        if self.__extras is None:
+            self.__extras = {}
+        return self.__extras
+    @extras.setter
+    def extras(self, value: ExtrasData):
+        '''
+        Extras are unmanaged data, so assignment replaces.
+        '''
+        self.__extras = value
+
+
     PRIMITIVES: Progress
     '''
     Process the data for the primitives for the glTF file.
@@ -231,7 +269,7 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         elif self._index != index:
             raise ValueError(f'Index already set, old={self._index}, new={index}')
 
-    entity: _ELEMENT
+    entity: _ENTITY
 
     __extension_objects: _Holder['Extension']|None
     @property
@@ -243,9 +281,15 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
             from gltf_builder.extensions import Extension
             self.__extension_objects = _Holder(Extension)
         return self.__extension_objects
+    @extension_objects.setter
+    def extension_objects(self, value: Iterable['Extension']):
+        '''
+        Add extension objects to the entity.
+        '''
+        self.extension_objects.add_from(value)
 
     def __init__(self,
-                 entity: _ELEMENT,
+                 entity: _ENTITY,
                  name: str,
                 byteOffset: int|None=0,
                 ) -> None:
@@ -254,8 +298,11 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         self._index = None
         self._len = None
         self.entity = entity
+        self.__extensions = None
+        self.__extras = None
         self.__extension_objects = None
-        self.extension_objects.add_from(entity.extension_objects)
+        if self.extension_objects:
+            self.extension_objects = entity.extension_objects
         self.PRIMITIVES: Progress = Progress.NONE
         self.COLLECT: _Collected|Progress = Progress.NONE
         self.ENUMERATE: int|Progress = Progress.NONE
@@ -277,8 +324,8 @@ class _CompileState(Generic[_GLTF, _STATE, _ELEMENT], _Scope): # type: ignore[mi
         ))
 
 
-class _GlobalCompileState(Generic[_GLTF, _STATEX, _ELEMENT],
-                          _CompileState[_GLTF, _STATEX, _ELEMENT]):
+class _GlobalCompileState(Generic[_GLTF, _STATEX, _ENTITY],
+                          _CompileState[_GLTF, _STATEX, _ENTITY]):
     __slots__ = (
         '_len', '_byteOffset',
     )
@@ -313,7 +360,8 @@ class _Compilable(Generic[_GLTF, _STATE]):
     compiled into a glTF file.
     '''
     __slots__ = (
-        'name', 'extensions', 'extras', 'extension_objects', '_flags'
+        '_name',  '_flags',
+        '_initial_state',
     )
     _entity_type: EntityType
     '''
@@ -322,20 +370,66 @@ class _Compilable(Generic[_GLTF, _STATE]):
     The type of entity that this class represents.
     '''
 
-    extensions: ExtensionsData
+    _initial_state: _STATE|None
     '''
-    The JSON extension data supplied for the entity.
+    The initial state of the entity, or None if no non-default values have been set.
     '''
-    extension_objects: set['Extension']
-    '''
-    A list of supplied extension instances to be compiled
-    into this entity.
+    @property
+    def initial_state(self) -> _STATE:
+        '''
+        The initial state of the entity.
+        '''
+        if self._initial_state is None:
+            t = cast(type['_CompileState'], self.state_type())
+            x = t(self, self.name)
+            self._initial_state = cast(_STATE, x)
+        return self._initial_state
 
-    This is used to allow extensions to be added to entities
-    at a higher level than supplying the JSON data.
-    '''
-    extras: ExtrasData
-    name: str
+    @property
+    def extensions(self) -> ExtensionsData:
+        '''
+        The JSON extension data supplied for the entity.
+        '''
+        return self.initial_state.extensions
+    @extensions.setter
+    def extensions(self, value: ExtensionsData):
+        '''
+        Individual extension keys are independent, so assignment merges.
+        '''
+        self.initial_state.extensions.update(value)
+
+    @property
+    def extension_objects(self) -> _Holder['Extension']:
+        '''
+
+        A set of supplied extension instances to be compiled
+        into this entity.
+
+        This is used to allow extensions to be added to entities
+        at a higher level than supplying the JSON data.
+        '''
+        return self.initial_state.extension_objects
+
+    @property
+    def extras(self) -> ExtrasData:
+        '''
+        The JSON extra data supplied for the entity.
+        '''
+        return self.initial_state.extras
+    @extras.setter
+    def extras(self, value: ExtrasData):
+        '''
+        Extras are unmanaged data, so assignment replaces.
+        '''
+        self.initial_state.extras = value
+
+    _name: str
+    @property
+    def name(self) -> str:
+        '''
+        The name of the entity. Not settable.
+        '''
+        return self._name
 
     _flags: EntityFlags
 
@@ -380,10 +474,15 @@ class _Compilable(Generic[_GLTF, _STATE]):
                  extensions: Optional[ExtensionsData]=None,
                  extension_objects: Optional[Iterable['Extension']]=None,
                 ):
-        self.extensions = dict(extensions) if extensions else {}
-        self.extras = dict(extras) if extras else {}
-        self.name = name
-        self.extension_objects = set(extension_objects or ())
+        self._name = name
+        self._initial_state = None
+        self._flags = EntityFlags.NONE
+        if extensions:
+            self.extensions = extensions
+        if extension_objects:
+            self.extension_objects.add_from(extension_objects)
+        if extras:
+            self.extras = dict(extras)
 
     def _clone_attributes(self) -> dict[str, Any]:
         '''
