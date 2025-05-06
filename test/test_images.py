@@ -43,7 +43,7 @@ def test_image_ndarray():
     '''
     blob = b'\x00\x01\x02\x03'
     array = np.frombuffer(blob, dtype=np.uint8)
-    img = image('test_image', imageType=ImageType.JPEG, blob=array)
+    img = image('test_image', imageType=ImageType.JPEG, blob=array.tobytes())
     assert img.name == 'test_image'
     assert img.blob == blob
     assert img.uri is None

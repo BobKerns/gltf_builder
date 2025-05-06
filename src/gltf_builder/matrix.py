@@ -33,8 +33,10 @@ class Matrix(Generic[DIMS]):
                 arr = data._data
             case tuple():
                 arr = np.array(data, dtype=np.float32)
+            case _:
+                raise ValueError("Invalid matrix format. Must be a 4x4 matrix or a flat list of 16 elements.")
         d = self.dims()
-        self._data = arr.reshape((d, d))
+        self._data = cast(np.ndarray[tuple[DIMS, DIMS], np.dtype[np.float32]], arr.reshape((d, d)))
 
     def __matmul__(self, other: 'Self|at.Vector3|at.Point'):
         if isinstance(other, Matrix):
@@ -55,7 +57,7 @@ class Matrix(Generic[DIMS]):
     def __mul__(self, scalar: Scalar) -> 'Matrix[DIMS]':
         if not isinstance(scalar, (int, float, np.floating)):
             return NotImplemented
-        return type(self)(self._data * float(scalar))
+        return type(self)(cast('MatrixSpec', self._data * float(scalar)))
 
     def __rmul__(self, scalar: Scalar):
         return self.__mul__(scalar)
@@ -87,7 +89,7 @@ class Matrix(Generic[DIMS]):
 
     @classmethod
     def identity(cls) -> 'Matrix[DIMS]':
-        return cls(np.identity(cls.dims(), dtype=np.float32))
+        return cls(cast('MatrixSpec', np.identity(cast(DIMS, cls.dims()), dtype=np.float32)))
 
 
 class Matrix2(Matrix[2]):
@@ -99,7 +101,7 @@ class Matrix2(Matrix[2]):
 
     @classmethod
     def identity(cls) -> 'Matrix2':
-        return cls(np.identity(cls.dims(), dtype=np.float32))
+        return cls(cast('MatrixSpec', np.identity(cls.dims(), dtype=np.float32)))
 
 class Matrix3(Matrix[3]):
     '''A 3x3 matrix.'''
@@ -110,7 +112,7 @@ class Matrix3(Matrix[3]):
 
     @classmethod
     def identity(cls) -> 'Matrix3':
-        return cls(np.identity(cls.dims(), dtype=np.float32))
+        return cls(cast('MatrixSpec', np.identity(cls.dims(), dtype=np.float32)))
 
 class Matrix4(Matrix[4]):
     '''A 4x4 matrix.'''
@@ -121,7 +123,7 @@ class Matrix4(Matrix[4]):
 
     @classmethod
     def identity(cls) -> 'Matrix4':
-        return cls(np.identity(cls.dims(), dtype=np.float32))
+        return cls(cast('MatrixSpec', np.identity(cls.dims(), dtype=np.float32)))
 
 Matrix2Spec: TypeAlias = (
     Matrix2 | tuple[
