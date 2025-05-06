@@ -194,20 +194,20 @@ def test_constructor(input: Matrix4Spec):
         [13, 14, 15, 16],
     ]
 
-M16 = np.array([
+M16: np.ndarray[tuple[Literal[4], Literal[4]], np.dtype[np.floating]] = np.array([
     [1, 2, 3, 4],
     [5, 6, 7, 8],
     [9, 10, 11, 12],
     [13, 14, 15, 16]
-], dtype=np.float32)
+], dtype=np.float32) # type: ignore
 M0 = np.zeros((4, 4), dtype=np.float32)
 @mark.parametrize('a, b, expected', [
     (matrix(M16), IDENTITY4, matrix(M16)),
     (IDENTITY4, matrix(M16), matrix(M16)),
-    (matrix(M16), matrix(M0), matrix(M0)),
-    (matrix(M0), matrix(M16), matrix(M0)),
-    (IDENTITY4, matrix(M0), matrix(M0)),
-    (matrix(M0), IDENTITY4, matrix(M0)),
+    (matrix(M16), matrix(M0), matrix(M0)), # type: ignore
+    (matrix(M0), matrix(M16), matrix(M0)), # type: ignore
+    (IDENTITY4, matrix(M0), matrix(M0)), # type: ignore
+    (matrix(M0), IDENTITY4, matrix(M0)), # type: ignore
 ])
 def test_matrix_multiplication(a: Matrix[Literal[2, 3, 4]], b: Matrix[Literal[2, 3, 4]], expected: Matrix[Literal[2, 3, 4]]):
     result = a @ b
