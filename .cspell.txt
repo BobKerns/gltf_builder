@@ -7,6 +7,7 @@ ALPHAMODES
 aname
 arccos
 argdata
+argdefs
 arrayable
 Arrayable
 astate
@@ -49,6 +50,7 @@ getuid
 globl
 gltf
 GLTFB
+hardwiring
 ibytes
 idtype
 iflen
@@ -63,6 +65,7 @@ jtype
 Khronos
 KOEPF
 kondo
+kwdefaults
 ldata
 linalg
 logstream
@@ -70,6 +73,7 @@ markserv
 mathbf
 memview
 mermaidchart
+metaclasses
 mmdc
 multiparent
 namespec
@@ -101,6 +105,7 @@ skel
 skipkeys
 slerp
 STATEX
+subclasscheck
 Sysiphean
 Tait
 tanminus
