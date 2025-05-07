@@ -711,16 +711,18 @@ def std_repr(self: object,
         return simple_num(v)
     cls = cls or type(self).__name__.lstrip('_')
     def get(key: AttrSpec) -> Any:
-        if isinstance(key, tuple):
-            return key[1]
-        if hasattr(self, key):
-            val = getattr(self, key)
-            return val
-        if hasattr(self, 'attributes'):
-            attrs = getattr(self, 'attributes', {})
-            if key in attrs:
-                return attrs[key]
-        return self[key] # type: ignore
+        with suppress(Exception):
+            if isinstance(key, tuple):
+                return key[1]
+            if hasattr(self, key):
+                val = getattr(self, key)
+                return val
+            if hasattr(self, 'attributes'):
+                attrs = getattr(self, 'attributes', {})
+                if key in attrs:
+                    return attrs[key]
+            return self[key] # type: ignore
+        return None
     def key(key: AttrSpec) -> str:
         if isinstance(key, tuple):
             if len(key) == 3:
