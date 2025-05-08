@@ -22,7 +22,6 @@ from gltf_builder.holders import _Holder
 from gltf_builder.utils import std_repr
 from gltf_builder.log import GLTF_LOG
 if TYPE_CHECKING:
-    from gltf_builder.protocols import _BufferViewKey
     from gltf_builder.entities import (
         Entity, BBuffer, BBufferView,
     )
@@ -92,9 +91,7 @@ This is used to indicate the type of the compile state.
 
 _ENTITY = TypeVar('_ENTITY', bound='Entity')
 
-
-_STATEX = TypeVar('_STATEX', bound='_CompileState')
-class _Scope:
+class _BinaryDataScope:
     '''
     Scope for allocating `BBufferView` and `BAccessor` objects.
 
@@ -106,10 +103,10 @@ class _Scope:
     views can follow the same scope as the accessors they contain, or any
     scope above them.
     '''
-    __slots__ = (
-        '__views', '__target_buffer', '__global',
-    )
-    __views: dict['_BufferViewKey', 'BBufferView']
+    # __slots__ = (
+    #     '__views', '__target_buffer', '__global',
+    # )
+    # __views: dict['_BufferViewKey', 'BBufferView']
 
     __target_buffer: 'BBuffer'
     @property
@@ -172,11 +169,11 @@ class Progress(StrEnum):
     Indicates that a compilation phase is complete.
     '''
 
-class _CompileState(Generic[_GLTF, _STATE, _ENTITY], _Scope): # type: ignore[misc]
+class _CompileState(Generic[_GLTF, _STATE, _ENTITY], _BinaryDataScope): # type: ignore[misc]
     '''
     State for compiling an entity.
     '''
-    __slots__ = _SLOTS
+    # __slots__ = _SLOTS
     name: str
     _index: int|None
     phase: Phase
@@ -326,11 +323,11 @@ class _BinaryCompileState(Generic[_BIN, _GLTF, _STATE, _ENTITY], _CompileState[_
     '''
     State for Entities that hold binary data.
     '''
-    __slots__ = (
-        *_CompileState.__slots__,
-        'data'
-        '_len', '_byteOffset',
-    )
+   #  __slots__ = (
+   #      *_CompileState.__slots__,
+   #      'data'
+   #      '_len', '_byteOffset',
+   #  )
     data: _BIN
     _byteOffset: int|None
     @property
@@ -385,8 +382,8 @@ class _BinaryCompileState(Generic[_BIN, _GLTF, _STATE, _ENTITY], _CompileState[_
             'phase',
         ))
 
-class _GlobalCompileState(Generic[_GLTF, _STATEX, _ENTITY],
-                          _CompileState[_GLTF, _STATEX, _ENTITY]):
+class _GlobalCompileState(Generic[_GLTF, _STATE, _ENTITY],
+                          _CompileState[_GLTF, _STATE, _ENTITY]):
     __slots__ = (
         '_len', '_byteOffset',
     )
@@ -420,11 +417,11 @@ class _Compilable(Generic[_GLTF, _STATE]):
     Base implementation class for all entities that can be
     compiled into a glTF file.
     '''
-    __slots__ = (
-        '_name',  '_flags',
-        '_initial_state',
-        
-    )
+    # __slots__ = (
+    #     '_name',  '_flags',
+    #     '_initial_state',
+    # )
+    name: str = ''
     _entity_type: EntityType
     '''
     CLASS VARIABLE
@@ -485,15 +482,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
         '''
         self.initial_state.extras = value
 
-    _name: str
-    @property
-    def name(self) -> str:
-        '''
-        The name of the entity. Not settable.
-        '''
-        return self._name
-
-    _flags: EntityFlags
+    name: str = ''
 
     @property
     def name_scope(self) -> bool:
@@ -536,7 +525,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                  extensions: Optional[ExtensionsData]=None,
                  extension_objects: Optional[Iterable['Extension']]=None,
                 ):
-        self._name = name
+        self.name = name
         self._initial_state = None
         self._flags = EntityFlags.NONE
         if extensions:
@@ -614,7 +603,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                 phase: Phase,
                 /
                 ) -> '_GLTF|int|_Collected|set[str]|None':
-        state = cast(_STATE, globl.state(cast('Entity', self)))
+        state = cast(_CompileState, globl.state(cast('Entity', self)))
         progress = getattr(state, phase.name)
         match progress:
             case Progress.IN_PROGRESS:
@@ -624,7 +613,7 @@ class _Compilable(Generic[_GLTF, _STATE]):
                 LOG.debug('Compiling %s in phase %s', self, phase.name)
 
                 def _do_compile():
-                    return self._do_compile(globl, phase, state)
+                    return self._do_compile(globl, phase, cast(_STATE, state))
                 match phase:
                     case Phase.COLLECT:
                         def e_collect(ext: 'Extension'):

@@ -42,6 +42,7 @@ fffeec
 fileuri
 frombuffer
 fromiter
+gbls
 gecos
 getent
 getitem

@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
     _GLTF, _STATE, _Compilable, _CompileState, _GlobalCompileState,
-    _Collected, _DoCompileReturn, _Scope,
+    _Collected, _DoCompileReturn, _BinaryDataScope,
 )
 from gltf_builder.core_types import (
     BufferViewTarget, ComponentType, ElementType, IndexSize,
@@ -126,7 +126,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
         buffer = (builder.buffers[0]
                   if builder.buffers
                   else _Buffer('main'))
-        _Scope.__init__(self, self, buffer)
+        _BinaryDataScope.__init__(self, self, buffer)
         self.add(buffer)
         self.buffers.add_from(builder.buffers)
         self.views.add_from(builder.views)

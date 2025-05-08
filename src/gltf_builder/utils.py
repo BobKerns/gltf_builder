@@ -5,6 +5,7 @@ Internal utilities for the glTF builder.
 from collections.abc import Callable, Iterable
 from contextlib import suppress
 from enum import Enum
+from functools import update_wrapper
 from math import floor
 import os
 import sys
@@ -14,7 +15,8 @@ import ctypes.wintypes
 import subprocess
 import getpass
 from itertools import chain, repeat
-from typing import  Any, Optional, TypeAlias, TypeVar, overload
+from types import FunctionType
+from typing import  Any, Optional, TypeAlias, TypeVar, cast, overload
 
 import numpy as np
 
@@ -588,6 +590,28 @@ def std_repr(self: object,
                     if v not in (None, "")
                 )
             }>'''
+
+
+def copy_function_with_new_closure(func, new_closure):
+    """
+    Copies a function and substitutes its __closure__.
+
+    This would be one way to adapt the __init__ method
+    to a different mro. However, I am leaning towards
+    hardwiring a generic __init__ method to the class
+    and using a common protocol for the base classes.
+    """
+    copied_func = FunctionType(
+        func.__code__,
+        func.__globals__,
+        name=func.__name__,
+        argdefs=func.__defaults__,
+        closure=new_closure,
+    )
+    copied_func = update_wrapper(copied_func, func)
+    cast(Any, copied_func).__kwdefaults__ = func.__kwdefaults__
+    return copied_func
+
 
 def _get_human_name():
     """
