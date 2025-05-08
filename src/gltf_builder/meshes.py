@@ -100,8 +100,6 @@ class _Mesh(BMesh):
         if isinstance(mode, BPrimitive):
             prim = mode
             prim.mesh = self
-            prim.extras = dict(extras or ())
-            prim.extensions = dict(extensions or ())
             return prim
         match points[0]:
             case Vertex():

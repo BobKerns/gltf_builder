@@ -5,6 +5,7 @@ Internal utilities for the glTF builder.
 from collections.abc import Callable, Iterable
 from contextlib import suppress
 from enum import Enum
+from functools import update_wrapper
 from math import floor
 import os
 import sys
@@ -14,171 +15,13 @@ import ctypes.wintypes
 import subprocess
 import getpass
 from itertools import chain, repeat
-from typing import  Any, Optional, TypeAlias, TypeVar, overload
+from types import FunctionType
+from typing import  Any, Optional, TypeAlias, TypeVar, cast, overload
 
 import numpy as np
 
 from gltf_builder.core_types import (
     ElementType, ComponentType, BufferType,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     ComponentSize, EntitySize, IndexSize, NPTypes,
 )
 from gltf_builder.attribute_types import (
@@ -711,16 +554,18 @@ def std_repr(self: object,
         return simple_num(v)
     cls = cls or type(self).__name__.lstrip('_')
     def get(key: AttrSpec) -> Any:
-        if isinstance(key, tuple):
-            return key[1]
-        if hasattr(self, key):
-            val = getattr(self, key)
-            return val
-        if hasattr(self, 'attributes'):
-            attrs = getattr(self, 'attributes', {})
-            if key in attrs:
-                return attrs[key]
-        return self[key] # type: ignore
+        with suppress(Exception):
+            if isinstance(key, tuple):
+                return key[1]
+            if hasattr(self, key):
+                val = getattr(self, key)
+                return val
+            if hasattr(self, 'attributes'):
+                attrs = getattr(self, 'attributes', {})
+                if key in attrs:
+                    return attrs[key]
+            return self[key] # type: ignore
+        return None
     def key(key: AttrSpec) -> str:
         if isinstance(key, tuple):
             if len(key) == 3:
@@ -745,6 +590,28 @@ def std_repr(self: object,
                     if v not in (None, "")
                 )
             }>'''
+
+
+def copy_function_with_new_closure(func, new_closure):
+    """
+    Copies a function and substitutes its __closure__.
+
+    This would be one way to adapt the __init__ method
+    to a different mro. However, I am leaning towards
+    hardwiring a generic __init__ method to the class
+    and using a common protocol for the base classes.
+    """
+    copied_func = FunctionType(
+        func.__code__,
+        func.__globals__,
+        name=func.__name__,
+        argdefs=func.__defaults__,
+        closure=new_closure,
+    )
+    copied_func = update_wrapper(copied_func, func)
+    cast(Any, copied_func).__kwdefaults__ = func.__kwdefaults__
+    return copied_func
+
 
 def _get_human_name():
     """
@@ -800,3 +667,25 @@ USERNAME: str = _get_username()
 
 
 USER: str = _get_human_name()
+
+
+def mk_empty():
+    '''
+    This function deletes itself.
+    '''
+    class EmptyMarker:
+        """
+        Marker class to indicate that the value is empty.
+        This class is hidden from the user.
+        """
+        def __repr__(self):
+            return "<<EMPTY>>"
+    empty = EmptyMarker()
+    del globals()['mk_empty']
+    return empty
+
+
+EMPTY = mk_empty()
+'''
+A singleton object to represent an empty or missing value.
+'''

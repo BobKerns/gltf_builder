@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import (
 from gltf_builder.entities import (
     BAccessor, BBuffer, NP, BBufferView
 )
-from gltf_builder.compiler import _GlobalCompileState, _DoCompileReturn
+from gltf_builder.compiler import _BinaryCompileState, _DoCompileReturn
 from gltf_builder.utils import (
     decode_dtype, decode_stride, decode_type, std_repr,
 )
@@ -29,29 +29,35 @@ if TYPE_CHECKING:
 
 LOG = GLTF_LOG.getChild(Path(__name__).stem)
 
-class _AccessorState(_GlobalCompileState[gltf.Accessor, '_AccessorState', '_Accessor']):
+class _AccessorState(_BinaryCompileState[memoryview, gltf.Accessor, '_AccessorState', '_Accessor']):
     '''
     State for the compilation of an accessor.
     '''
     view: Optional['BBufferView'] = None
-    memory: memoryview
-    data: list[AttributeData]
+    data: memoryview
+    items: list[AttributeData]
+    _count: int|None = None
+    @property
+    def count(self) -> int:
+        if self._count is None:
+            self._count = len(self.items)
+        return self._count
 
     def __init__(self,
                  accessor: '_Accessor',
                  name: str='',
                  /,
                  ) -> None:
-        super().__init__(accessor, name,
+        super().__init__(accessor, memoryview(b''), name,
                          byteOffset=None,
                          )
-        self.data = []
+        self.items = []
 
     def add_data(self, data: Sequence[BTYPE]):
-        self.data.extend(data)
+        self.items.extend(data)
 
     def add_data_item(self, data: AttributeData):
-        self.data.append(data)
+        self.items.append(data)
 
     def __repr__(self):
         return std_repr(self, (
@@ -59,7 +65,7 @@ class _AccessorState(_GlobalCompileState[gltf.Accessor, '_AccessorState', '_Acce
                 ('index', self._index),
                 ('byteOffset', self._byteOffset),
                 ('len', self._len),
-                ('data', len(self.data)),
+                ('data', len(self.items)),
                 'phase',
             ),
             id=id(self),
@@ -102,7 +108,6 @@ class _Accessor(BAccessor[NP, BTYPE]):
         self.dtype = cast(type[NP], decode_dtype(elementType, componentType))
         self.count = count
         self.elementType = elementType
-        self.name = name
         self.componentType = componentType
         self.normalized = normalized
         self.max = max
@@ -121,7 +126,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
             case Phase.COLLECT:
                 buffer = globl.buffer
                 vname = globl._gen_name(self,
-                                          scope=EntityType.BUFFER_VIEW,
+                                          entity_type=EntityType.BUFFER_VIEW,
                                           suffix='/view')
                 state.view = globl.get_view(buffer,
                                               self.target,
@@ -142,7 +147,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 ) = decode_type(self.elementType, self.componentType)
                 ldata = sum(
                     len(d) if isinstance(d, (Sequence, np.ndarray)) else 1
-                    for d in state.data
+                    for d in state.items
                 )
                 return ldata * self.componentSize
             case Phase.OFFSETS:
@@ -150,10 +155,10 @@ class _Accessor(BAccessor[NP, BTYPE]):
                 v_state = globl.state(state.view)
                 start = state.byteOffset
                 end = state.byteOffset + len(state)
-                state.memory = v_state.memory[start:end]
+                state.data = v_state.memory[start:end]
                 return end
             case Phase.BUILD:
-                data = np.array(state.data, self.dtype)
+                data = np.array(state.items, self.dtype)
                 if len(data) == 0:
                     min_axis = max_axis = [0]
                 else:
@@ -167,7 +172,7 @@ class _Accessor(BAccessor[NP, BTYPE]):
                     max_axis = [float(v) for v in max_axis]
                 else:
                     max_axis = [float(max_axis)] * self.componentCount
-                state.memory[:] = data.tobytes()
+                state.data[:] = data.tobytes()
                 assert state.view is not None
                 return gltf.Accessor(
                     bufferView=globl.idx(state.view),

@@ -8,7 +8,7 @@ from typing import Optional, TYPE_CHECKING
 import pygltflib as gltf
 
 from gltf_builder.compiler import (
-    _GLTF, _STATE, _GlobalCompileState, _DoCompileReturn,
+    _GLTF, _STATE, _BinaryCompileState, _DoCompileReturn,
     ExtensionsData, ExtrasData,
 )
 from gltf_builder.core_types import (
@@ -21,7 +21,7 @@ from gltf_builder.entities import (
 if TYPE_CHECKING:
     from gltf_builder.global_state import GlobalState
 
-class _BufferState(_GlobalCompileState[gltf.Buffer, _STATE, '_Buffer']):
+class _BufferState(_BinaryCompileState[bytearray, gltf.Buffer, _STATE, '_Buffer']):
     '''
     State for the compilation of a buffer.
     '''
@@ -57,7 +57,9 @@ class _BufferState(_GlobalCompileState[gltf.Buffer, _STATE, '_Buffer']):
                  /,
                  ) -> None:
         self._bytearray = bytearray()
-        super().__init__(buffer, name)
+        super().__init__(buffer, bytearray(),name,
+                         byteOffset=0,
+                         )
         self._views = {}
 
 
@@ -65,7 +67,7 @@ class _Buffer(BBuffer):
     '''
     Implementation class for `BBuffer`.
     '''
-    _scope_name = EntityType.BUFFER
+    _entity_type = EntityType.BUFFER
 
     @classmethod
     def state_type(cls):

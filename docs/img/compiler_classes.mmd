@@ -33,7 +33,7 @@ classDiagram
         name: str
     }
     classDef Final fill:#f9f,stroke:#000,stroke-width:8px;
-    class ScopeName {
+    class EntityType {
         <<enumeration>>
         ASSET: str
         PRIMITIVE: str
@@ -60,7 +60,7 @@ classDiagram
 
     class _Compilable {
         <<interface>>
-        _scope: ScopeName
+        entity_type: EntityType
         -name: str
         -extensions: ExtensionsData
         -extras: ExtrasData

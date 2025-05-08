@@ -18,7 +18,7 @@ from gltf_builder.attribute_types import BTYPE
 from gltf_builder.buffers import _Buffer
 from gltf_builder.compiler import (
     _GLTF, _STATE, _Compilable, _CompileState, _GlobalCompileState,
-    _Collected, _DoCompileReturn, _Scope,
+    _Collected, _DoCompileReturn, _BinaryDataScope,
 )
 from gltf_builder.core_types import (
     BufferViewTarget, ComponentType, ElementType, IndexSize,
@@ -46,7 +46,7 @@ LOG = GLTF_LOG.getChild(__name__.split('.')[-1])
 _imported: bool = False
 
 class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
-    _scope_name: EntityType = EntityType.BUILDER
+    _entity_type: EntityType = EntityType.BUILDER
 
     _id_counters: dict[str, count]
     _states: dict[int, _CompileState] = {}
@@ -126,7 +126,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
         buffer = (builder.buffers[0]
                   if builder.buffers
                   else _Buffer('main'))
-        _Scope.__init__(self, self, buffer)
+        _BinaryDataScope.__init__(self, self, buffer)
         self.add(buffer)
         self.buffers.add_from(builder.buffers)
         self.views.add_from(builder.views)
@@ -161,14 +161,14 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
     def _gen_name(self,
                   obj: _Compilable[_GLTF, _STATE], /, *,
                   prefix: str|object='',
-                  scope: EntityType|None=None,
+                  entity_type: EntityType|None=None,
                   index: int|None=None,
                   suffix: str|None=None,
                   ) -> str:
         '''
         Generate a name according to the current name mode policy
         '''
-        scope = scope or obj._scope_name
+        entity_type = entity_type or obj._entity_type
         def get_count(obj: object) -> int:
             tname = type(obj).__name__[1:]
             counters = self._id_counters
@@ -178,7 +178,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
 
         def gen(obj: _Compilable[_GLTF, _STATE]) -> str:
             nonlocal prefix, suffix
-            name_mode = self.builder.name_policy[scope]
+            name_mode = self.builder.name_policy[entity_type]
             match obj:
                 case Entity() if obj.name and name_mode != NameMode.UNIQUE:
                     # Increment the count anyway for stability.
@@ -207,7 +207,7 @@ class GlobalState(_GlobalCompileState, _BNodeContainer, _GlobalSharedState):
                 return ''
             self.__names.add(name)
             return name
-        name_mode = self.builder.name_policy[scope]
+        name_mode = self.builder.name_policy[entity_type]
         match name_mode:
             case NameMode.AUTO:
                 return register(gen(obj))
