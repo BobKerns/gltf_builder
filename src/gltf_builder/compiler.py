@@ -287,7 +287,7 @@ class _CompileState(Generic[_GLTF, _STATE, _ENTITY], _BinaryDataScope): # type: 
 
     def __init__(self,
                  entity: _ENTITY,
-                 name: str,
+                 name: str, /,
                 ) -> None:
         self.name = name
         self._index = None

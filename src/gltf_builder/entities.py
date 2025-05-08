@@ -90,6 +90,13 @@ class Entity(_Compilable[_GLTF, _STATE]):
         return f'{typ}-{self.name or "?"}'
 
 
+    def _make_state(self) -> _STATE:
+        '''
+        Create a state object for this entity.
+        '''
+        raise NotImplementedError('Entity._make_state() not implemented')
+
+
 class BBuffer(Entity[gltf.Buffer, '_BufferState']):
     '''
     Buffer interface.

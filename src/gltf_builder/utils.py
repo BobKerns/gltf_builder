@@ -667,3 +667,25 @@ USERNAME: str = _get_username()
 
 
 USER: str = _get_human_name()
+
+
+def mk_empty():
+    '''
+    This function deletes itself.
+    '''
+    class EmptyMarker:
+        """
+        Marker class to indicate that the value is empty.
+        This class is hidden from the user.
+        """
+        def __repr__(self):
+            return "<<EMPTY>>"
+    empty = EmptyMarker()
+    del globals()['mk_empty']
+    return empty
+
+
+EMPTY = mk_empty()
+'''
+A singleton object to represent an empty or missing value.
+'''
