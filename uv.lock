@@ -567,15 +567,15 @@ wheels = [
 
 [[package]]
 name = "pygltflib"
-version = "1.16.4"
+version = "1.16.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dataclasses-json" },
     { name = "deprecated" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/df/78/aa4ed6828f488ae3be083d0d196764c57fa6db827a8581b7dfed95e4a0a5/pygltflib-1.16.4.tar.gz", hash = "sha256:7816253ef51b07a208864b94332bce8c509aa0f9b827d8771cf271293ecebb11", size = 43197, upload-time = "2025-04-23T08:02:31.627Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/e8/f8232abdf9c085333689b0a428dcd1d0f83edd1ecafa6ed878a633d8c9d5/pygltflib-1.16.5.tar.gz", hash = "sha256:1f15740d5a7aaf71a5083e285af6b361184958e255659132f4ba8fe4f3d21ea9", size = 43272, upload-time = "2025-07-24T06:35:38.611Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/f8/2e7bfe265e314e5bf9be69ae9be73921a9317fbf0e830202a2582e2ea64e/pygltflib-1.16.4-py3-none-any.whl", hash = "sha256:1cb5886ca12ac512bbea3b5640f1e15575844418b1f1574de42ec19175e00f53", size = 27524, upload-time = "2025-04-23T08:02:27.987Z" },
+    { url = "https://files.pythonhosted.org/packages/91/d6/7eb8a0e4eb30add2b76c957a41107a5f2ba26472d656e2733728bec0476b/pygltflib-1.16.5-py3-none-any.whl", hash = "sha256:41d3349c59dcf1586faeaee29c967be07ac2bf7cecdb8ae2b527da1f25afdaac", size = 27557, upload-time = "2025-07-24T06:35:37.328Z" },
 ]
 
 [[package]]
