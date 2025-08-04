@@ -12,7 +12,7 @@
         "path": "echo $PATH"
     },
     "devDependencies": {
-        "@mermaid-js/mermaid-cli": "^11.4.2",
+        "@mermaid-js/mermaid-cli": "^11.9.0",
         "braces": "^3.0.3",
         "gltf-validator": "^2.0.0-dev.3.10",
         "markserv": "^1.17.4",
