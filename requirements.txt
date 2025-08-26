@@ -16,7 +16,7 @@ pygltflib==1.16.4
     # via gltf-builder (pyproject.toml)
 semver==3.0.4
     # via gltf-builder (pyproject.toml)
-typing-extensions==4.13.2
+typing-extensions==4.15.0
     # via typing-inspect
 typing-inspect==0.9.0
     # via dataclasses-json
