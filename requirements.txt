@@ -12,7 +12,7 @@ numpy==2.2.6
     # via gltf-builder (pyproject.toml)
 packaging==25.0
     # via marshmallow
-pygltflib==1.16.4
+pygltflib==1.16.5
     # via gltf-builder (pyproject.toml)
 semver==3.0.4
     # via gltf-builder (pyproject.toml)
