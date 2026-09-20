@@ -81,7 +81,7 @@ jobs:
                 cache-dependency-glob: "uv.lock"
 
         - name: Download Build Artifact
-          uses: actions/download-artifact@v4
+          uses: actions/download-artifact@v6
           with:
               name: build-artifact
               path: dist/
@@ -129,7 +129,7 @@ jobs:
               echo "max-cache-ttl 7200" >> ~/.gnupg/gpg-agent.conf
 
         - name: Download Build Artifact
-          uses: actions/download-artifact@v4
+          uses: actions/download-artifact@v6
           with:
               name: build-artifact
               path: dist/
